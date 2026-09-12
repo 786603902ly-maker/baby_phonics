@@ -10,7 +10,7 @@
   }
 
   /* A */
-  I.ax = '<rect x="48" y="24" width="9" height="64" rx="4" fill="#C68642"/><path d="M50 20h8c14 0 22 8 22 18s-8 18-22 18h-8z" fill="#B9C2CC"/><rect x="42" y="20" width="10" height="36" rx="3" fill="#E8624A"/>';
+  I.ax = '<rect x="43" y="28" width="11" height="62" rx="5" fill="#C68642"/><path d="M50 12h13c13 0 24 9 24 21s-11 21-24 21H50z" fill="#CDD5DC"/><path d="M62 12c14 2 25 10 25 21s-11 19-25 21c7-7 10-13 10-21s-3-14-10-21z" fill="#9AA5B1"/><rect x="38" y="26" width="17" height="30" rx="4" fill="#8B5A2B"/>';
   I.ant = '<ellipse cx="30" cy="56" rx="12" ry="10" fill="#2E2A3B"/><ellipse cx="50" cy="54" rx="10" ry="9" fill="#2E2A3B"/><ellipse cx="72" cy="56" rx="15" ry="13" fill="#2E2A3B"/><g stroke="#2E2A3B" stroke-width="3" stroke-linecap="round"><path d="M46 60l-8 18M56 60l6 18M48 46l-6-12M56 46l8-10M28 46l-8-10M26 62l-12 8"/></g><circle cx="26" cy="52" r="2.6" fill="#F5C518"/>';
   I.alligator = '<path d="M4 58c14-6 30-8 48-8h32c6 0 10 3 10 7s-4 7-10 7H52c-18 0-34-2-48-6z" fill="#5AA469"/><path d="M58 50h26c6 0 10 3 10 7H58z" fill="#4A8A57"/><g fill="#FFF9F0"><path d="M64 57l3-5 3 5zM72 57l3-5 3 5zM80 57l3-5 3 5z"/></g><circle cx="68" cy="46" r="5" fill="#4A8A57"/><circle cx="68" cy="45" r="2.2" fill="#2E2A3B"/><g stroke="#5AA469" stroke-width="7" stroke-linecap="round"><path d="M34 66v8M60 66v8"/></g>';
 

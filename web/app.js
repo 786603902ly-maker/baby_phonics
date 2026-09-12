@@ -57,6 +57,23 @@
   function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
   function word(k) { return C.WORDS[k]; }
+
+  /* A picture, with its word underneath. Grown-ups can replace any drawing
+     with a real photo (Grown-ups -> Pictures); those live in IndexedDB. */
+  var PHOTOS = {};
+  function picture(k, noLabel) {
+    var wd = word(k);
+    var img = PHOTOS[k]
+      ? '<span class="pic pic--photo" style="background-image:url(' + PHOTOS[k] + ')"></span>'
+      : '<span class="pic">' + icon(wd.icon) + '</span>';
+    return img + (noLabel ? '' : '<span class="picword">' + esc(wd.text) + '</span>');
+  }
+  function loadPhotos() {
+    var keys = Object.keys(A.have).filter(function (k) { return k.indexOf('pic:') === 0; });
+    return Promise.all(keys.map(function (k) {
+      return A.blobURL(k).then(function (u) { if (u) PHOTOS[k.slice(4)] = u; });
+    }));
+  }
   function glyph(l) { return l === 'q' ? 'qu' : l; }
 
   function stars(n) {
@@ -115,7 +132,10 @@
           '<h1 class="wname">Hi, ' + esc(S.name) + '!</h1>' +
           '<div class="wstars">' + icon('starOn', 'wstar') + '<b>' + ts + '</b><small>stars</small></div>' +
           '<button class="bigbtn" id="go">' + icon('play', 'bigbtn-glyph') + '<span>Play</span></button>' +
-          '<button class="ghostbtn" id="toBook">My Book</button>' +
+          '<div class="wrow">' +
+            '<button class="ghostbtn ghostbtn--game" id="toGame">' + icon('trophy', 'gb-glyph') + 'Mix it up</button>' +
+            '<button class="ghostbtn" id="toBook">My Book</button>' +
+          '</div>' +
         '</div>' +
         '<button class="gear" id="gear" aria-label="Grown-ups: press and hold">' + icon('gear') + '</button>' +
       '</div>'
@@ -132,6 +152,7 @@
       screenMap();
     };
     document.getElementById('toBook').onclick = function () { ensureSound(); screenBook(); };
+    document.getElementById('toGame').onclick = startGame;
   }
 
   function wireGear() {
@@ -175,7 +196,14 @@
     } else {
       var ls = C.levelLessons(openLevel);
       var nxt = nextLesson(openLevel);
-      body = '<div class="path">' + ls.map(function (l, i) {
+      var gameCard = openLevel !== 2 ? '' :
+        '<button class="gamecard" id="gamecard">' +
+          '<span class="gamecard-icon">' + icon('trophy') + '</span>' +
+          '<span class="gamecard-text"><b>Mix it up</b><small>' +
+            learnedLetters().length + ' letters, all jumbled together</small></span>' +
+          '<span class="gamecard-stars">' + stars(starsFor('game')) + '</span>' +
+        '</button>';
+      body = gameCard + '<div class="path">' + ls.map(function (l, i) {
         var n = starsFor(l.id);
         var isNext = l.id === nxt.id;
         return '<button class="stop ' + (i % 2 ? 'right' : 'left') + (n ? ' is-done' : '') + (isNext ? ' is-next' : '') + '" data-id="' + l.id + '">' +
@@ -209,6 +237,8 @@
     Array.prototype.forEach.call(document.querySelectorAll('.stop'), function (b) {
       b.onclick = function () { ensureSound(); startLesson(C.lesson(b.dataset.id)); };
     });
+    var gc = document.getElementById('gamecard');
+    if (gc) gc.onclick = startGame;
 
     var next = document.querySelector('.stop.is-next');
     if (next) setTimeout(function () { next.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 80);
@@ -253,12 +283,14 @@
   var GEN = {};
 
   /* Level 1: hear a word, tap the picture. */
+  function trackOf(lesson) { return lesson.theme ? 'T:' + lesson.theme : 'S:game'; }
+
   GEN.picturePick = function (cfg, lesson) {
     var out = [];
     sample(cfg.words, cfg.rounds).forEach(function (k) {
       var others = sample(cfg.words.filter(function (x) { return x !== k; }), 2);
       out.push({
-        kind: 'pick', track: 'T:' + lesson.id.slice(2),
+        kind: 'pick', track: trackOf(lesson),
         text: 'Which one is it?',
         play: function () { return A.say('Where is the').then(function () { return A.sayWord(word(k).text); }); },
         options: shuffle([k].concat(others)).map(function (x) {
@@ -272,7 +304,7 @@
   /* Level 1: memory pairs. Fun, and every flip names the picture. */
   GEN.memoryMatch = function (cfg, lesson) {
     return [{
-      kind: 'memory', track: 'T:' + lesson.id.slice(2),
+      kind: 'memory', track: trackOf(lesson),
       text: 'Find the pairs',
       words: sample(cfg.words, cfg.pairs),
       play: function () { return A.say('Find the two that are the same.'); }
@@ -362,17 +394,52 @@
   };
 
   /* ==================================================================
+     GAME MODE — every letter she has met, all mixed together
+     ================================================================== */
+  function learnedLetters() {
+    var l = C.LETTERS.filter(function (x) { return done('a-' + x); });
+    return l.length >= 3 ? l : C.LETTERS.slice(0, 6);
+  }
+
+  function gameLesson() {
+    var set = learnedLetters();
+    var pool = [];
+    set.forEach(function (l) { pool = pool.concat(C.ALPHABET[l].words); });
+    return {
+      id: 'game', level: 2, game: true, name: 'Mix it up', shortName: 'Mix it up',
+      icon: 'trophy', letters: set,
+      activities: [
+        { type: 'findLetter', letters: set, rounds: 4 },
+        { type: 'startsWith', letters: set, rounds: 4 },
+        { type: 'missingLetter', letters: set, rounds: 3 },
+        { type: 'memoryMatch', words: sample(pool, 6), pairs: 3 }
+      ]
+    };
+  }
+
+  function startGame() {
+    ensureSound();
+    var g = gameLesson();
+    startLesson(g, true);
+  }
+
+  /* ==================================================================
      LESSON RUNNER
      ================================================================== */
   var run = null;
   var sessionStart = 0;
 
-  function startLesson(lesson) {
+  function startLesson(lesson, mix) {
     var rounds = [];
     lesson.activities.forEach(function (a) {
       if (GEN[a.type]) rounds = rounds.concat(GEN[a.type](a, lesson));
     });
     if (!rounds.length) { toast('Nothing here yet'); return; }
+    if (mix) {
+      /* in game mode the round types interleave, so it never feels like a drill */
+      var mem = rounds.filter(function (x) { return x.kind === 'memory'; });
+      rounds = shuffle(rounds.filter(function (x) { return x.kind !== 'memory'; })).concat(mem);
+    }
     run = { lesson: lesson, rounds: rounds, i: 0, correct: 0, tries: 0, t0: Date.now() };
     if (!sessionStart) sessionStart = Date.now();
     renderRound();
@@ -429,9 +496,9 @@
   function rPick(r) {
     var opts = r.options.map(function (o, i) {
       var body = o.kind === 'pic'
-        ? '<span class="pic">' + icon(word(o.word).icon) + '</span>'
+        ? picture(o.word)
         : '<span class="glyph">' + esc(glyph(o.letter)) + '</span>';
-      return '<button class="opt" data-i="' + i + '">' + body + '</button>';
+      return '<button class="opt' + (o.kind === 'pic' ? ' opt--pic' : '') + '" data-i="' + i + '">' + body + '</button>';
     }).join('');
     shell('<div class="opts">' + opts + '</div>');
 
@@ -455,25 +522,33 @@
     });
   }
 
-  /* ---- the letter card: big Aa, its friend, four keyword pictures ---- */
+  /* ---- the letter card: big Aa, how to say it, four keyword pictures ---- */
   function rMeet(r) {
     var L = C.ALPHABET[r.letter];
     var pics = L.words.map(function (k, i) {
       var t = word(k).text;
-      var head = esc(t.charAt(0));
-      var tail = esc(t.slice(1));
       return '<button class="kw" data-k="' + k + '" data-i="' + i + '">' +
-        '<span class="kw-pic">' + icon(word(k).icon) + '</span>' +
-        '<span class="kw-text"><b>' + head + '</b>' + tail + '</span>' +
+        '<span class="kw-pic">' + (PHOTOS[k]
+          ? '<span class="pic pic--photo" style="background-image:url(' + PHOTOS[k] + ')"></span>'
+          : icon(word(k).icon)) + '</span>' +
+        '<span class="kw-text"><b>' + esc(t.charAt(0)) + '</b>' + esc(t.slice(1)) + '</span>' +
         '</button>';
     }).join('');
 
     shell(
       '<div class="card">' +
-        '<button class="card-top" id="cardtop">' +
-          '<span class="card-letter">' + esc(r.letter.toUpperCase()) + esc(r.letter) + '</span>' +
-          (L.friend ? '<span class="card-friend">' + esc(L.friend) + '</span>' : '') +
-        '</button>' +
+        '<div class="card-head">' +
+          '<button class="card-top" id="cardtop">' +
+            '<span class="card-letter">' + esc(r.letter.toUpperCase()) + esc(r.letter) + '</span>' +
+            '<span class="card-ipa">' + esc(L.ipa) + '</span>' +
+            (L.friend ? '<span class="card-friend">' + esc(L.friend) + '</span>' : '') +
+          '</button>' +
+          '<button class="card-mouth" id="cardmouth" aria-label="How to say it">' +
+            window.mouthSvg(L.mouth) +
+            '<span class="card-tip">' + esc(L.tip) + '</span>' +
+          '</button>' +
+        '</div>' +
+        (L.also ? '<p class="card-also">' + esc(L.also) + '</p>' : '') +
         '<div class="kws">' + pics + '</div>' +
         '<button class="nextbtn" id="cardnext">' + icon('play') + '</button>' +
       '</div>',
@@ -491,6 +566,8 @@
 
     var top = document.getElementById('cardtop');
     top.onclick = function () { bump(top); sayLetter(); };
+    var mouthBtn = document.getElementById('cardmouth');
+    mouthBtn.onclick = function () { bump(mouthBtn); A.sayPhoneme(r.letter); };
 
     var heard = {};
     Array.prototype.forEach.call(document.querySelectorAll('.kw'), function (b) {
@@ -505,7 +582,6 @@
       };
     });
 
-    /* say it once on arrival, then walk the four words */
     setTimeout(function () {
       sayLetter().then(function () {
         var seq = Promise.resolve();
@@ -542,7 +618,9 @@
 
     shell(
       '<div class="missing">' +
-        '<div class="missing-pic">' + icon(word(r.word).icon) + '</div>' +
+        '<div class="missing-pic">' + (PHOTOS[r.word]
+          ? '<span class="pic pic--photo" style="background-image:url(' + PHOTOS[r.word] + ')"></span>'
+          : icon(word(r.word).icon)) + '</div>' +
         '<div class="missing-word">' + letters + '</div>' +
         '<div class="opts opts-row">' + r.options.map(function (l, i) {
           return '<button class="opt opt--letter" data-l="' + l + '"><span class="glyph">' + esc(glyph(l)) + '</span></button>';
@@ -578,7 +656,7 @@
     shell('<div class="memory">' + deck.map(function (k, i) {
       return '<button class="mcard" data-k="' + k + '" data-i="' + i + '">' +
         '<span class="mback">' + icon('starOn') + '</span>' +
-        '<span class="mface">' + icon(word(k).icon) + '</span>' +
+        '<span class="mface">' + picture(k) + '</span>' +
         '</button>';
     }).join('') + '</div>');
 
@@ -632,7 +710,7 @@
     var overCap = sessionStart && (Date.now() - sessionStart) / 60000 > S.settings.cap;
     var ls = C.levelLessons(l.level);
     var idx = ls.map(function (x) { return x.id; }).indexOf(l.id);
-    var next = ls[idx + 1];
+    var next = l.game ? null : ls[idx + 1];
 
     nav(
       '<div class="screen screen-done">' +
@@ -644,6 +722,7 @@
           '<div class="donebtns">' +
             '<button class="ghostbtn" id="dmap">Map</button>' +
             (next && !overCap ? '<button class="bigbtn bigbtn--sm" id="dnext">' + icon('play', 'bigbtn-glyph') + '<span>Next</span></button>' : '') +
+            (l.game && !overCap ? '<button class="bigbtn bigbtn--sm" id="dagain">' + icon('play', 'bigbtn-glyph') + '<span>Again</span></button>' : '') +
           '</div>' +
           (overCap ? '<p class="donecap">That was a good long turn. See you tomorrow!</p>' : '') +
         '</div>' +
@@ -652,6 +731,8 @@
     document.getElementById('dmap').onclick = function () { if (overCap) sessionStart = 0; screenMap(); };
     var dn = document.getElementById('dnext');
     if (dn) dn.onclick = function () { startLesson(next); };
+    var da = document.getElementById('dagain');
+    if (da) da.onclick = startGame;
     run = null;
   }
 
@@ -668,7 +749,7 @@
           '<button class="iconbtn" id="pback" aria-label="Back">' + icon('back') + '</button>' +
           '<h2>Grown-ups</h2><span class="iconbtn iconbtn--ghost"></span>' +
         '</div>' +
-        '<nav class="tabs">' + ['progress', 'voice', 'settings'].map(function (t) {
+        '<nav class="tabs">' + ['progress', 'pictures', 'voice', 'settings'].map(function (t) {
           return '<button class="tab ' + (tab === t ? 'is-on' : '') + '" data-t="' + t + '">' + t + '</button>';
         }).join('') + '</nav>' +
         '<div id="ptab"></div>' +
@@ -678,7 +759,7 @@
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
       b.onclick = function () { tab = b.dataset.t; screenParent(); };
     });
-    ({ progress: tabProgress, voice: tabVoice, settings: tabSettings })[tab]();
+    ({ progress: tabProgress, pictures: tabPictures, voice: tabVoice, settings: tabSettings })[tab]();
   }
 
   function tabProgress() {
@@ -732,7 +813,7 @@
         (recent.length
           ? '<table class="tbl"><thead><tr><th>When</th><th>Stop</th><th class="num">Mins</th><th class="num">Score</th><th class="num">Stars</th></tr></thead><tbody>' +
             recent.map(function (r) {
-              var l = C.lesson(r.lesson);
+              var l = C.lesson(r.lesson) || (r.lesson === 'game' ? { shortName: 'Mix it up' } : null);
               return '<tr><td>' + new Date(r.d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + '</td>' +
                 '<td>' + esc(l ? (l.shortName || l.name) : r.lesson) + '</td>' +
                 '<td class="num">' + (r.mins || 0) + '</td>' +
@@ -741,6 +822,47 @@
             }).join('') + '</tbody></table>'
           : '<p class="hint">No turns yet.</p>') +
       '</div>';
+  }
+
+  function tabPictures() {
+    var keys = Object.keys(C.WORDS).sort();
+    document.getElementById('ptab').innerHTML =
+      '<div class="panel">' +
+        '<h3>Replace a drawing with a real photo</h3>' +
+        '<p class="hint">Every picture here is a drawing, and some are easier to guess than others. Tap a row to put a real photo in its place &mdash; a photo of the actual cup in your kitchen beats any drawing, and she will recognise it instantly. Photos stay on this device and are never uploaded.</p>' +
+        '<p class="stat"><b>' + Object.keys(PHOTOS).length + '</b> of ' + keys.length + ' replaced</p>' +
+      '</div>' +
+      '<div class="panel"><div class="piclist">' +
+        keys.map(function (k) {
+          var wd = C.WORDS[k];
+          return '<div class="picrow" data-k="' + k + '">' +
+            '<span class="picthumb' + (PHOTOS[k] ? ' has' : '') + '"' +
+              (PHOTOS[k] ? ' style="background-image:url(' + PHOTOS[k] + ')"' : '') + '>' +
+              (PHOTOS[k] ? '' : icon(wd.icon)) + '</span>' +
+            '<span class="piclabel">' + esc(wd.text) + (wd.sub ? '<em>not the book&rsquo;s word</em>' : '') + '</span>' +
+            '<label class="vbtn" for="pf-' + k + '">' + icon('camera') + '</label>' +
+            '<input type="file" id="pf-' + k + '" accept="image/*" hidden>' +
+            (PHOTOS[k] ? '<button class="vbtn picdel">&times;</button>' : '') +
+            '</div>';
+        }).join('') +
+      '</div></div>';
+
+    Array.prototype.forEach.call(document.querySelectorAll('.picrow'), function (row) {
+      var k = row.dataset.k;
+      row.querySelector('input[type=file]').onchange = function () {
+        var f = this.files && this.files[0];
+        if (!f) return;
+        squarePhoto(f)
+          .then(function (b) { return A.putBlob('pic:' + k, b); })
+          .then(function () { return A.blobURL('pic:' + k); })
+          .then(function (u) { if (u) PHOTOS[k] = u; toast('Saved'); screenParent(); })
+          .catch(function () { toast('Could not read that image'); });
+      };
+      var d = row.querySelector('.picdel');
+      if (d) d.onclick = function () {
+        A.delBlob('pic:' + k).then(function () { delete PHOTOS[k]; screenParent(); });
+      };
+    });
   }
 
   function tabVoice() {
@@ -760,8 +882,8 @@
     document.getElementById('ptab').innerHTML =
       '<div class="panel">' +
         '<h3>Do I need to record anything?</h3>' +
-        '<p class="hint"><b>For the way you are teaching now &mdash; no.</b> The letter card teaches the sound through its four words (a &mdash; apple, ax, ant, alligator), and speech synthesis says whole words perfectly well. Leave this page alone.</p>' +
-        '<p class="hint">It starts to matter only at Level 3, when she has to sound out <b>c-a-t</b> one phoneme at a time. No speech engine can say a bare /t/ &mdash; it always adds &ldquo;uh&rdquo;, so &ldquo;cuh-a-tuh&rdquo; never blends into &ldquo;cat&rdquo;. At that point, recording the 26 sounds in your own voice fixes it. Ten minutes, once, months from now.</p>' +
+        '<p class="hint"><b>No.</b> All 26 letter sounds now play from clips built into the app. They were synthesised from phoneme symbols, so /k/ really is /k/ and the vowel in <i>cat</i> really is /&aelig;/ &mdash; not the &ldquo;kuh&rdquo; and /&#593;&#720;/ that browser speech gives you. Whole words still use the device voice, which handles them well.</p>' +
+        '<p class="hint">The built-in clips are correct but a little robotic. Recording a letter in your own voice replaces the clip for that letter &mdash; worth doing for any sound she keeps mishearing, and nothing else.</p>' +
         '<p class="stat"><b>' + A.recordingCount() + '</b> clips recorded' + (can ? '' : ' &middot; <span class="warn">this browser will not give the page a microphone</span>') + '</p>' +
         '<label class="field"><span>Voice</span><select id="voicepick">' +
           '<option value="">Automatic (British English preferred)</option>' +
@@ -770,9 +892,10 @@
           }).join('') + '</select></label>' +
       '</div>' +
       '<div class="panel"><h3>Letter sounds <small>' +
-        letters.filter(function (l) { return A.hasRecording('p:' + l); }).length + '/26 &mdash; optional</small></h3>' +
+        letters.filter(function (l) { return A.hasRecording('p:' + l); }).length + '/26 replaced by your voice &mdash; optional</small></h3>' +
         '<div class="vlist">' + letters.map(function (l) {
-          return row('p:' + l, glyph(l), 'as in ' + C.WORDS[C.ALPHABET[l].words[0]].text);
+          return row('p:' + l, glyph(l) + '  ' + C.ALPHABET[l].ipa,
+            'as in ' + C.WORDS[C.ALPHABET[l].words[0]].text);
         }).join('') + '</div>' +
       '</div>';
 
@@ -924,7 +1047,7 @@
      BOOT
      ================================================================== */
   A.rate = S.settings.rate;
-  A.init().then(function () {
+  A.init().then(loadPhotos).then(function () {
     if (S.settings.voice) setTimeout(function () { A.setVoice(S.settings.voice); }, 300);
     screenWelcome();
   });

@@ -19,6 +19,35 @@ cannot read yet.
 | 3 · Reading Words | from 5 | — | Blending. Visible on the map, not built. |
 | 4 · Reading Books | from 6 | — | Sentences and stories. Visible, not built. |
 
+### How each letter sounds
+
+Browser speech synthesis cannot say a bare letter sound — ask it for /k/ and
+it says "kuh", ask it for the vowel in *cat* and it gives you /ɑː/, the vowel
+in *car*. Both teach the wrong thing.
+
+So the 26 sounds are **not** spoken by the browser. `tools/make-phonemes.py`
+drives espeak-ng from phoneme symbols (`[[k]]`, `[[a]]`), producing the exact
+phoneme, and bakes the clips into `web/phonemes.js` as data: URIs. No network,
+no API key, works offline. Regenerate with:
+
+```sh
+apt-get install -y espeak-ng && python3 tools/make-phonemes.py
+```
+
+Voiced stops (b, d, g, j) make no sound at all in isolation — that is a fact
+about speech, not a bug — so those are synthesised with a following schwa and
+cut the instant the vowel starts, leaving the release burst alone.
+
+Each letter card also shows:
+
+- its **IPA** in British English, Oxford Learner's Dictionaries convention
+  (`a` → /æ/, `e` → /e/, `o` → /ɒ/, `u` → /ʌ/)
+- a **mouth picture**, front view, the way a mirror shows it
+- one line on **how to make the sound**
+- the letter's **other job** where it has one — c says /s/ before e, i, y;
+  g often says /dʒ/; s says /z/ at the end of many words; every vowel has its
+  name sound
+
 Each alphabet stop runs four games:
 
 1. **Meet the letter** — big `Aa`, the Phonics Friend, four keyword
@@ -31,6 +60,13 @@ Each alphabet stop runs four games:
 
 `x` is handled correctly: its words end with the sound, so its round asks
 "which one *ends* with x".
+
+## Game mode
+
+**Mix it up** — on the welcome screen and at the top of the alphabet map.
+Every letter she has already finished, jumbled together: find the letter,
+which one starts with it, which letter is missing, and a memory round. The
+round types interleave so it never feels like a drill.
 
 ## Rewards
 
@@ -70,8 +106,12 @@ Press and hold the gear on the welcome screen for two seconds.
 
 - **Progress** — mastery map per letter, the five weakest items with what
   to practise off-screen, and every turn played.
-- **Voice** — recording the 26 letter sounds is **optional and not needed
-  yet**; the panel explains when it starts to matter (Level 3).
+- **Pictures** — replace any drawing with a real photo from the phone. A
+  photo of the actual cup in your kitchen beats any drawing. Stored on the
+  device, never uploaded.
+- **Voice** — the 26 built-in clips are already phonetically correct;
+  recording is optional and only worth doing for a sound she keeps
+  mishearing.
 - **Settings** — her name, her photo (stored on the device only, never
   uploaded), session cap, speaking speed, backup, reset.
 

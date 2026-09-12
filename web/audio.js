@@ -1,7 +1,10 @@
 /* audio.js — the voice of the app.
-   Priority order for every sound:
-     1. a recording made by the grown-up (IndexedDB)  — correct phonemes
-     2. speech synthesis, British English if available — fallback
+   Priority order for a LETTER SOUND:
+     1. a recording made by the grown-up (IndexedDB)
+     2. the bundled clip in phonemes.js — synthesised from phoneme symbols by
+        espeak-ng, so /k/ is really /k/ and not "kuh"
+     3. speech synthesis (last resort; it cannot say a bare phoneme)
+   Whole WORDS use speech synthesis, which handles them well.
    Sound effects are synthesised with Web Audio, so there are no assets
    to download and nothing to break offline. */
 (function () {
@@ -205,11 +208,37 @@
     return enqueue(function () { return speakNow(text, opts); });
   };
 
-  /* Speak a single letter sound. Recording wins; TTS cue is the fallback. */
+  /* Bundled phoneme clips, played from their data: URI. */
+  var clipCache = {};
+  function playClip(src) {
+    return new Promise(function (resolve) {
+      if (A.muted) return resolve();
+      try {
+        var el = clipCache[src] || (clipCache[src] = new Audio(src));
+        var done = false;
+        function fin() { if (!done) { done = true; resolve(); } }
+        el.onended = fin;
+        el.onerror = fin;
+        el.currentTime = 0;
+        var p = el.play();
+        if (p && p.catch) p.catch(fin);
+        setTimeout(fin, 1600);
+      } catch (e) { resolve(); }
+    });
+  }
+
+  A.hasClip = function (letter) {
+    return !!(window.PHONEME_AUDIO && window.PHONEME_AUDIO[letter]);
+  };
+
+  /* Speak one letter sound. */
   A.sayPhoneme = function (letter) {
     var key = 'p:' + letter;
     return enqueue(function () {
       if (A.have[key]) return playBlobKey(key);
+      if (window.PHONEME_AUDIO && window.PHONEME_AUDIO[letter]) {
+        return playClip(window.PHONEME_AUDIO[letter]);
+      }
       var L = window.CONTENT.ALPHABET[letter];
       return speakNow(L ? L.sound : letter, { rate: 0.7, pitch: 1.0 });
     });
