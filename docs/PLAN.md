@@ -1,0 +1,369 @@
+# Phonics Tool — Product & Curriculum Plan (Age 4 → 7, Singapore)
+
+Target learner: 1 child, age 4.0 at start, English-dominant, schooling in Singapore.
+Target horizon: N2 (age 4) → P1/P2 (age 7).
+Delivery order: Web (PWA) → Android → iOS/iPad.
+
+---
+
+## 0. Design constraints derived from the observed behaviour
+
+Stated observation: child sustains attention when the loop is **voice prompt → image choices → touch/drag → voice feedback**.
+
+That loop dictates the architecture. Every design decision below is subordinate to it.
+
+| Constraint | Implication | Why |
+|---|---|---|
+| Pre-reader | Zero text-dependent navigation. All instructions audio. Text exists only as the *learning object*. | A 4-year-old cannot read a menu. If she needs an adult to navigate, she stops using it. |
+| Audio is the instruction channel | Audio must be pre-loaded and gapless. Latency > ~300ms between tap and feedback breaks the loop. | Delay reads as "broken" to a child; she taps again, gets confused, disengages. |
+| Touch, not mouse | Hit targets ≥ 88 px CSS. Drag must tolerate imprecise, slow, re-gripped fingers. | 4-year-old fine motor control. A 44px iOS-standard target is a miss-generator at this age. |
+| Feedback must be immediate and non-punitive | Wrong answer → the wrong option gently returns, correct one is re-cued. Never a red X + buzzer + score deduction. | Punishment loops produce avoidance. At 4, the goal is repeated exposure, not accuracy scoring. |
+| Session length ~8–12 min | Content is chunked into 3–5 min "rounds", each ending at a natural stop. | Sustained attention span at 4 for a focused task is roughly this range; the app should end before she does. |
+| Immediate reward must be *visible* | A collection/sticker artefact that persists between sessions. | Stated goal: "let her see immediate reward." |
+
+**Non-goal (explicit):** this is not a screen-time maximiser. Design target is a *short, dense, high-quality* session, not daily-active-minutes.
+
+---
+
+## 1. Curriculum grounding — what Singapore actually teaches
+
+### 1.1 The three curriculum anchors
+
+| Age | SG level | Governing framework | What it means for this tool |
+|---|---|---|---|
+| 4 | N2 | **NEL** (Nurturing Early Learners), MOE preschool framework, refreshed 2022, covers ages 4–6 across six learning areas incl. Language and Literacy | Pre-phonics: phonological awareness, letter recognition, book/print concepts |
+| 5–6 | K1 / K2 | NEL continues; most preschools bolt on a commercial synthetic phonics programme | Systematic grapheme-phoneme correspondence (GPC) instruction |
+| 7 | P1 | **STELLAR** (Strategies for English Language Learning And Reading), MOE, P1–P6; P1–P2 uses the **Shared Book Approach (SBA)** with MOE-selected Big Books | Decoding must be automatic enough to read *for meaning*; vocabulary and grammar are taught in story context |
+
+**Practical consequence:** the tool should aim to have her decoding CVC words reliably before K1 starts, and reading simple decodable sentences before P1 starts. That is comfortably achievable in 3 years and is the real success criterion — not "knows 42 sounds".
+
+### 1.2 Which phonics sequence to follow
+
+The two programmes dominant in Singapore preschools and enrichment centres are **Jolly Phonics** and **Letterland**. Both are synthetic phonics. They differ in mnemonic style, not in linguistics:
+
+| | Jolly Phonics | Letterland |
+|---|---|---|
+| Mnemonic device | Action + song per sound | Character with name and personality per letter |
+| Scope | 42 sounds in 7 groups | Character-story based, similar coverage |
+| Best fit for | Kinaesthetic / musical learners | Children strong on narrative and character identification |
+
+**Recommendation: build on the Jolly Phonics 7-group order** as the scope-and-sequence backbone, because the order is public, unambiguous, and optimised for early blending:
+
+| Group | Sounds |
+|---|---|
+| 1 | s, a, t, i, p, n |
+| 2 | c/k, e, h, r, m, d |
+| 3 | g, o, u, l, f, b |
+| 4 | ai, j, oa, ie, ee, or |
+| 5 | z, w, ng, v, oo (short), oo (long) |
+| 6 | y, x, ch, sh, th (voiced), th (unvoiced) |
+| 7 | qu, ou, oi, ue, er, ar |
+
+Group 1 is `s a t i p n` because those six letters generate more three-letter words than any other six — she can read `sat`, `pin`, `tap`, `nip` after **one** group. That is the fastest path to the "I can read!" moment.
+
+> **Action item before Stage 2:** find out which programme her preschool actually uses. If it is Letterland, keep this sequence but **rename the mascots to the Letterland characters** so school and app reinforce rather than compete. This is a content-layer change only, no code change — see §3.2.
+
+### 1.3 Accent decision (do this once, do not revisit)
+
+Singapore English instruction is British-based. This affects:
+
+- Non-rhotic `r` — `car`, `star`, `or`, `er`, `ar` (Jolly group 7) sound materially different in RP vs General American.
+- `a` in `bath`, `ask`, `grass`.
+- The `o` in `dog`, `hot`.
+
+**Decision: all recorded audio uses British/Singapore-standard English.** A US-accented app will contradict her teacher on exactly the vowels that are hardest. This is the single highest-leverage content decision in the project and it is nearly free if made at the start.
+
+### 1.4 Sight words (non-decodable, taught by memory)
+
+Synthetic phonics cannot decode `the`, `said`, `one`, `come`. These are taught as whole-word recognition in parallel. Use the **Dolch Pre-Primer list (40 words)**:
+
+> a, and, away, big, blue, can, come, down, find, for, funny, go, help, here, I, in, is, it, jump, little, look, make, me, my, not, one, play, red, run, said, see, the, three, to, two, up, we, where, yellow, you
+
+Then Dolch Primer, then Dolch Grade 1. Sight words are what turn "can decode words" into "can read a sentence", so they must run as a **parallel track from Stage 2 onward**, not after phonics is "finished".
+
+### 1.5 The Singapore-context layer — and its honest limit
+
+MOE publishes **NEL Big Books** with deliberate local flavour (examples surfaced in search: *Every Day is Fruity Day!*, *We Are Going on A Nature Walk!*, *We've Got Mail!*). Tying the app to local context creates the "I saw this in real life" reward.
+
+**But a real constraint:** most distinctively Singaporean words are *not* phonetically simple. `hawker`, `Merlion`, `kaya`, `durian`, `MRT`, `void deck` are all undecodable at Stage 1–3. If you force local vocabulary into the decodable word lists, you break the phonics.
+
+**Solution — two separate layers:**
+
+| Layer | Controlled by | Singapore content goes here? |
+|---|---|---|
+| **Decodable core** (the words she sounds out) | Phonics sequence, strictly | Only where it happens to fit: `bus`, `van`, `fan`, `cat`, `hat`, `bag`, `bun`, `cup`, `pot`, `wok`, `fish`, `chop`, `shop`, `ship`, `kit`, `bin`, `mop`, `top`, `sun`, `rain`, `train` |
+| **Context skin** (art, setting, story, narrator, reward objects) | Free choice | **Yes — everything.** Playground void deck, MRT platform, hawker centre, Botanic Gardens, HDB corridor, Bird Paradise, school canteen, Sentosa beach |
+
+So: she decodes `a big red bus` while the picture is a Singapore double-decker at a bus stop she recognises. The reward is real and the linguistics stay clean.
+
+**Recognition-only vocabulary** (spoken + pictured, never asked to decode) is where the untamed local words live: `char kway teow`, `laksa`, `Merlion`, `ang pow`. These build listening vocabulary and cultural hooks with zero phonics cost.
+
+---
+
+## 2. Curriculum staging — 9 stages, age 4 → 7
+
+Stages are **mastery-gated, not age-gated**. The ages are expected, not required. A stage is passed at ≥ 90% accuracy across 3 separate sessions on different days (see §5.2).
+
+| Stage | Expected age | SG level | Phonics content | Can read | Parallel sight words | Estimated duration |
+|---|---|---|---|---|---|---|
+| **0. Sound play** | 4.0–4.5 | N2 | No letters. Rhyme, syllable counting, initial-sound matching, oral blending (`c-a-t` heard → picks cat) | — | — | 3–5 mo |
+| **1. First sounds** | 4.4–4.9 | N2 | Jolly groups 1–3 (26 single-letter sounds), letter-sound only, no letter *names* yet | `s a t i p n` words | a, I, the, to | 4–6 mo |
+| **2. CVC blending** | 4.8–5.3 | N2/K1 | Blend & segment all CVC with the 26 sounds | `cat`, `pin`, `mud`, `hop` | Dolch Pre-Primer 1–20 | 4–6 mo |
+| **3. Digraphs** | 5.2–5.8 | K1 | sh, ch, th, ng, qu, ck; letter *names* introduced here | `fish`, `chip`, `ring`, `that` | Dolch Pre-Primer 21–40 | 4 mo |
+| **4. Blends** | 5.6–6.1 | K1 | CCVC / CVCC: `st, sp, sl, tr, br, nd, mp, nt, sk` | `stop`, `hand`, `jump`, `trip` | Dolch Primer 1–25 | 4 mo |
+| **5. Long vowels** | 6.0–6.5 | K2 | Magic-e (`a_e i_e o_e u_e`), then Jolly groups 4–5 (ai, oa, ie, ee, or, oo) | `cake`, `rain`, `boat`, `feet` | Dolch Primer 26–52 | 5 mo |
+| **6. Alternative spellings** | 6.3–6.9 | K2 | Same sound, different spellings: ai/ay/a-e, ee/ea/y, oa/ow/o-e, igh/ie/y; Jolly group 7 (ou, oi, ue, er, ar) | `play`, `night`, `snow`, `coin` | Dolch Grade 1 (part) | 5 mo |
+| **7. Syllables & suffixes** | 6.7–7.2 | K2/P1 | Two-syllable words, `-s -ed -ing -er -ly`, compound words, soft c/g | `rabbit`, `jumping`, `sunset` | Dolch Grade 1 (rest) | 5 mo |
+| **8. Fluency & meaning** | 7.0+ | P1 | Decodable sentences → short passages; comprehension questions; spelling from dictation | Full decodable readers | Dolch Grade 2 | ongoing |
+
+**Total: ~3 years, 9 stages.** Stage 8 is where the tool stops being a phonics app and becomes a reading app — that transition mirrors the STELLAR shift from decoding to reading-for-meaning at P1.
+
+### 2.1 Why the stages are ordered this way
+
+- **Stage 0 exists because phonics fails without it.** A child who cannot hear that `cat` and `hat` rhyme cannot be taught that `c` says /k/ — the letter-sound mapping has nothing to map *to*. This stage is entirely oral and costs 3–5 months, and skipping it is the most common cause of stalled phonics.
+- **Letter names are deferred to Stage 3** because "the letter B says /b/" and "the letter is called *bee*" compete during blending: a child who knows names first tends to sound out `cat` as "see-ay-tee". Names are introduced once blending is automatic and names become useful (spelling aloud, alphabet order).
+- **Magic-e precedes vowel digraphs (Stage 5 order)** because it is a single, mechanical, highly regular rule — one rule unlocks ~4 vowel sounds. Digraphs are many rules with many exceptions.
+- **Alternative spellings are Stage 6, not earlier,** because they require the child to already be secure that a sound *has* one spelling before learning it has three. Introducing ai/ay/a-e simultaneously at Stage 5 produces guessing.
+
+---
+
+## 3. Interaction design
+
+### 3.1 The 12 activity primitives
+
+The whole app is a small set of reusable game types, each driven by data. Building 12 engines and 2,000 content items beats building 200 bespoke games.
+
+| # | Primitive | Loop | Used in stages | Skill trained |
+|---|---|---|---|---|
+| 1 | **Listen & Pick** | Audio prompt → 2–4 image/letter choices → tap | 0–8 | Recognition |
+| 2 | **Odd One Out** | "Which one does not start with /s/?" | 0–3 | Discrimination |
+| 3 | **Drag to Basket** | Sort items into 2–3 labelled bins | 1–7 | Categorisation |
+| 4 | **Build the Word** | Drag letter tiles into slots to spell a pictured word | 2–7 | Segmenting / spelling |
+| 5 | **Tap to Blend** | Tap each letter, it sounds; tap arrow, word blends and animates | 2–6 | Blending |
+| 6 | **Pop the Sound** | Bubbles float up, pop only those with the target sound | 1–6 | Fluency under time pressure |
+| 7 | **Feed the Monster** | Monster requests a sound; drag matching words to it | 1–6 | Reinforcement, high fun/low cognitive load |
+| 8 | **Match Pairs** | Memory grid: picture ↔ word | 2–8 | Whole-word recall, sight words |
+| 9 | **Say It** (ASR) | Child speaks the word; app checks | 2–8 (optional) | Production — **see risk R3** |
+| 10 | **Sentence Builder** | Drag word cards to form a sentence, then it reads aloud | 5–8 | Syntax, sight words in context |
+| 11 | **Story Reader** | Decodable story, tap any word to hear it, comprehension Qs at end | 6–8 | Reading for meaning (STELLAR-aligned) |
+| 12 | **Treasure Room** | Non-assessed: place earned stickers/creatures in a scene | all | Reward, sense of ownership |
+
+Each primitive is one component. Content is JSON. A new lesson = a new JSON file, no code.
+
+### 3.2 Content schema (the thing that makes 3 years feasible)
+
+```jsonc
+// content/stage2/lesson-04.json
+{
+  "id": "s2-l04",
+  "stage": 2,
+  "title": "CVC with 'p'",
+  "targets": ["p", "a", "t", "i", "n"],          // GPCs practised
+  "sightWords": ["the", "a"],
+  "theme": "hawker-centre",                       // selects art pack + narrator lines
+  "items": [
+    { "word": "pan", "img": "pan.webp", "audio": "pan.mp3", "phonemes": ["p","a","n"] },
+    { "word": "pin", "img": "pin.webp", "audio": "pin.mp3", "phonemes": ["p","i","n"] }
+  ],
+  "activities": [
+    { "type": "tapToBlend",  "items": ["pan","pin"] },
+    { "type": "buildWord",   "items": ["pan"], "distractors": ["s","m"] },
+    { "type": "feedMonster", "targetSound": "p", "rounds": 6 }
+  ]
+}
+```
+
+Three properties matter:
+- `theme` is decoupled from linguistics → Singapore skinning is a data swap.
+- `phonemes` is explicit, not derived → no runtime grapheme parsing, no wrong-sound bugs.
+- `activities` is a list → same content, different games, on re-visit. This is what stops it getting boring on day 30.
+
+### 3.3 Audio — the make-or-break asset
+
+| Option | Quality for phonemes | Cost | Verdict |
+|---|---|---|---|
+| Browser TTS (Web Speech API) | Poor. Cannot reliably say a bare /s/ without adding a schwa ("suh"), which actively teaches wrong blending | Free | **Reject for phonemes.** Acceptable only for UI chrome |
+| Commercial TTS with SSML phoneme tags | Good for words, still awkward for isolated phonemes | Low, per-character | Acceptable for word/sentence audio at scale |
+| **Recorded human voice (parent)** | Best. Correct phonemes guaranteed, and a familiar voice measurably raises attention | Time only | **Recommended for all phoneme + core word audio** |
+
+**Recommendation: record it yourself.** 26 phonemes + ~300 core words + ~50 feedback lines ≈ 2–3 recording sessions. Use a phone in a quiet room; normalise loudness in Audacity/ffmpeg. Her own parent's voice saying "you found it" is a stronger reinforcer than any stock asset, and it removes the single biggest pedagogical risk (schwa contamination in synthetic phoneme audio).
+
+Format: 48 kHz mono → `.m4a` (AAC) at ~64 kbps + `.ogg` fallback. Preload the whole lesson's audio before the lesson starts; never fetch mid-activity.
+
+### 3.4 Reward design
+
+- **Per correct answer:** sound + 300ms animation. No score number.
+- **Per activity:** one earned collectible (sticker, creature, food item for the hawker stall).
+- **Per lesson:** the Treasure Room scene visibly grows.
+- **No streaks, no daily-login pressure, no leaderboard, no timers on learning activities.** Streak mechanics create anxiety and parent-child conflict, and at age 4 they reward the parent's discipline, not the child's learning.
+- **Parent-visible progress is separate** (§6) and never shown to the child as a score.
+
+---
+
+## 4. Technical plan
+
+### 4.1 Stack
+
+| Layer | Choice | Reason |
+|---|---|---|
+| Build | Vite + TypeScript | Fast, zero-config, trivial static deploy |
+| UI | React (or Preact if bundle size matters) | Component-per-primitive maps cleanly to §3.1 |
+| Rendering | DOM + CSS transforms for most; `<canvas>` only for particle/bubble effects | DOM drag is simpler and accessible; canvas only where DOM can't keep 60fps |
+| Input | **Pointer Events** (`pointerdown/move/up`) with `touch-action: none` | Single code path for touch + mouse + stylus. Do not use HTML5 drag-and-drop API — it is unreliable on mobile Safari |
+| Audio | **Web Audio API** with a decoded-buffer pool | `<audio>` elements have unpredictable latency and iOS autoplay issues; Web Audio with pre-decoded buffers gives sub-50ms playback |
+| State | Zustand or plain reducer | Small app; avoid heavyweight state libraries |
+| Storage | IndexedDB (via `idb`) for progress + cached audio | Survives reload; large enough for audio cache |
+| Offline | Service Worker (Workbox), cache-first for assets | Must work on a plane / in a car / with bad wifi |
+| Hosting | Cloudflare Pages or Netlify, free tier | Static, global, HTTPS by default |
+| Mobile wrapper | **Capacitor** | Same web codebase → Android APK → iOS. Avoids a rewrite |
+
+### 4.2 iOS audio-unlock gotcha (plan for it now)
+
+iOS Safari will not play audio until a user gesture has unlocked the AudioContext. Design the first screen as a big "tap to start" button that (a) resumes the AudioContext, (b) plays a silent buffer, (c) *then* begins preloading. If this is retrofitted later it tends to require restructuring the app shell.
+
+### 4.3 Path to native
+
+| Step | What | Effort |
+|---|---|---|
+| 1 | PWA with service worker + web app manifest | days |
+| 2 | "Add to Home Screen" on her iPad — full-screen, offline, no browser chrome | hours |
+| 3 | Capacitor wrap → Android APK, sideload or Play Store internal testing | days |
+| 4 | Capacitor → iOS, requires Apple Developer Program (USD 99/yr) | days + account setup |
+
+**Step 2 covers ~90% of the actual need.** An installed PWA on an iPad is, from a 4-year-old's point of view, indistinguishable from an app. Do not pay for a developer account until there is a reason to distribute beyond your own household.
+
+### 4.4 Guardrails a kids' app needs
+
+- **No network calls during play.** Everything local after install → no ads, no tracking, no surprise content.
+- **Parent gate** on settings/dashboard: a 2-digit multiplication or "hold 3 seconds" gesture. Trivial to implement, prevents accidental settings changes.
+- **No external links, no sharing, no chat, no IAP.**
+- **Session timer with a soft end:** after N minutes the app routes to the Treasure Room and says "see you tomorrow" — it *ends* rather than nagging.
+
+---
+
+## 5. Adaptivity and assessment
+
+### 5.1 Mastery model
+
+Per GPC and per sight word, track: `exposures`, `correct`, `lastSeen`, `box` (1–5).
+
+**Leitner spaced repetition:** correct → promote a box; wrong → demote to box 1. Review intervals per box: 1 day, 2 days, 4 days, 8 days, 16 days. Each session draws ~70% due-for-review items and ~30% new material.
+
+This matters because the failure mode of a home phonics app is not "too hard" — it is teaching 40 sounds and quietly losing the first 15.
+
+### 5.2 Stage gate
+
+Advance when: every GPC in the stage is in box ≥ 4, **and** accuracy ≥ 90% across 3 sessions on 3 different days.
+
+The multi-day requirement filters out same-session short-term memory, which is the most common false positive in self-reported progress.
+
+### 5.3 Difficulty adaptation inside a session
+
+- 3 consecutive correct → add a distractor (2 choices → 3 → 4).
+- 2 consecutive wrong → drop a distractor, and re-cue the sound before the prompt.
+- Never more than 2 failures in a row on the same item; substitute a known-easy item to restore momentum, then re-queue the hard one later.
+
+---
+
+## 6. Parent dashboard (behind parent gate)
+
+| Panel | Content |
+|---|---|
+| Mastery map | 42 sounds × box level, heat-coloured. At a glance: what is shaky |
+| Struggling list | Bottom 5 items by accuracy — these are what to practise **offline**, in the car, at the hawker centre |
+| Session history | Date, minutes, activities, accuracy trend |
+| School alignment | Which stage she is on vs. the K1/K2/P1 expectation band |
+| Content controls | Enable/disable stages, theme pack, session length cap, ASR on/off |
+
+The struggling list is the panel with the highest real-world value: it converts app data into 5 minutes of offline parent-child practice, which outperforms additional screen time.
+
+---
+
+## 7. Build roadmap
+
+| Phase | Weeks | Deliverable | Definition of done |
+|---|---|---|---|
+| **P0. Spike** | 1 | One activity (Listen & Pick), 6 sounds (`s a t i p n`), hardcoded, runs on her iPad | She plays it unaided for 5 minutes |
+| **P1. Engine** | 2–4 | Content JSON schema, activity registry, audio preloader, Pointer-Events drag layer, 4 primitives (#1,3,5,7) | A new lesson can be added with zero code changes |
+| **P2. Stage 0+1 content** | 5–8 | Full Stage 0 (oral) + Stage 1 (26 sounds), ~30 lessons, recorded audio, art pack v1 | 3 months of daily material exists |
+| **P3. Progress** | 9–10 | IndexedDB persistence, Leitner scheduler, stage gates, Treasure Room | Progress survives reinstall; review queue demonstrably surfaces weak items |
+| **P4. PWA** | 11–12 | Service worker, manifest, offline, installed on her iPad home screen | Works in aeroplane mode |
+| **P5. Stage 2–3** | 13–20 | CVC blending + digraphs; primitives #2,4,6,8; sight-word track | She reads her first unfamiliar CVC word unaided |
+| **P6. Parent dashboard** | 21–22 | §6 panels | You can name her 5 weakest sounds in under 10 seconds |
+| **P7. Android** | 23–24 | Capacitor build, internal-test APK | Runs on an Android tablet |
+| **P8. Stage 4–6** | 6–12 mo | Blends, long vowels, alt spellings; primitives #10, #11 | She reads a 6-sentence decodable story |
+| **P9. Stage 7–8** | 12–24 mo | Syllables, suffixes, fluency, comprehension, dictation | Reads P1-level decodable readers |
+| **P10. iOS** | opportunistic | Apple Developer account, TestFlight | Only if distributing outside the household |
+
+**Critical discipline:** P0 ships in week 1 and gets played by the actual child. Every subsequent phase is validated the same way. A phonics app built for 6 months without a 4-year-old touching it will be wrong in ways that are invisible from the code.
+
+---
+
+## 8. Risks
+
+| ID | Risk | Impact | Mitigation |
+|---|---|---|---|
+| R1 | Schwa contamination — synthetic audio says "suh" not /s/ | Teaches un-blendable phonemes; actively harmful | Record human audio for all phonemes (§3.3) |
+| R2 | Accent mismatch with school | Confusion on `ar/or/er` and short `a` | British/SG English throughout (§1.3) |
+| R3 | **ASR ("Say It") accuracy on a 4-year-old's voice is unproven** | False "wrong" verdicts → child stops trying | Ship as optional, off by default. Treat as *encouragement*, never as assessment. Validate with recordings of her actual voice before enabling. **Unverified — needs testing** |
+| R4 | Novelty decay after ~3 weeks | Abandonment | Multiple activity types per content item (§3.2); new theme pack per stage; Treasure Room as long-arc goal |
+| R5 | Sequence conflict with her preschool's programme | Same sound taught two ways in one week | Confirm the school's programme; align mascot/naming layer (§1.2) |
+| R6 | Art asset production becomes the bottleneck | Stalls at ~50 words | Fix an art spec early (flat vector, single palette, transparent WebP, 512px). Batch-generate, then curate |
+| R7 | Over-assessment turns play into testing | Loss of the observed focus behaviour | No visible scores to the child; all measurement in the parent dashboard |
+| R8 | Screen time displaces book reading | Net literacy negative | Hard session cap; dashboard explicitly prompts offline practice on weak items |
+
+---
+
+## 9. Success metrics
+
+| Level | Metric | Target |
+|---|---|---|
+| Engagement | Unprompted return rate (she asks for it) | ≥ 3×/week |
+| Engagement | Median uninterrupted session length | 8–12 min |
+| Learning | GPCs at box ≥ 4 | 26 by age 5.0; 42 by age 6.5 |
+| Learning | Unfamiliar CVC words decoded correctly, cold | ≥ 8/10 by age 5.5 |
+| Learning | Dolch Pre-Primer sight words recognised | 40/40 by age 5.5 |
+| Transfer | Reads an unseen decodable book aloud | 1 book by age 6; P1-level fluency by age 7 |
+| Transfer | **Reads a real-world sign** (MRT station, hawker stall, book title) unprompted | First occurrence logged — this is the actual goal |
+
+The last row is the one that matters. Everything else is a proxy.
+
+---
+
+## 10. Immediate next steps
+
+1. **Confirm the school's phonics programme** (Jolly / Letterland / other). Determines the mascot layer only, but do it before P2.
+2. **Decide the art direction** — a single recurring character she can name is worth more than varied artwork. Fix the spec before generating assets.
+3. **Record the Group 1 audio** (`s a t i p n` phonemes + ~20 words + 10 feedback lines). ~40 minutes of work, unblocks P0 and P1.
+4. **Build P0 this week.** One activity, six sounds, on her iPad. Then watch her use it and write down every point where she hesitates — those notes are the real specification.
+
+---
+
+## Sources
+
+- [NEL framework overview — MOE Nurturing Early Learners Portal](https://nel.moe.edu.sg/la/overview/)
+- [Nurturing Early Learners (NEL) Framework 2022 — MOE](https://www.moe.gov.sg/api/media/4f8c9642-8428-43c2-aa61-a01512aa98af/Nurturing-Early-Learners-NEL-framework-2022.pdf)
+- [MOE Kindergarten curriculum and learning environment](https://www.moe.gov.sg/preschool/moe-kindergarten/curriculum-and-learning-environment/curriculum)
+- [NEL Big Book Resources — MOE](https://nel.moe.edu.sg/tl/big-book-resources/)
+- [STELLAR / Shared Book Approach, lower primary English](https://www.bigideaz.sg/lower-primary-english-stellar/)
+- [Yuhua Primary School — STELLAR P1 English briefing (PDF)](https://www.yuhuapri.moe.edu.sg/files/p1eng.pdf)
+- [Letterland Singapore](https://letterland.com.sg/)
+- [Jolly Phonics — Jolly Learning](https://jollylearning.com/en-gb/our-programmes/jolly-phonics)
+- [Jolly Phonics 7 groups, letter sounds and words](https://jollyreading.in/jolly-phonics-7-groups-letter-sound-words/)
+- [Dolch pre-primer sight word list (40 words), sightwords.com](https://sightwords.com/pdfs/word_lists/dolch_prek.pdf)
+- [Guide to phonics programmes in Singapore — Edufarm (Letterland)](https://www.edufarm.com.sg/guide-letterland-phonics)
+
+### Verification status
+
+| Item | Status |
+|---|---|
+| NEL covers ages 4–6, six learning areas, L&L is one; refreshed 2022 | Verified (MOE / NEL portal, search 2026-09-12) |
+| STELLAR runs P1–P6; SBA with Big Books at P1–P2 | Verified (MOE school sites, search 2026-09-12) |
+| Jolly Phonics 42 sounds, 7-group order as listed | Verified (search 2026-09-12) |
+| Dolch Pre-Primer = 40 words, list as given | Verified (sightwords.com, search 2026-09-12) |
+| Letterland and Jolly Phonics both widely used in SG preschools | Verified directionally (SG enrichment/tuition sources) |
+| Exact NEL Language & Literacy learning-goal wording | **Not verified** — MOE PDF and nel.moe.edu.sg were unreachable from this environment. Retrieve the *NEL Educators' Guide for Language and Literacy* before finalising Stage 0–1 content |
+| Full NEL Big Book title list | **Not verified** — only three titles surfaced in search |
+| Which programme her preschool uses | **Unknown** — must ask the school |
+| ASR accuracy on 4-year-old speech | **Unverified** — treat as experimental (R3) |
+| Age bands per stage | **Estimates**, based on the stage sequence and typical SG school levels, not on measured data for this child. Mastery gates (§5.2), not ages, govern progression |
