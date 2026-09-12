@@ -1,24 +1,25 @@
-/* app.js — screens, activities, progress.
-   Child-facing UI carries no written navigation: every instruction is
-   spoken, every control is a picture. See docs/PLAN.md §0. */
+/* app.js — screens, games, scoring.
+   The child's side has no written navigation: every instruction is spoken
+   and every control is a picture. The grown-up dashboard sits behind a
+   press-and-hold gate and looks deliberately different. */
 (function () {
   'use strict';
 
   var C = window.CONTENT, A = window.AUDIO, icon = window.svgIcon;
   var root = document.getElementById('app');
-  var KEY = 'pipphonics-v1';
-  var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var KEY = 'pipphonics-v2';
 
   /* ==================================================================
      STORE
      ================================================================== */
   var DEFAULTS = {
-    v: 1,
-    boxes: {},
-    done: {},
-    stickers: [],
-    sessions: [],
-    settings: { voice: '', rate: 0.85, cap: 12, sfx: true }
+    v: 2,
+    name: 'Rourou',
+    stars: {},       // lessonId -> 1..3
+    best: {},        // lessonId -> {correct, total}
+    boxes: {},       // srs
+    runs: [],        // one entry per finished lesson
+    settings: { voice: '', rate: 0.85, cap: 15, sfx: true }
   };
 
   var S = load();
@@ -26,508 +27,394 @@
   function load() {
     try {
       var raw = localStorage.getItem(KEY);
-      if (!raw) return JSON.parse(JSON.stringify(DEFAULTS));
+      if (!raw) return clone(DEFAULTS);
       var p = JSON.parse(raw);
-      return Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), p, {
-        settings: Object.assign({}, DEFAULTS.settings, p.settings || {})
-      });
-    } catch (e) { return JSON.parse(JSON.stringify(DEFAULTS)); }
+      var s = Object.assign(clone(DEFAULTS), p);
+      s.settings = Object.assign({}, DEFAULTS.settings, p.settings || {});
+      return s;
+    } catch (e) { return clone(DEFAULTS); }
   }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* private mode */ } }
 
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* private mode */ }
-  }
-
-  /* ==================================================================
-     SPACED REPETITION (Leitner) — docs/PLAN.md §5.1
-     ================================================================== */
-  var INTERVAL_DAYS = [0, 1, 2, 4, 8, 16];
-  var DAY = 86400000;
-
+  /* Leitner boxes, for the grown-up mastery map. */
   var SRS = {
     get: function (k) { return S.boxes[k] || { box: 0, seen: 0, correct: 0, last: 0 }; },
-    hit: function (k) {
-      var b = SRS.get(k);
-      b.box = Math.min(5, (b.box || 0) + 1);
-      b.seen++; b.correct++; b.last = Date.now();
-      S.boxes[k] = b; save();
-    },
-    miss: function (k) {
-      var b = SRS.get(k);
-      b.box = 1; b.seen++; b.last = Date.now();
-      S.boxes[k] = b; save();
-    },
-    due: function (k) {
-      var b = SRS.get(k);
-      if (!b.box) return true;
-      return Date.now() - b.last >= INTERVAL_DAYS[b.box] * DAY;
-    },
-    accuracy: function (k) {
-      var b = SRS.get(k);
-      return b.seen ? b.correct / b.seen : null;
-    }
+    hit: function (k) { var b = SRS.get(k); b.box = Math.min(5, b.box + 1); b.seen++; b.correct++; b.last = Date.now(); S.boxes[k] = b; },
+    miss: function (k) { var b = SRS.get(k); b.box = 1; b.seen++; b.last = Date.now(); S.boxes[k] = b; },
+    acc: function (k) { var b = SRS.get(k); return b.seen ? b.correct / b.seen : null; }
   };
 
   /* ==================================================================
-     SMALL HELPERS
+     HELPERS
      ================================================================== */
   function shuffle(a) {
     a = a.slice();
-    for (var i = a.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t;
-    }
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; }
     return a;
   }
   function sample(a, n) { return shuffle(a).slice(0, n); }
   function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
-  function initialSound(wd) { return wd.phonemes ? wd.phonemes[0] : wd.text[0]; }
-  function wordsBySound(letter) {
-    return Object.keys(C.WORDS).filter(function (k) {
-      return initialSound(C.WORDS[k]) === letter && C.WORDS[k].phonemes;
-    });
-  }
-  function wordsInFamily(fam) {
-    return Object.keys(C.WORDS).filter(function (k) { return C.WORDS[k].rhyme === fam; });
-  }
-  function wordsWithSyllables(n) {
-    return Object.keys(C.WORDS).filter(function (k) { return C.WORDS[k].syl === n; });
+  function word(k) { return C.WORDS[k]; }
+  function glyph(l) { return l === 'q' ? 'qu' : l; }
+
+  function stars(n) {
+    var out = '';
+    for (var i = 1; i <= 3; i++) out += '<span class="st">' + icon(i <= n ? 'starOn' : 'starOff') + '</span>';
+    return out;
   }
 
+  function toast(msg) {
+    var el = document.createElement('div');
+    el.className = 'toast'; el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(function () { el.classList.add('go'); }, 10);
+    setTimeout(function () { el.remove(); }, 2600);
+  }
+
+  function nav(html) { root.innerHTML = html; window.scrollTo(0, 0); }
+
   /* ==================================================================
-     DRAG — Pointer Events only. HTML5 drag-and-drop is unreliable on
-     mobile Safari, which is the target device. docs/PLAN.md §4.1
+     PROGRESS QUERIES
      ================================================================== */
-  function draggable(el, opts) {
-    var sx = 0, sy = 0, dragging = false;
-    el.style.touchAction = 'none';
-    el.addEventListener('pointerdown', function (e) {
-      if (el.dataset.locked === '1') return;
-      dragging = true;
-      sx = e.clientX; sy = e.clientY;
-      el.setPointerCapture(e.pointerId);
-      el.classList.add('dragging');
-      if (opts.onStart) opts.onStart();
-      e.preventDefault();
-    });
-    el.addEventListener('pointermove', function (e) {
-      if (!dragging) return;
-      el.style.transform = 'translate(' + (e.clientX - sx) + 'px,' + (e.clientY - sy) + 'px) scale(1.08)';
-    });
-    function end(e) {
-      if (!dragging) return;
-      dragging = false;
-      el.classList.remove('dragging');
-      var zones = opts.zones() || [];
-      var hit = null;
-      for (var i = 0; i < zones.length; i++) {
-        var r = zones[i].el.getBoundingClientRect();
-        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) { hit = zones[i]; break; }
-      }
-      el.style.transform = '';
-      if (hit) opts.onDrop(hit, el);
-      else if (opts.onMiss) opts.onMiss(el);
-    }
-    el.addEventListener('pointerup', end);
-    el.addEventListener('pointercancel', end);
+  function starsFor(id) { return S.stars[id] || 0; }
+  function done(id) { return starsFor(id) > 0; }
+  function totalStars() {
+    return Object.keys(S.stars).reduce(function (n, k) { return n + S.stars[k]; }, 0);
+  }
+  function maxStars() { return C.LESSONS.filter(function (l) { return true; }).length * 3; }
+
+  /* A lesson is open if it is the first unfinished one in its level, or
+     already finished, or the one right after a finished one. Nothing is
+     ever hard-locked — she can replay anything. */
+  function nextLesson(level) {
+    var ls = C.levelLessons(level);
+    for (var i = 0; i < ls.length; i++) if (!done(ls[i].id)) return ls[i];
+    return ls[ls.length - 1];
   }
 
   /* ==================================================================
-     APP CHROME
+     SOUND UNLOCK
      ================================================================== */
   var soundOn = false;
-  var session = { start: 0, rounds: 0, correct: 0 };
-
   function ensureSound() {
-    if (soundOn) return Promise.resolve();
-    A.unlock();
-    soundOn = true;
-    var banner = document.querySelector('.soundbar');
-    if (banner) banner.remove();
-    return Promise.resolve();
+    if (!soundOn) { A.unlock(); soundOn = true; }
   }
 
-  function nav(html) {
-    root.innerHTML = html;
-    root.scrollTop = 0;
-    window.scrollTo(0, 0);
-  }
-
-  function gearButton() {
-    return '<button class="gear" id="gear" aria-label="Grown-ups: press and hold">' + icon('gear') + '</button>';
+  /* ==================================================================
+     SCREEN · WELCOME
+     ================================================================== */
+  function screenWelcome() {
+    var ts = totalStars();
+    nav(
+      '<div class="screen wrap-welcome">' +
+        '<div class="welcome">' +
+          '<div class="wphoto" id="wphoto">' + icon('otter') + '</div>' +
+          '<p class="weyebrow">Phonics with Pip</p>' +
+          '<h1 class="wname">Hi, ' + esc(S.name) + '!</h1>' +
+          '<div class="wstars">' + icon('starOn', 'wstar') + '<b>' + ts + '</b><small>stars</small></div>' +
+          '<button class="bigbtn" id="go">' + icon('play', 'bigbtn-glyph') + '<span>Play</span></button>' +
+          '<button class="ghostbtn" id="toBook">My Book</button>' +
+        '</div>' +
+        '<button class="gear" id="gear" aria-label="Grown-ups: press and hold">' + icon('gear') + '</button>' +
+      '</div>'
+    );
+    wireGear();
+    A.blobURL('photo:child').then(function (url) {
+      if (!url) return;
+      var el = document.getElementById('wphoto');
+      if (el) { el.innerHTML = ''; el.style.backgroundImage = 'url(' + url + ')'; el.classList.add('has-photo'); }
+    });
+    document.getElementById('go').onclick = function () {
+      ensureSound();
+      A.say('Hello ' + S.name + '! Let us play.');
+      screenMap();
+    };
+    document.getElementById('toBook').onclick = function () { ensureSound(); screenBook(); };
   }
 
   function wireGear() {
     var g = document.getElementById('gear');
     if (!g) return;
     var t = null, fired = false;
-    function start() {
-      fired = false;
-      g.classList.add('holding');
-      t = setTimeout(function () { fired = true; g.classList.remove('holding'); screenParent(); }, 2000);
-    }
-    function stop() {
-      clearTimeout(t); g.classList.remove('holding');
-      if (!fired) toast('Grown-ups: press and hold');
-    }
+    function start() { fired = false; g.classList.add('holding'); t = setTimeout(function () { fired = true; g.classList.remove('holding'); screenParent(); }, 1800); }
+    function stop() { clearTimeout(t); g.classList.remove('holding'); if (!fired) toast('Grown-ups: press and hold'); }
     g.addEventListener('pointerdown', start);
     g.addEventListener('pointerup', stop);
     g.addEventListener('pointerleave', stop);
     g.addEventListener('pointercancel', stop);
   }
 
-  function toast(msg) {
-    var el = document.createElement('div');
-    el.className = 'toast';
-    el.textContent = msg;
-    document.body.appendChild(el);
-    setTimeout(function () { el.classList.add('go'); }, 10);
-    setTimeout(function () { el.remove(); }, 2400);
-  }
-
   /* ==================================================================
-     SCREEN · HOME (the journey)
+     SCREEN · MAP  (the stage-by-stage path)
      ================================================================== */
-  function stageLessons(id) {
-    return C.LESSONS.filter(function (l) { return l.stage === id; });
-  }
-  function lessonDone(id) { return !!S.done[id]; }
+  var openLevel = null;
 
-  function nextLesson() {
-    for (var i = 0; i < C.LESSONS.length; i++) {
-      if (!lessonDone(C.LESSONS[i].id)) return C.LESSONS[i];
+  function screenMap() {
+    if (openLevel == null) {
+      var l2 = C.levelLessons(2).filter(function (l) { return done(l.id); }).length;
+      openLevel = l2 > 0 ? 2 : (C.levelLessons(1).every(function (l) { return done(l.id); }) ? 2 : 1);
     }
-    return C.LESSONS[0];
-  }
 
-  function screenHome() {
-    var nxt = nextLesson();
-    var totalDone = Object.keys(S.done).length;
-
-    var stagesHtml = C.STAGES.map(function (st) {
-      var ls = stageLessons(st.id);
-      var done = ls.filter(function (l) { return lessonDone(l.id); }).length;
-      var stops = ls.map(function (l, i) {
-        var d = lessonDone(l.id);
-        var isNext = l.id === nxt.id;
-        return '<button class="stop ' + (d ? 'is-done' : '') + (isNext ? ' is-next' : '') + '" data-lesson="' + l.id + '">' +
-          '<span class="stop-dot">' + (d ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>' : (i + 1)) + '</span>' +
-          '<span class="stop-name">' + esc(l.name) + '</span>' +
-          (isNext ? '<span class="stop-cue">' + icon('play', 'cue-glyph') + '</span>' : '') +
-          '</button>';
-      }).join('');
-
-      if (!st.built) {
-        return '<section class="stage stage--locked">' +
-          '<header class="stage-head">' +
-            '<div class="stage-badge tint-' + st.tint + '">' + icon('lockClosed') + '</div>' +
-            '<div><h2>' + esc(st.name) + '</h2><p class="stage-sub">' + esc(st.place) + ' · age ' + esc(st.age) + '</p></div>' +
-          '</header>' +
-          '<p class="stage-blurb">' + esc(st.blurb) + '</p>' +
-          '<p class="stage-flag">Year 2</p>' +
-          '</section>';
-      }
-
-      return '<section class="stage">' +
-        '<header class="stage-head">' +
-          '<div class="stage-badge tint-' + st.tint + '">' + st.id + '</div>' +
-          '<div><h2>' + esc(st.name) + '</h2><p class="stage-sub">' + esc(st.place) + ' · age ' + esc(st.age) + '</p></div>' +
-          '<div class="stage-count"><b>' + done + '</b>/' + ls.length + '</div>' +
-        '</header>' +
-        '<p class="stage-blurb">' + esc(st.blurb) + '</p>' +
-        '<div class="stops">' + stops + '</div>' +
-        '</section>';
+    var levelTabs = C.LEVELS.map(function (lv) {
+      var ls = C.levelLessons(lv.id);
+      var d = ls.filter(function (l) { return done(l.id); }).length;
+      return '<button class="lvtab ' + (openLevel === lv.id ? 'is-on' : '') + (lv.built ? '' : ' is-soon') + '" data-lv="' + lv.id + '">' +
+        '<span class="lvtab-n tint-' + lv.tint + '">' + (lv.built ? lv.id : icon('lockClosed')) + '</span>' +
+        '<span class="lvtab-t"><b>' + esc(lv.name) + '</b><small>' + (lv.built ? d + ' / ' + ls.length + ' done' : 'later') + '</small></span>' +
+        '</button>';
     }).join('');
 
+    var lv = C.LEVELS.filter(function (x) { return x.id === openLevel; })[0];
+    var body;
+
+    if (!lv.built) {
+      body = '<div class="soon"><div class="soon-badge">' + icon('lockClosed') + '</div>' +
+        '<h2>' + esc(lv.name) + '</h2><p>' + esc(lv.blurb) + '</p><p class="soon-age">' + esc(lv.age) + '</p></div>';
+    } else {
+      var ls = C.levelLessons(openLevel);
+      var nxt = nextLesson(openLevel);
+      body = '<div class="path">' + ls.map(function (l, i) {
+        var n = starsFor(l.id);
+        var isNext = l.id === nxt.id;
+        return '<button class="stop ' + (i % 2 ? 'right' : 'left') + (n ? ' is-done' : '') + (isNext ? ' is-next' : '') + '" data-id="' + l.id + '">' +
+          '<span class="stop-pic">' + icon(l.icon) + '</span>' +
+          '<span class="stop-body">' +
+            '<b>' + esc(l.shortName || l.name) + '</b>' +
+            '<span class="stop-stars">' + stars(n) + '</span>' +
+          '</span>' +
+          '</button>';
+      }).join('') + '</div>';
+    }
+
     nav(
-      '<div class="screen screen-home">' +
-        '<header class="hero">' +
-          gearButton() +
-          '<div class="hero-pip">' + icon('otter') + '</div>' +
-          '<div class="hero-text">' +
-            '<p class="eyebrow">Phonics with</p>' +
-            '<h1>Pip the Otter</h1>' +
-            '<p class="hero-sub">' + (totalDone ? totalDone + ' stop' + (totalDone === 1 ? '' : 's') + ' along the trail · ' + S.stickers.length + ' stickers' : 'Tap the glowing stop to begin') + '</p>' +
-          '</div>' +
-          '<button class="treasure-btn" id="toTreasure" aria-label="My stickers">' +
-            icon('star') + '<b>' + S.stickers.length + '</b>' +
-          '</button>' +
+      '<div class="screen screen-map">' +
+        '<header class="mhead">' +
+          '<button class="iconbtn" id="home" aria-label="Home">' + icon('house2') + '</button>' +
+          '<div class="mstars">' + icon('starOn', 'ms-glyph') + '<b>' + totalStars() + '</b></div>' +
+          '<button class="iconbtn" id="book" aria-label="My book">' + icon('trophy') + '</button>' +
         '</header>' +
-        '<button class="bigplay" id="bigplay">' +
-          '<span class="bigplay-icon">' + icon('play') + '</span>' +
-          '<span class="bigplay-text"><small>Next stop</small><b>' + esc(nxt.name) + '</b></span>' +
-        '</button>' +
-        '<div class="trail">' + stagesHtml + '</div>' +
-        '<footer class="foot">Year 1 builds stages 0–2. Stages 3–8 show the road ahead.</footer>' +
-        (soundOn ? '' : '<div class="soundbar">' + icon('ear', 'sb-glyph') + '<span>Tap anywhere to turn on Pip&rsquo;s voice</span></div>') +
+        '<nav class="lvtabs">' + levelTabs + '</nav>' +
+        '<p class="lvblurb">' + esc(lv.blurb) + '</p>' +
+        body +
       '</div>'
     );
 
-    wireGear();
-    document.getElementById('toTreasure').onclick = function () { ensureSound(); screenTreasure(); };
-    document.getElementById('bigplay').onclick = function () { ensureSound().then(function () { startLesson(nxt); }); };
-    Array.prototype.forEach.call(document.querySelectorAll('.stop'), function (b) {
-      b.onclick = function () {
-        var l = C.LESSONS.filter(function (x) { return x.id === b.dataset.lesson; })[0];
-        ensureSound().then(function () { startLesson(l); });
-      };
+    document.getElementById('home').onclick = screenWelcome;
+    document.getElementById('book').onclick = screenBook;
+    Array.prototype.forEach.call(document.querySelectorAll('.lvtab'), function (b) {
+      b.onclick = function () { openLevel = +b.dataset.lv; screenMap(); };
     });
-    if (!soundOn) {
-      document.querySelector('.screen-home').addEventListener('pointerdown', function once() {
-        ensureSound();
-        var sb = document.querySelector('.soundbar');
-        if (sb) sb.remove();
-        A.say('Hello! I am Pip. Tap a stop and let us play.');
-      }, { once: true });
-    }
+    Array.prototype.forEach.call(document.querySelectorAll('.stop'), function (b) {
+      b.onclick = function () { ensureSound(); startLesson(C.lesson(b.dataset.id)); };
+    });
+
+    var next = document.querySelector('.stop.is-next');
+    if (next) setTimeout(function () { next.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 80);
   }
 
   /* ==================================================================
-     ROUND GENERATORS — activity config -> playable rounds
+     SCREEN · MY BOOK  (progress the child can see)
+     ================================================================== */
+  function screenBook() {
+    var letters = C.LETTERS.map(function (l) {
+      var n = starsFor('a-' + l);
+      return '<div class="bl ' + (n ? 'got' : '') + '"><b>' + esc(glyph(l)) + '</b>' +
+        '<span>' + (n ? stars(n) : '') + '</span></div>';
+    }).join('');
+
+    var themes = C.THEMES.map(function (t) {
+      var n = starsFor('v-' + t.id);
+      return '<div class="bt ' + (n ? 'got' : '') + '">' + icon(C.WORDS[t.words[0]].icon) +
+        '<span>' + esc(t.name) + '</span>' + stars(n) + '</div>';
+    }).join('');
+
+    nav(
+      '<div class="screen screen-book">' +
+        '<header class="mhead">' +
+          '<button class="iconbtn" id="back" aria-label="Back">' + icon('back') + '</button>' +
+          '<h2 class="mtitle">' + esc(S.name) + '&rsquo;s Book</h2>' +
+          '<span class="iconbtn iconbtn--ghost"></span>' +
+        '</header>' +
+        '<div class="bigstars"><span class="bigstar">' + icon('starOn') + '</span><b>' + totalStars() + '</b><small>stars so far</small></div>' +
+        '<h3 class="bsec">My Letters</h3>' +
+        '<div class="bletters">' + letters + '</div>' +
+        '<h3 class="bsec">My Words</h3>' +
+        '<div class="bthemes">' + themes + '</div>' +
+      '</div>'
+    );
+    document.getElementById('back').onclick = screenMap;
+  }
+
+  /* ==================================================================
+     ROUND BUILDERS
      ================================================================== */
   var GEN = {};
 
-  GEN.rhymePick = function (cfg) {
-    var out = [];
-    for (var i = 0; i < cfg.rounds; i++) {
-      var fam = cfg.families[i % cfg.families.length];
-      var inFam = wordsInFamily(fam);
-      if (inFam.length < 2) continue;
-      var two = sample(inFam, 2);
-      var others = Object.keys(C.WORDS).filter(function (k) {
-        return C.WORDS[k].rhyme !== fam && C.WORDS[k].syl === 1;
-      });
-      var distract = sample(others, 2);
-      out.push(makePick({
-        track: 'S:rhyme',
-        say: function (a, b) { return function () { return A.sayWord(a).then(function () { return A.say('Which one rhymes with ' + a + '?'); }); }; }(C.WORDS[two[0]].text),
-        text: 'Which one rhymes with <b>' + esc(C.WORDS[two[0]].text) + '</b>?',
-        anchor: two[0],
-        options: shuffle([two[1]].concat(distract)).map(function (k) {
-          return { kind: 'icon', word: k, correct: k === two[1] };
-        })
-      }));
-    }
-    return out;
-  };
-
-  GEN.syllableCount = function (cfg) {
+  /* Level 1: hear a word, tap the picture. */
+  GEN.picturePick = function (cfg, lesson) {
     var out = [];
     sample(cfg.words, cfg.rounds).forEach(function (k) {
-      var wd = C.WORDS[k];
-      if (!wd) return;
+      var others = sample(cfg.words.filter(function (x) { return x !== k; }), 2);
       out.push({
-        kind: 'syllable', track: 'S:syllable', word: k, answer: wd.syl,
-        text: 'How many claps in <b>' + esc(wd.text) + '</b>?',
-        play: function () { return A.sayWord(wd.text).then(function () { return A.say('How many claps?'); }); }
+        kind: 'pick', track: 'T:' + lesson.id.slice(2),
+        text: 'Which one is it?',
+        play: function () { return A.say('Where is the').then(function () { return A.sayWord(word(k).text); }); },
+        options: shuffle([k].concat(others)).map(function (x) {
+          return { kind: 'pic', word: x, correct: x === k };
+        })
       });
     });
     return out;
   };
 
-  GEN.initialSoundPick = function (cfg) {
+  /* Level 1: memory pairs. Fun, and every flip names the picture. */
+  GEN.memoryMatch = function (cfg, lesson) {
+    return [{
+      kind: 'memory', track: 'T:' + lesson.id.slice(2),
+      text: 'Find the pairs',
+      words: sample(cfg.words, cfg.pairs),
+      play: function () { return A.say('Find the two that are the same.'); }
+    }];
+  };
+
+  /* Level 2: the letter card — exactly the shape of Rourou's paper card. */
+  GEN.meetLetter = function (cfg) {
+    return [{ kind: 'meet', letter: cfg.letter, track: 'L:' + cfg.letter,
+      text: 'Tap each picture to hear it' }];
+  };
+
+  /* Level 2: which picture starts with this letter's sound. */
+  GEN.startsWith = function (cfg) {
+    var set = cfg.letters || [cfg.letter];
     var out = [];
     for (var i = 0; i < cfg.rounds; i++) {
-      var snd = cfg.sounds[i % cfg.sounds.length];
-      var yes = wordsBySound(snd);
-      if (!yes.length) continue;
-      var target = pick(yes);
-      var no = Object.keys(C.WORDS).filter(function (k) {
-        return C.WORDS[k].phonemes && initialSound(C.WORDS[k]) !== snd;
-      });
-      out.push(makePick({
-        track: 'L:' + snd,
-        say: (function (s) { return function () { return A.say('Which one starts with').then(function () { return A.sayPhoneme(s); }); }; })(snd),
-        text: 'Which one starts with <b class="gl">' + esc(snd) + '</b>?',
-        options: shuffle([target].concat(sample(no, 2))).map(function (k) {
-          return { kind: 'icon', word: k, correct: k === target };
-        })
-      }));
-    }
-    return out;
-  };
-
-  GEN.oralBlend = function (cfg) {
-    var out = [];
-    sample(cfg.words, cfg.rounds).forEach(function (k) {
-      var wd = C.WORDS[k];
-      if (!wd || !wd.phonemes) return;
-      var no = Object.keys(C.WORDS).filter(function (x) { return x !== k && C.WORDS[x].syl === 1; });
-      out.push(makePick({
-        track: 'S:oralblend',
-        say: function () {
-          var seq = A.say('Robot says');
-          wd.phonemes.forEach(function (p) { seq = seq.then(function () { return A.sayPhoneme(p); }); });
-          return seq.then(function () { return A.say('What is it?'); });
-        },
-        text: 'Robot says&hellip; what is it?',
-        options: shuffle([k].concat(sample(no, 2))).map(function (x) {
-          return { kind: 'icon', word: x, correct: x === k };
-        })
-      }));
-    });
-    return out;
-  };
-
-  GEN.letterIntro = function (cfg) {
-    return cfg.letters.map(function (l) {
-      return { kind: 'intro', letter: l, track: 'L:' + l,
-        text: 'This letter says&hellip; tap the card to hear it' };
-    });
-  };
-
-  GEN.letterPick = function (cfg) {
-    var out = [];
-    for (var i = 0; i < cfg.rounds; i++) {
-      var target = cfg.letters[i % cfg.letters.length];
-      var others = cfg.letters.filter(function (x) { return x !== target; });
-      if (others.length < 2) others = Object.keys(C.LETTERS).filter(function (x) { return x !== target; });
-      out.push(makePick({
-        track: 'L:' + target,
-        say: (function (t) { return function () { return A.say('Find').then(function () { return A.sayPhoneme(t); }); }; })(target),
-        text: 'Find the letter that says this sound',
-        options: shuffle([target].concat(sample(others, 2))).map(function (l) {
-          return { kind: 'letter', letter: l, correct: l === target };
-        })
-      }));
-    }
-    return out;
-  };
-
-  GEN.popSound = function (cfg) {
-    var out = [];
-    for (var i = 0; i < cfg.rounds; i++) {
-      var target = cfg.letters[i % cfg.letters.length];
-      var others = Object.keys(C.LETTERS).filter(function (x) { return x !== target; });
-      var bubbles = [];
-      for (var j = 0; j < 3; j++) bubbles.push({ letter: target, good: true });
-      sample(others, 6).forEach(function (l) { bubbles.push({ letter: l, good: false }); });
-      out.push({ kind: 'pop', track: 'L:' + target, target: target, bubbles: shuffle(bubbles),
-        text: 'Pop every <b class="gl">' + esc(target) + '</b>',
-        play: (function (t) { return function () { return A.say('Pop every').then(function () { return A.sayPhoneme(t); }); }; })(target) });
-    }
-    return out;
-  };
-
-  GEN.soundSort = function (cfg) {
-    var out = [];
-    for (var i = 0; i < cfg.rounds; i++) {
-      var pair = cfg.pairs[i % cfg.pairs.length];
-      var a = sample(wordsBySound(pair[0]), 2), b = sample(wordsBySound(pair[1]), 2);
-      if (!a.length || !b.length) continue;
+      var l = set[i % set.length];
+      var target = pick(C.startWords(l));
+      var others = sample(C.otherWords(l), 2);
+      var ends = C.END_SOUND[l];
       out.push({
-        kind: 'sort', track: 'L:' + pair[0], bins: pair,
-        tiles: shuffle(a.concat(b)),
-        text: 'Put each picture in the right basket',
-        play: (function (p) {
+        kind: 'pick', track: 'L:' + l,
+        text: (ends ? 'Which one <em>ends</em> with' : 'Which one starts with') + ' <b class="gl">' + esc(glyph(l)) + '</b>?',
+        play: (function (x, e) {
           return function () {
-            return A.say('Put each picture with its first sound.')
-              .then(function () { return A.sayPhoneme(p[0]); })
-              .then(function () { return A.sayPhoneme(p[1]); });
+            return A.say(e ? 'Which one ends with' : 'Which one starts with')
+              .then(function () { return A.sayPhoneme(x); });
           };
-        })(pair)
+        })(l, ends),
+        options: shuffle([target].concat(others)).map(function (x) {
+          return { kind: 'pic', word: x, correct: x === target };
+        })
       });
     }
     return out;
   };
 
-  GEN.tapToBlend = function (cfg) {
-    return cfg.words.map(function (k) {
-      var wd = C.WORDS[k];
-      return { kind: 'blend', track: 'S:blend', word: k, letters: wd.phonemes,
-        text: 'Tap each sound, then push them together' ,
-        play: function () { return A.say('Tap each sound.'); } };
-    });
-  };
-
-  GEN.buildWord = function (cfg) {
-    return cfg.words.map(function (k) {
-      var wd = C.WORDS[k];
-      var tiles = shuffle(wd.phonemes.concat(sample(cfg.distractors || ['s', 'm'], 2)));
-      return { kind: 'build', track: 'S:blend', word: k, tiles: tiles,
-        text: 'Build the word',
-        play: function () { return A.sayWord(wd.text).then(function () { return A.say('Build it.'); }); } };
-    });
-  };
-
-  GEN.sightWord = function (cfg) {
+  /* Level 2: hear the sound, find the letter. */
+  GEN.findLetter = function (cfg) {
+    var set = cfg.letters || [cfg.letter];
     var out = [];
-    cfg.words.forEach(function (w) {
-      var others = C.SIGHT.filter(function (x) { return x !== w; });
-      out.push(makePick({
-        track: 'W:' + w,
-        say: (function (x) { return function () { return A.say('Find the word').then(function () { return A.sayWord(x); }); }; })(w),
-        text: 'Find the word <b>' + esc(w) + '</b>',
-        options: shuffle([w].concat(sample(others, 2))).map(function (x) {
-          return { kind: 'word', word: x, correct: x === w };
+    for (var i = 0; i < cfg.rounds; i++) {
+      var l = set[i % set.length];
+      var others = sample(C.LETTERS.filter(function (x) { return x !== l; }), 2);
+      out.push({
+        kind: 'pick', track: 'L:' + l,
+        text: 'Which letter says this?',
+        play: (function (x) {
+          return function () {
+            return A.sayPhoneme(x)
+              .then(function () { return A.wait(150); })
+              .then(function () { return A.sayPhoneme(x); });
+          };
+        })(l),
+        options: shuffle([l].concat(others)).map(function (x) {
+          return { kind: 'letter', letter: x, correct: x === l };
         })
-      }));
-    });
+      });
+    }
     return out;
   };
 
-  function makePick(o) {
-    return { kind: 'pick', track: o.track, play: o.say, text: o.text, options: o.options, anchor: o.anchor || null };
-  }
+  /* Level 2: the hidden-letter game — a picture, its word with one letter
+     blanked out, and three letters to choose from. */
+  GEN.missingLetter = function (cfg) {
+    var set = cfg.letters || [cfg.letter];
+    var out = [];
+    for (var i = 0; i < cfg.rounds; i++) {
+      var l = set[i % set.length];
+      var candidates = C.startWords(l).filter(function (k) {
+        return word(k).text.toLowerCase().indexOf(l) >= 0 && word(k).text.length <= 9;
+      });
+      if (!candidates.length) continue;
+      var k = pick(candidates);
+      var txt = word(k).text;
+      var at = txt.toLowerCase().indexOf(l);
+      out.push({
+        kind: 'missing', track: 'L:' + l,
+        text: 'Which letter is missing?',
+        word: k, at: at, letter: l,
+        options: shuffle([l].concat(sample(C.LETTERS.filter(function (x) { return x !== l; }), 2))),
+        play: (function (t) { return function () { return A.sayWord(t).then(function () { return A.say('Which letter is missing?'); }); }; })(txt)
+      });
+    }
+    return out;
+  };
 
   /* ==================================================================
      LESSON RUNNER
      ================================================================== */
   var run = null;
+  var sessionStart = 0;
 
   function startLesson(lesson) {
     var rounds = [];
     lesson.activities.forEach(function (a) {
-      var g = GEN[a.type];
-      if (g) rounds = rounds.concat(g(a, lesson));
+      if (GEN[a.type]) rounds = rounds.concat(GEN[a.type](a, lesson));
     });
-    if (!rounds.length) { toast('Nothing to play here yet'); return; }
-    run = { lesson: lesson, rounds: rounds, i: 0, correct: 0, wrong: 0, t0: Date.now() };
-    if (!session.start) session.start = Date.now();
+    if (!rounds.length) { toast('Nothing here yet'); return; }
+    run = { lesson: lesson, rounds: rounds, i: 0, correct: 0, tries: 0, t0: Date.now() };
+    if (!sessionStart) sessionStart = Date.now();
     renderRound();
   }
 
-  function progressBar() {
-    var pct = Math.round((run.i / run.rounds.length) * 100);
-    return '<div class="pbar"><i style="width:' + pct + '%"></i></div>';
-  }
-
-  function roundShell(inner, opts) {
+  function shell(inner, opts) {
     opts = opts || {};
     var r = run.rounds[run.i];
+    var pct = Math.round((run.i / run.rounds.length) * 100);
     nav(
-      '<div class="screen screen-lesson">' +
-        '<div class="lbar">' +
-          '<button class="iconbtn" id="quit" aria-label="Back to the trail">' + icon('back') + '</button>' +
-          progressBar() +
-          '<button class="iconbtn" id="replay" aria-label="Say it again">' + icon('ear') + '</button>' +
+      '<div class="screen screen-play">' +
+        '<div class="pbar-row">' +
+          '<button class="iconbtn" id="quit" aria-label="Back to the map">' + icon('back') + '</button>' +
+          '<div class="pbar"><i style="width:' + pct + '%"></i></div>' +
+          '<div class="scorechip">' + icon('starOn', 'sc-glyph') + '<b>' + run.correct + '</b></div>' +
+          '<button class="iconbtn" id="again" aria-label="Say it again">' + icon('ear') + '</button>' +
         '</div>' +
-        '<div class="prompt"><span class="prompt-pip">' + icon('otter') + '</span><p>' + (r.text || '') + '</p></div>' +
-        '<div class="play" id="play">' + inner + '</div>' +
+        '<div class="says"><span class="says-pip">' + icon('otter') + '</span><p>' + (r.text || '') + '</p></div>' +
+        '<div class="stagearea">' + inner + '</div>' +
       '</div>'
     );
-    document.getElementById('quit').onclick = endLesson.bind(null, true);
-    document.getElementById('replay').onclick = function () { A.stop(); if (r.play) r.play(); };
-    if (!opts.silent && r.play) setTimeout(function () { r.play(); }, 220);
+    document.getElementById('quit').onclick = function () { A.stop(); run = null; screenMap(); };
+    document.getElementById('again').onclick = function () { A.stop(); if (r.play) r.play(); };
+    if (!opts.silent && r.play) setTimeout(function () { r.play(); }, 240);
   }
 
-  function advance(delay) {
+  function advance(ms) {
     setTimeout(function () {
       run.i++;
-      if (run.i >= run.rounds.length) endLesson(false);
+      if (run.i >= run.rounds.length) finishLesson();
       else renderRound();
-    }, delay == null ? 900 : delay);
+    }, ms == null ? 950 : ms);
   }
 
-  function good(track) {
-    run.correct++; session.rounds++; session.correct++;
+  function right(track) {
+    run.correct++; run.tries++;
     if (track) SRS.hit(track);
     if (S.settings.sfx) A.sfx('correct');
-    A.say(pick(['Yes!', 'You got it!', 'Well done!', 'That is right!', 'Clever!']));
+    A.say(pick(['Yes!', 'Well done!', 'You got it!', 'Clever girl!', 'That is right!']));
   }
-
-  function bad(track) {
-    run.wrong++; session.rounds++;
+  function wrong(track) {
+    run.tries++;
     if (track) SRS.miss(track);
     if (S.settings.sfx) A.sfx('retry');
     A.say(pick(['Try again.', 'Not that one. Try again.', 'Have another go.']));
@@ -535,36 +422,18 @@
 
   function renderRound() {
     var r = run.rounds[run.i];
-    ({
-      pick: renderPick,
-      syllable: renderSyllable,
-      intro: renderIntro,
-      pop: renderPop,
-      sort: renderSort,
-      blend: renderBlend,
-      build: renderBuild
-    })[r.kind](r);
+    ({ pick: rPick, memory: rMemory, meet: rMeet, missing: rMissing })[r.kind](r);
   }
 
-  /* ---- pick ---- */
-  function renderPick(r) {
+  /* ---- three-choice picker (pictures OR letters) ---- */
+  function rPick(r) {
     var opts = r.options.map(function (o, i) {
-      var body;
-      if (o.kind === 'icon') {
-        var wd = C.WORDS[o.word];
-        body = '<span class="pic">' + icon(wd.icon) + '</span>';
-      } else if (o.kind === 'letter') {
-        body = '<span class="glyph">' + esc(o.letter === 'q' ? 'qu' : o.letter) + '</span>';
-      } else {
-        body = '<span class="glyph glyph--word">' + esc(o.word) + '</span>';
-      }
+      var body = o.kind === 'pic'
+        ? '<span class="pic">' + icon(word(o.word).icon) + '</span>'
+        : '<span class="glyph">' + esc(glyph(o.letter)) + '</span>';
       return '<button class="opt" data-i="' + i + '">' + body + '</button>';
     }).join('');
-
-    roundShell(
-      (r.anchor ? '<div class="anchor">' + icon(C.WORDS[r.anchor].icon) + '<b>' + esc(C.WORDS[r.anchor].text) + '</b></div>' : '') +
-      '<div class="opts opts-' + r.options.length + '">' + opts + '</div>'
-    );
+    shell('<div class="opts">' + opts + '</div>');
 
     Array.prototype.forEach.call(document.querySelectorAll('.opt'), function (b) {
       b.onclick = function () {
@@ -573,401 +442,310 @@
         if (o.correct) {
           Array.prototype.forEach.call(document.querySelectorAll('.opt'), function (x) { x.dataset.spent = '1'; });
           b.classList.add('is-right');
-          good(r.track);
-          if (o.kind === 'icon') A.sayWord(C.WORDS[o.word].text);
+          right(r.track);
+          if (o.kind === 'pic') A.sayWord(word(o.word).text);
           advance();
         } else {
           b.dataset.spent = '1';
           b.classList.add('is-wrong');
-          setTimeout(function () { b.classList.remove('is-wrong'); b.dataset.spent = '0'; }, 700);
-          bad(r.track);
+          setTimeout(function () { b.classList.remove('is-wrong'); b.dataset.spent = '0'; }, 750);
+          wrong(r.track);
         }
       };
     });
   }
 
-  /* ---- syllable ---- */
-  function renderSyllable(r) {
-    var wd = C.WORDS[r.word];
-    roundShell(
-      '<div class="anchor anchor--big">' + icon(wd.icon) + '<b>' + esc(wd.text) + '</b></div>' +
-      '<div class="opts opts-3">' +
-        [1, 2, 3].map(function (n) {
-          return '<button class="opt opt--drum" data-n="' + n + '"><span class="pic">' + icon('drum') + '</span><span class="drumn">' + n + '</span></button>';
-        }).join('') +
-      '</div>'
-    );
-    Array.prototype.forEach.call(document.querySelectorAll('.opt--drum'), function (b) {
-      b.onclick = function () {
-        if (+b.dataset.n === r.answer) { b.classList.add('is-right'); good(r.track); advance(); }
-        else { b.classList.add('is-wrong'); setTimeout(function () { b.classList.remove('is-wrong'); }, 700); bad(r.track); }
-      };
-    });
-  }
+  /* ---- the letter card: big Aa, its friend, four keyword pictures ---- */
+  function rMeet(r) {
+    var L = C.ALPHABET[r.letter];
+    var pics = L.words.map(function (k, i) {
+      var t = word(k).text;
+      var head = esc(t.charAt(0));
+      var tail = esc(t.slice(1));
+      return '<button class="kw" data-k="' + k + '" data-i="' + i + '">' +
+        '<span class="kw-pic">' + icon(word(k).icon) + '</span>' +
+        '<span class="kw-text"><b>' + head + '</b>' + tail + '</span>' +
+        '</button>';
+    }).join('');
 
-  /* ---- letter intro ---- */
-  function renderIntro(r) {
-    var L = C.LETTERS[r.letter];
-    var glyph = r.letter === 'q' ? 'qu' : r.letter;
-    roundShell(
-      '<div class="intro">' +
-        '<button class="intro-card" id="icard">' +
-          '<span class="glyph glyph--huge">' + esc(glyph) + '</span>' +
-          '<span class="intro-pic">' + icon(C.WORDS[L.keyword] ? C.WORDS[L.keyword].icon : L.keyword) + '</span>' +
+    shell(
+      '<div class="card">' +
+        '<button class="card-top" id="cardtop">' +
+          '<span class="card-letter">' + esc(r.letter.toUpperCase()) + esc(r.letter) + '</span>' +
+          (L.friend ? '<span class="card-friend">' + esc(L.friend) + '</span>' : '') +
         '</button>' +
-        '<p class="intro-word">' + esc(L.keyword) + '</p>' +
-        '<p class="intro-action">' + esc(L.action) + '</p>' +
-        '<button class="nextbtn" id="inext">' + icon('play') + '</button>' +
+        '<div class="kws">' + pics + '</div>' +
+        '<button class="nextbtn" id="cardnext">' + icon('play') + '</button>' +
       '</div>',
       { silent: true }
     );
-    function sayIt() {
-      return A.sayPhoneme(r.letter)
-        .then(function () { return A.wait(120); })
+
+    function sayLetter() {
+      return A.sayLetterName(r.letter)
         .then(function () { return A.sayPhoneme(r.letter); })
-        .then(function () { return A.sayWord(L.keyword); });
+        .then(function () { return A.sayPhoneme(r.letter); });
     }
-    var card = document.getElementById('icard');
-    card.onclick = function () { card.classList.remove('pulse'); void card.offsetWidth; card.classList.add('pulse'); sayIt(); };
-    setTimeout(sayIt, 250);
-    document.getElementById('inext').onclick = function () { SRS.hit(r.track); advance(0); };
-  }
+    function sayKeyword(k) {
+      return A.sayPhoneme(r.letter).then(function () { return A.sayWord(word(k).text); });
+    }
 
-  /* ---- pop ---- */
-  function renderPop(r) {
-    var html = r.bubbles.map(function (b, i) {
-      var left = 4 + (i % 3) * 32 + Math.random() * 8;
-      var top = 4 + Math.floor(i / 3) * 31 + Math.random() * 6;
-      var dur = (2.6 + Math.random() * 1.8).toFixed(2);
-      return '<button class="bubble" data-i="' + i + '" style="left:' + left + '%;top:' + top + '%;animation-duration:' + dur + 's">' +
-        esc(b.letter === 'q' ? 'qu' : b.letter) + '</button>';
-    }).join('');
-    roundShell('<div class="pool">' + html + '</div>');
-    var left = r.bubbles.filter(function (b) { return b.good; }).length;
-    Array.prototype.forEach.call(document.querySelectorAll('.bubble'), function (el) {
-      el.onclick = function () {
-        var b = r.bubbles[+el.dataset.i];
-        if (b.good) {
-          el.classList.add('burst');
-          if (S.settings.sfx) A.sfx('pop');
-          A.sayPhoneme(r.target);
-          left--;
-          if (!left) { good(r.track); advance(700); }
-        } else {
-          el.classList.add('nope');
-          setTimeout(function () { el.classList.remove('nope'); }, 500);
-          if (S.settings.sfx) A.sfx('retry');
-        }
-      };
-    });
-  }
+    var top = document.getElementById('cardtop');
+    top.onclick = function () { bump(top); sayLetter(); };
 
-  /* ---- sort ---- */
-  function renderSort(r) {
-    var bins = r.bins.map(function (l) {
-      return '<div class="bin" data-letter="' + l + '"><span class="glyph">' + esc(l) + '</span><div class="bin-catch"></div></div>';
-    }).join('');
-    var tiles = r.tiles.map(function (k, i) {
-      return '<button class="tile" data-word="' + k + '" data-i="' + i + '">' + icon(C.WORDS[k].icon) + '</button>';
-    }).join('');
-    roundShell('<div class="sorter"><div class="bins">' + bins + '</div><div class="tiles">' + tiles + '</div></div>');
-
-    var remaining = r.tiles.length;
-    Array.prototype.forEach.call(document.querySelectorAll('.tile'), function (el) {
-      draggable(el, {
-        zones: function () {
-          return Array.prototype.map.call(document.querySelectorAll('.bin'), function (b) {
-            return { el: b, letter: b.dataset.letter };
-          });
-        },
-        onStart: function () { A.sayWord(C.WORDS[el.dataset.word].text); },
-        onDrop: function (zone) {
-          var snd = initialSound(C.WORDS[el.dataset.word]);
-          if (snd === zone.letter) {
-            el.dataset.locked = '1';
-            el.classList.add('placed');
-            zone.el.querySelector('.bin-catch').appendChild(el);
-            if (S.settings.sfx) A.sfx('pop');
-            remaining--;
-            if (!remaining) { good(r.track); advance(800); }
-          } else {
-            el.classList.add('is-wrong');
-            setTimeout(function () { el.classList.remove('is-wrong'); }, 600);
-            bad(r.track);
-          }
-        }
-      });
-      el.addEventListener('click', function () { A.sayWord(C.WORDS[el.dataset.word].text); });
-    });
-  }
-
-  /* ---- tap to blend ---- */
-  function renderBlend(r) {
-    var wd = C.WORDS[r.word];
-    var tiles = r.letters.map(function (l, i) {
-      return '<button class="btile" data-i="' + i + '" data-l="' + l + '">' + esc(l) + '</button>';
-    }).join('');
-    roundShell(
-      '<div class="blend">' +
-        '<div class="btiles">' + tiles + '</div>' +
-        '<button class="pushbtn" id="push" disabled>' +
-          '<span>push them together</span>' +
-          '<svg viewBox="0 0 60 24" aria-hidden="true"><path d="M4 12h44M40 5l9 7-9 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-        '</button>' +
-        '<div class="reveal" id="reveal" hidden>' +
-          '<div class="anchor anchor--big">' + icon(wd.icon) + '<b>' + esc(wd.text) + '</b></div>' +
-        '</div>' +
-      '</div>'
-    );
     var heard = {};
-    var push = document.getElementById('push');
-    Array.prototype.forEach.call(document.querySelectorAll('.btile'), function (el) {
-      el.onclick = function () {
-        el.classList.remove('lit'); void el.offsetWidth; el.classList.add('lit');
-        A.sayPhoneme(el.dataset.l);
-        SRS.hit('L:' + el.dataset.l);
-        heard[el.dataset.i] = true;
-        if (Object.keys(heard).length === r.letters.length) push.disabled = false;
+    Array.prototype.forEach.call(document.querySelectorAll('.kw'), function (b) {
+      b.onclick = function () {
+        bump(b);
+        b.classList.add('seen');
+        heard[b.dataset.i] = true;
+        sayKeyword(b.dataset.k);
+        if (Object.keys(heard).length === L.words.length) {
+          document.getElementById('cardnext').classList.add('ready');
+        }
       };
     });
-    push.onclick = function () {
-      push.disabled = true;
-      var els = document.querySelectorAll('.btile');
-      document.querySelector('.btiles').classList.add('squeeze');
-      A.blendWord(wd.text, r.letters, function (i) {
-        Array.prototype.forEach.call(els, function (x) { x.classList.remove('lit'); });
-        if (i >= 0 && els[i]) els[i].classList.add('lit');
+
+    /* say it once on arrival, then walk the four words */
+    setTimeout(function () {
+      sayLetter().then(function () {
+        var seq = Promise.resolve();
+        L.words.forEach(function (k, i) {
+          seq = seq.then(function () {
+            var el = document.querySelector('.kw[data-i="' + i + '"]');
+            if (el) { bump(el); el.classList.add('seen'); }
+            return sayKeyword(k);
+          });
+        });
+        return seq;
       }).then(function () {
-        document.getElementById('reveal').hidden = false;
-        good(r.track);
-        advance(1400);
+        var n = document.getElementById('cardnext');
+        if (n) n.classList.add('ready');
       });
+    }, 260);
+
+    document.getElementById('cardnext').onclick = function () {
+      SRS.hit(r.track);
+      run.correct++; run.tries++;
+      advance(0);
     };
   }
 
-  /* ---- build the word ---- */
-  function renderBuild(r) {
-    var wd = C.WORDS[r.word];
-    var slots = wd.phonemes.map(function (_, i) { return '<div class="slot" data-i="' + i + '"></div>'; }).join('');
-    var tiles = r.tiles.map(function (l, i) { return '<button class="ltile" data-l="' + l + '" data-i="' + i + '">' + esc(l) + '</button>'; }).join('');
-    roundShell(
-      '<div class="builder">' +
-        '<div class="anchor anchor--big">' + icon(wd.icon) + '</div>' +
-        '<div class="slots">' + slots + '</div>' +
-        '<div class="ltiles">' + tiles + '</div>' +
+  function bump(el) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+
+  /* ---- hidden letter ---- */
+  function rMissing(r) {
+    var t = word(r.word).text;
+    var letters = t.split('').map(function (ch, i) {
+      if (i === r.at) return '<span class="slot" id="slot">?</span>';
+      return '<span class="ch">' + esc(ch) + '</span>';
+    }).join('');
+
+    shell(
+      '<div class="missing">' +
+        '<div class="missing-pic">' + icon(word(r.word).icon) + '</div>' +
+        '<div class="missing-word">' + letters + '</div>' +
+        '<div class="opts opts-row">' + r.options.map(function (l, i) {
+          return '<button class="opt opt--letter" data-l="' + l + '"><span class="glyph">' + esc(glyph(l)) + '</span></button>';
+        }).join('') + '</div>' +
       '</div>'
     );
-    var filled = 0;
-    Array.prototype.forEach.call(document.querySelectorAll('.ltile'), function (el) {
-      el.addEventListener('click', function () { A.sayPhoneme(el.dataset.l); });
-      draggable(el, {
-        zones: function () {
-          return Array.prototype.filter.call(document.querySelectorAll('.slot'), function (s) { return !s.dataset.filled; })
-            .map(function (s) { return { el: s, i: +s.dataset.i }; });
-        },
-        onStart: function () { A.sayPhoneme(el.dataset.l); },
-        onDrop: function (zone) {
-          if (wd.phonemes[zone.i] === el.dataset.l) {
-            zone.el.dataset.filled = '1';
-            zone.el.appendChild(el);
-            el.dataset.locked = '1';
-            el.classList.add('placed');
-            if (S.settings.sfx) A.sfx('pop');
-            filled++;
-            if (filled === wd.phonemes.length) {
-              A.blendWord(wd.text, wd.phonemes).then(function () { good(r.track); advance(900); });
-            }
-          } else {
-            el.classList.add('is-wrong');
-            setTimeout(function () { el.classList.remove('is-wrong'); }, 600);
-            bad(r.track);
-          }
+
+    Array.prototype.forEach.call(document.querySelectorAll('.opt--letter'), function (b) {
+      b.onclick = function () {
+        if (b.dataset.spent === '1') return;
+        if (b.dataset.l === r.letter) {
+          Array.prototype.forEach.call(document.querySelectorAll('.opt--letter'), function (x) { x.dataset.spent = '1'; });
+          b.classList.add('is-right');
+          var slot = document.getElementById('slot');
+          slot.textContent = r.letter;
+          slot.classList.add('filled');
+          right(r.track);
+          A.sayWord(t);
+          advance(1200);
+        } else {
+          b.dataset.spent = '1';
+          b.classList.add('is-wrong');
+          setTimeout(function () { b.classList.remove('is-wrong'); b.dataset.spent = '0'; }, 750);
+          wrong(r.track);
         }
-      });
+      };
+    });
+  }
+
+  /* ---- memory pairs ---- */
+  function rMemory(r) {
+    var deck = shuffle(r.words.concat(r.words));
+    shell('<div class="memory">' + deck.map(function (k, i) {
+      return '<button class="mcard" data-k="' + k + '" data-i="' + i + '">' +
+        '<span class="mback">' + icon('starOn') + '</span>' +
+        '<span class="mface">' + icon(word(k).icon) + '</span>' +
+        '</button>';
+    }).join('') + '</div>');
+
+    var open = [], found = 0, busy = false;
+    Array.prototype.forEach.call(document.querySelectorAll('.mcard'), function (b) {
+      b.onclick = function () {
+        if (busy || b.classList.contains('up') || b.classList.contains('matched')) return;
+        b.classList.add('up');
+        A.sayWord(word(b.dataset.k).text);
+        open.push(b);
+        if (open.length < 2) return;
+        busy = true;
+        var a = open[0], c = open[1];
+        if (a.dataset.k === c.dataset.k) {
+          setTimeout(function () {
+            a.classList.add('matched'); c.classList.add('matched');
+            if (S.settings.sfx) A.sfx('pop');
+            found++; open = []; busy = false;
+            if (found === r.words.length) { right(r.track); advance(900); }
+          }, 450);
+        } else {
+          setTimeout(function () {
+            a.classList.remove('up'); c.classList.remove('up');
+            open = []; busy = false;
+          }, 900);
+        }
+      };
     });
   }
 
   /* ---- end of lesson ---- */
-  function endLesson(quit) {
+  function finishLesson() {
     A.stop();
     var l = run.lesson;
-    var total = run.correct + run.wrong;
-    var acc = total ? run.correct / total : 0;
+    var acc = run.tries ? run.correct / run.tries : 0;
+    var n = acc >= 0.9 ? 3 : acc >= 0.7 ? 2 : 1;
 
-    if (!quit) {
-      var prev = S.done[l.id] || { times: 0 };
-      S.done[l.id] = { times: prev.times + 1, last: Date.now(), best: Math.max(prev.best || 0, acc) };
-      var newSticker = null;
-      if (S.stickers.length < C.STICKERS.length) {
-        newSticker = C.STICKERS[S.stickers.length];
-        S.stickers.push(newSticker);
-      }
-      S.sessions.push({ d: Date.now(), lesson: l.id, rounds: total, correct: run.correct,
-        mins: Math.round((Date.now() - run.t0) / 6000) / 10 });
-      if (S.sessions.length > 60) S.sessions = S.sessions.slice(-60);
-      save();
-
-      if (S.settings.sfx) A.sfx('reward');
-      A.say('You did it! You earned a sticker.');
-
-      var overCap = session.start && (Date.now() - session.start) / 60000 > S.settings.cap;
-
-      nav(
-        '<div class="screen screen-done">' +
-          '<div class="done-card">' +
-            '<div class="done-sticker">' + icon(newSticker || 'star') + '</div>' +
-            '<h1>' + esc(l.name) + '</h1>' +
-            '<p class="done-line">' + run.correct + ' right out of ' + total + '</p>' +
-            (newSticker ? '<p class="done-sub">New sticker for your board</p>' : '') +
-            '<div class="done-btns">' +
-              '<button class="btn btn--ghost" id="toStickers">My stickers</button>' +
-              '<button class="btn" id="toHome">' + (overCap ? 'All done for today' : 'Back to the trail') + '</button>' +
-            '</div>' +
-            (overCap ? '<p class="done-cap">That is a good long turn. See you tomorrow!</p>' : '') +
-          '</div>' +
-        '</div>'
-      );
-      document.getElementById('toStickers').onclick = screenTreasure;
-      document.getElementById('toHome').onclick = function () { if (overCap) session.start = 0; screenHome(); };
-    } else {
-      screenHome();
+    S.stars[l.id] = Math.max(starsFor(l.id), n);
+    var prev = S.best[l.id];
+    if (!prev || run.correct / Math.max(1, run.tries) > prev.correct / Math.max(1, prev.total)) {
+      S.best[l.id] = { correct: run.correct, total: run.tries };
     }
-    run = null;
-  }
+    S.runs.push({ d: Date.now(), lesson: l.id, correct: run.correct, tries: run.tries, stars: n,
+      mins: Math.round((Date.now() - run.t0) / 6000) / 10 });
+    if (S.runs.length > 80) S.runs = S.runs.slice(-80);
+    save();
 
-  /* ==================================================================
-     SCREEN · TREASURE
-     ================================================================== */
-  function screenTreasure() {
-    var grid = C.STICKERS.map(function (s, i) {
-      var got = i < S.stickers.length;
-      return '<div class="sticker ' + (got ? '' : 'is-locked') + '">' + icon(got ? s : 'lockClosed') + '</div>';
-    }).join('');
+    if (S.settings.sfx) A.sfx('reward');
+    A.say(n === 3 ? 'Perfect! Three stars!' : n === 2 ? 'Well done! Two stars!' : 'Good try! One star!');
+
+    var overCap = sessionStart && (Date.now() - sessionStart) / 60000 > S.settings.cap;
+    var ls = C.levelLessons(l.level);
+    var idx = ls.map(function (x) { return x.id; }).indexOf(l.id);
+    var next = ls[idx + 1];
+
     nav(
-      '<div class="screen screen-treasure">' +
-        '<div class="lbar"><button class="iconbtn" id="back" aria-label="Back">' + icon('back') + '</button>' +
-          '<h2 class="lbar-title">My Stickers</h2><span class="iconbtn iconbtn--ghost"></span></div>' +
-        '<div class="scene">' +
-          '<div class="scene-sky"></div>' +
-          '<div class="scene-items">' + icon('hdb', 'sc sc-hdb') + icon('tree', 'sc sc-tree') + icon('otter', 'sc sc-otter') + '</div>' +
+      '<div class="screen screen-done">' +
+        '<div class="donecard">' +
+          '<div class="donestars">' + stars(n) + '</div>' +
+          '<h1>' + esc(l.shortName || l.name) + '</h1>' +
+          '<p class="donescore"><b>' + run.correct + '</b> right out of <b>' + run.tries + '</b></p>' +
+          '<p class="donetotal">' + icon('starOn', 'dt-glyph') + ' ' + totalStars() + ' stars altogether</p>' +
+          '<div class="donebtns">' +
+            '<button class="ghostbtn" id="dmap">Map</button>' +
+            (next && !overCap ? '<button class="bigbtn bigbtn--sm" id="dnext">' + icon('play', 'bigbtn-glyph') + '<span>Next</span></button>' : '') +
+          '</div>' +
+          (overCap ? '<p class="donecap">That was a good long turn. See you tomorrow!</p>' : '') +
         '</div>' +
-        '<p class="tcount"><b>' + S.stickers.length + '</b> of ' + C.STICKERS.length + ' found</p>' +
-        '<div class="stickers">' + grid + '</div>' +
       '</div>'
     );
-    document.getElementById('back').onclick = screenHome;
+    document.getElementById('dmap').onclick = function () { if (overCap) sessionStart = 0; screenMap(); };
+    var dn = document.getElementById('dnext');
+    if (dn) dn.onclick = function () { startLesson(next); };
+    run = null;
   }
 
   /* ==================================================================
      SCREEN · GROWN-UPS
      ================================================================== */
-  var parentTab = 'progress';
+  var tab = 'progress';
 
   function screenParent() {
     A.stop();
     nav(
       '<div class="screen screen-parent">' +
-        '<div class="pbar-top">' +
+        '<div class="phead">' +
           '<button class="iconbtn" id="pback" aria-label="Back">' + icon('back') + '</button>' +
-          '<h2>Grown-ups</h2>' +
-          '<span class="iconbtn iconbtn--ghost"></span>' +
+          '<h2>Grown-ups</h2><span class="iconbtn iconbtn--ghost"></span>' +
         '</div>' +
-        '<nav class="tabs">' +
-          ['progress', 'voice', 'settings'].map(function (t) {
-            return '<button class="tab ' + (parentTab === t ? 'is-on' : '') + '" data-tab="' + t + '">' + t + '</button>';
-          }).join('') +
-        '</nav>' +
+        '<nav class="tabs">' + ['progress', 'voice', 'settings'].map(function (t) {
+          return '<button class="tab ' + (tab === t ? 'is-on' : '') + '" data-t="' + t + '">' + t + '</button>';
+        }).join('') + '</nav>' +
         '<div id="ptab"></div>' +
       '</div>'
     );
-    document.getElementById('pback').onclick = screenHome;
+    document.getElementById('pback').onclick = screenWelcome;
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
-      b.onclick = function () { parentTab = b.dataset.tab; screenParent(); };
+      b.onclick = function () { tab = b.dataset.t; screenParent(); };
     });
-    ({ progress: tabProgress, voice: tabVoice, settings: tabSettings })[parentTab]();
+    ({ progress: tabProgress, voice: tabVoice, settings: tabSettings })[tab]();
   }
-
-  function boxClass(n) { return 'b' + n; }
 
   function tabProgress() {
     var tr = C.trackables();
     var letters = tr.filter(function (t) { return t.kind === 'letter'; });
-    var sight = tr.filter(function (t) { return t.kind === 'sight'; });
-    var skills = tr.filter(function (t) { return t.kind === 'skill'; });
+    var themes = tr.filter(function (t) { return t.kind === 'theme'; });
 
-    function cellRow(list) {
+    function cells(list) {
       return list.map(function (t) {
-        var b = SRS.get(t.key);
-        var acc = SRS.accuracy(t.key);
-        return '<div class="cell ' + boxClass(b.box) + '" title="' + esc(t.label) + ': box ' + b.box + ', ' +
-          (acc == null ? 'not seen' : Math.round(acc * 100) + '% of ' + b.seen) + '">' +
-          '<span>' + esc(t.label) + '</span></div>';
+        var b = SRS.get(t.key), a = SRS.acc(t.key);
+        return '<div class="cell b' + b.box + '" title="' + esc(t.label) + ': box ' + b.box + ', ' +
+          (a == null ? 'not seen' : Math.round(a * 100) + '% of ' + b.seen) + '"><span>' + esc(t.label) + '</span></div>';
       }).join('');
     }
 
-    /* struggling = seen at least 3 times, lowest accuracy */
-    var struggling = tr.filter(function (t) { return SRS.get(t.key).seen >= 3; })
-      .sort(function (a, b) { return SRS.accuracy(a.key) - SRS.accuracy(b.key); })
-      .slice(0, 5);
+    var weak = tr.filter(function (t) { return SRS.get(t.key).seen >= 3; })
+      .sort(function (a, b) { return SRS.acc(a.key) - SRS.acc(b.key); }).slice(0, 5);
 
-    var recent = S.sessions.slice(-10).reverse();
-    var doneCount = Object.keys(S.done).length;
-    var stage = C.STAGES.filter(function (s) { return s.built; }).filter(function (s) {
-      return stageLessons(s.id).some(function (l) { return !lessonDone(l.id); });
-    })[0] || C.STAGES[2];
+    var recent = S.runs.slice(-12).reverse();
+    var lettersDone = C.LETTERS.filter(function (l) { return done('a-' + l); }).length;
 
     document.getElementById('ptab').innerHTML =
-      '<div class="panel">' +
-        '<div class="kpis">' +
-          '<div class="kpi"><small>Lessons finished</small><b>' + doneCount + ' <i>/ ' + C.LESSONS.length + '</i></b></div>' +
-          '<div class="kpi"><small>Sounds at box 4+</small><b>' + letters.filter(function (t) { return SRS.get(t.key).box >= 4; }).length + ' <i>/ 26</i></b></div>' +
-          '<div class="kpi"><small>Working on</small><b class="kpi--text">' + esc(stage.name) + '</b></div>' +
-        '</div>' +
-      '</div>' +
+      '<div class="panel"><div class="kpis">' +
+        '<div class="kpi"><small>Stars</small><b>' + totalStars() + '</b></div>' +
+        '<div class="kpi"><small>Letters done</small><b>' + lettersDone + ' <i>/ 26</i></b></div>' +
+        '<div class="kpi"><small>Turns played</small><b>' + S.runs.length + '</b></div>' +
+      '</div></div>' +
 
-      '<div class="panel">' +
-        '<h3>Mastery map</h3>' +
-        '<p class="hint">Leitner box 0–5. Box 4+ across three separate days is the gate to the next stage.</p>' +
-        '<h4>Letter sounds</h4><div class="grid">' + cellRow(letters) + '</div>' +
-        '<h4>Sight words</h4><div class="grid grid--wide">' + cellRow(sight) + '</div>' +
-        '<h4>Listening skills</h4><div class="grid grid--wide">' + cellRow(skills) + '</div>' +
+      '<div class="panel"><h3>Mastery map</h3>' +
+        '<p class="hint">Leitner box 0&ndash;5: a box goes up on a right answer and back to 1 on a wrong one. Green means it has been right several times across several days.</p>' +
+        '<h4>Letter sounds</h4><div class="grid">' + cells(letters) + '</div>' +
+        '<h4>Word themes</h4><div class="grid grid--wide">' + cells(themes) + '</div>' +
         '<div class="legend">' + [0, 1, 2, 3, 4, 5].map(function (n) {
-          return '<span class="lg"><i class="cell ' + boxClass(n) + '"></i>' + (n === 0 ? 'new' : n) + '</span>';
+          return '<span class="lg"><i class="cell b' + n + '"></i>' + (n === 0 ? 'new' : n) + '</span>';
         }).join('') + '</div>' +
       '</div>' +
 
-      '<div class="panel">' +
-        '<h3>Practise these away from the screen</h3>' +
-        (struggling.length
-          ? '<ol class="struggle">' + struggling.map(function (t) {
-              var acc = Math.round(SRS.accuracy(t.key) * 100);
-              var hint = t.kind === 'letter'
-                ? 'Say ' + (C.LETTERS[t.label] ? '&ldquo;' + esc(C.LETTERS[t.label].cue) + '&rdquo; — ' + esc(C.LETTERS[t.label].action) : t.label)
-                : 'Point it out on signs and menus';
-              return '<li><b>' + esc(t.label) + '</b><span class="acc">' + acc + '%</span><em>' + hint + '</em></li>';
+      '<div class="panel"><h3>Practise these away from the screen</h3>' +
+        (weak.length
+          ? '<ol class="weak">' + weak.map(function (t) {
+              var a = Math.round(SRS.acc(t.key) * 100);
+              var hint = t.kind === 'letter' && C.ALPHABET[t.label]
+                ? 'Point at ' + C.ALPHABET[t.label].words.map(function (k) { return C.WORDS[k].text; }).join(', ') + ' in real life'
+                : 'Name these things when you see them';
+              return '<li><b>' + esc(t.label) + '</b><span class="acc">' + a + '%</span><em>' + esc(hint) + '</em></li>';
             }).join('') + '</ol>'
-          : '<p class="hint">Nothing yet — this fills once an item has been seen three times.</p>') +
+          : '<p class="hint">Fills up once an item has been seen three times.</p>') +
       '</div>' +
 
-      '<div class="panel">' +
-        '<h3>Recent turns</h3>' +
+      '<div class="panel"><h3>Recent turns</h3>' +
         (recent.length
-          ? '<table class="tbl"><thead><tr><th>When</th><th>Lesson</th><th class="num">Mins</th><th class="num">Score</th></tr></thead><tbody>' +
-            recent.map(function (s) {
-              var l = C.LESSONS.filter(function (x) { return x.id === s.lesson; })[0];
-              return '<tr><td>' + new Date(s.d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + '</td>' +
-                '<td>' + esc(l ? l.name : s.lesson) + '</td>' +
-                '<td class="num">' + (s.mins || 0) + '</td>' +
-                '<td class="num">' + s.correct + '/' + s.rounds + '</td></tr>';
+          ? '<table class="tbl"><thead><tr><th>When</th><th>Stop</th><th class="num">Mins</th><th class="num">Score</th><th class="num">Stars</th></tr></thead><tbody>' +
+            recent.map(function (r) {
+              var l = C.lesson(r.lesson);
+              return '<tr><td>' + new Date(r.d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + '</td>' +
+                '<td>' + esc(l ? (l.shortName || l.name) : r.lesson) + '</td>' +
+                '<td class="num">' + (r.mins || 0) + '</td>' +
+                '<td class="num">' + r.correct + '/' + r.tries + '</td>' +
+                '<td class="num">' + r.stars + '</td></tr>';
             }).join('') + '</tbody></table>'
-          : '<p class="hint">No turns recorded yet.</p>') +
+          : '<p class="hint">No turns yet.</p>') +
       '</div>';
   }
 
   function tabVoice() {
     var can = A.canRecord();
-    var letters = Object.keys(C.LETTERS);
-    var coreWords = Object.keys(C.WORDS).filter(function (k) { return C.WORDS[k].phonemes; });
+    var letters = C.LETTERS;
 
     function row(key, label, sub) {
       var has = A.hasRecording(key);
@@ -981,101 +759,110 @@
 
     document.getElementById('ptab').innerHTML =
       '<div class="panel">' +
-        '<h3>Pip&rsquo;s voice</h3>' +
-        '<p class="hint">Speech synthesis cannot say a clean /t/ or /p/ — it adds a &ldquo;uh&rdquo;, which teaches the child a sound that will not blend. Recording the 26 letter sounds in your own voice removes that problem, and a familiar voice holds attention better. About 10 minutes of work.</p>' +
-        '<p class="stat"><b>' + A.recordingCount() + '</b> clips recorded' + (can ? '' : ' · <span class="warn">recording is not available in this browser or view</span>') + '</p>' +
-        '<label class="field"><span>Fallback voice</span>' +
-          '<select id="voicepick">' +
-            '<option value="">Automatic (British English preferred)</option>' +
-            A.voices().map(function (v) {
-              return '<option value="' + esc(v.name) + '"' + (S.settings.voice === v.name ? ' selected' : '') + '>' + esc(v.name) + ' — ' + esc(v.lang) + '</option>';
-            }).join('') +
-          '</select>' +
-        '</label>' +
+        '<h3>Do I need to record anything?</h3>' +
+        '<p class="hint"><b>For the way you are teaching now &mdash; no.</b> The letter card teaches the sound through its four words (a &mdash; apple, ax, ant, alligator), and speech synthesis says whole words perfectly well. Leave this page alone.</p>' +
+        '<p class="hint">It starts to matter only at Level 3, when she has to sound out <b>c-a-t</b> one phoneme at a time. No speech engine can say a bare /t/ &mdash; it always adds &ldquo;uh&rdquo;, so &ldquo;cuh-a-tuh&rdquo; never blends into &ldquo;cat&rdquo;. At that point, recording the 26 sounds in your own voice fixes it. Ten minutes, once, months from now.</p>' +
+        '<p class="stat"><b>' + A.recordingCount() + '</b> clips recorded' + (can ? '' : ' &middot; <span class="warn">this browser will not give the page a microphone</span>') + '</p>' +
+        '<label class="field"><span>Voice</span><select id="voicepick">' +
+          '<option value="">Automatic (British English preferred)</option>' +
+          A.voices().map(function (v) {
+            return '<option value="' + esc(v.name) + '"' + (S.settings.voice === v.name ? ' selected' : '') + '>' + esc(v.name) + ' &mdash; ' + esc(v.lang) + '</option>';
+          }).join('') + '</select></label>' +
       '</div>' +
-      '<div class="panel">' +
-        '<h3>Letter sounds <small>' + letters.filter(function (l) { return A.hasRecording('p:' + l); }).length + '/26</small></h3>' +
+      '<div class="panel"><h3>Letter sounds <small>' +
+        letters.filter(function (l) { return A.hasRecording('p:' + l); }).length + '/26 &mdash; optional</small></h3>' +
         '<div class="vlist">' + letters.map(function (l) {
-          return row('p:' + l, l === 'q' ? 'qu' : l, 'as in ' + C.LETTERS[l].keyword);
-        }).join('') + '</div>' +
-      '</div>' +
-      '<div class="panel">' +
-        '<h3>Words <small>' + coreWords.filter(function (k) { return A.hasRecording('w:' + C.WORDS[k].text); }).length + '/' + coreWords.length + '</small></h3>' +
-        '<div class="vlist">' + coreWords.map(function (k) {
-          return row('w:' + C.WORDS[k].text, C.WORDS[k].text, C.WORDS[k].sg || '');
+          return row('p:' + l, glyph(l), 'as in ' + C.WORDS[C.ALPHABET[l].words[0]].text);
         }).join('') + '</div>' +
       '</div>';
 
     document.getElementById('voicepick').onchange = function () {
       S.settings.voice = this.value; save();
       if (this.value) A.setVoice(this.value);
-      A.say('This is how I will sound.');
+      A.unlock(); A.say('This is how I will sound.');
     };
 
     var recording = null;
     Array.prototype.forEach.call(document.querySelectorAll('.vrow'), function (rw) {
       var key = rw.dataset.key;
-      rw.querySelector('.vplay').onclick = function () {
-        A.unlock();
-        if (key.indexOf('p:') === 0) A.sayPhoneme(key.slice(2));
-        else A.sayWord(key.slice(2));
-      };
+      rw.querySelector('.vplay').onclick = function () { A.unlock(); A.sayPhoneme(key.slice(2)); };
       rw.querySelector('.vrec').onclick = function () {
         A.unlock();
         if (!can) { toast('This browser will not let the page use the microphone'); return; }
         if (recording === key) {
           A.stopRecording(key).then(function () { toast('Saved'); screenParent(); })
             .catch(function () { toast('Nothing recorded'); recording = null; rw.classList.remove('recording'); });
-          recording = null;
-          return;
+          recording = null; return;
         }
         A.startRecording().then(function () {
-          recording = key;
-          rw.classList.add('recording');
+          recording = key; rw.classList.add('recording');
           toast('Recording — tap the microphone again to stop');
         }).catch(function () { toast('Microphone blocked'); });
       };
-      var del = rw.querySelector('.vdel');
-      if (del) del.onclick = function () { A.deleteRecording(key).then(screenParent); };
+      var d = rw.querySelector('.vdel');
+      if (d) d.onclick = function () { A.deleteRecording(key).then(screenParent); };
     });
   }
 
   function tabSettings() {
     document.getElementById('ptab').innerHTML =
-      '<div class="panel">' +
-        '<h3>Session</h3>' +
-        '<label class="field"><span>Soft stop after</span>' +
-          '<select id="cap">' + [6, 8, 10, 12, 15, 20].map(function (n) {
+      '<div class="panel"><h3>Who is playing</h3>' +
+        '<label class="field"><span>Name on the welcome screen</span>' +
+          '<input type="text" id="kidname" value="' + esc(S.name) + '" maxlength="16"></label>' +
+        '<label class="field"><span>Photo</span></label>' +
+        '<div class="photorow"><div class="pphoto" id="pphoto">' + icon('camera') + '</div>' +
+          '<div class="btnrow"><label class="btn btn--ghost" for="photofile">Choose a photo</label>' +
+          '<input type="file" id="photofile" accept="image/*" hidden>' +
+          '<button class="btn btn--ghost" id="photodel">Remove</button></div></div>' +
+        '<p class="hint">The photo is stored only on this device, inside this browser. It is never uploaded and never included if you share the page link.</p>' +
+      '</div>' +
+      '<div class="panel"><h3>Session</h3>' +
+        '<label class="field"><span>Soft stop after</span><select id="cap">' +
+          [6, 8, 10, 12, 15, 20, 30].map(function (n) {
             return '<option value="' + n + '"' + (S.settings.cap === n ? ' selected' : '') + '>' + n + ' minutes</option>';
           }).join('') + '</select></label>' +
-        '<p class="hint">When the turn runs past this, the end-of-lesson screen says goodbye instead of offering another stop. It never interrupts a lesson in progress.</p>' +
-        '<label class="field field--row"><span>Sound effects</span>' +
-          '<input type="checkbox" id="sfx"' + (S.settings.sfx ? ' checked' : '') + '></label>' +
-        '<label class="field"><span>Speaking speed</span>' +
-          '<input type="range" id="rate" min="0.6" max="1.1" step="0.05" value="' + S.settings.rate + '"></label>' +
+        '<p class="hint">Past this, the end-of-stop screen stops offering &ldquo;Next&rdquo; and says goodbye. It never interrupts a stop in progress.</p>' +
+        '<label class="field field--row"><span>Sound effects</span><input type="checkbox" id="sfx"' + (S.settings.sfx ? ' checked' : '') + '></label>' +
+        '<label class="field"><span>Speaking speed</span><input type="range" id="rate" min="0.6" max="1.1" step="0.05" value="' + S.settings.rate + '"></label>' +
       '</div>' +
-      '<div class="panel">' +
-        '<h3>Progress backup</h3>' +
-        '<p class="hint">Progress lives in this browser. A backup copies it to your Claude account so a lost or wiped device does not cost a year of work. Voice recordings stay on the device — they are too large to copy.</p>' +
-        '<div class="btnrow">' +
-          '<button class="btn btn--ghost" id="backup">Back up now</button>' +
-          '<button class="btn btn--ghost" id="restore">Restore</button>' +
-        '</div>' +
+      '<div class="panel"><h3>Backup</h3>' +
+        '<p class="hint">Stars and progress live in this browser. A backup copies them to your Claude account. The photo and any recordings stay on the device.</p>' +
+        '<div class="btnrow"><button class="btn btn--ghost" id="backup">Back up now</button>' +
+        '<button class="btn btn--ghost" id="restore">Restore</button></div>' +
         '<p class="hint" id="bstat"></p>' +
       '</div>' +
-      '<div class="panel panel--danger">' +
-        '<h3>Start over</h3>' +
-        '<p class="hint">Clears every box, sticker and finished lesson on this device. Recordings are kept.</p>' +
+      '<div class="panel panel--danger"><h3>Start over</h3>' +
+        '<p class="hint">Clears every star and every box on this device. The photo and recordings are kept.</p>' +
         '<button class="btn btn--danger" id="reset">Reset all progress</button>' +
       '</div>';
 
+    A.blobURL('photo:child').then(function (url) {
+      var el = document.getElementById('pphoto');
+      if (url && el) { el.innerHTML = ''; el.style.backgroundImage = 'url(' + url + ')'; el.classList.add('has-photo'); }
+    });
+
+    document.getElementById('kidname').onchange = function () {
+      S.name = (this.value || 'Rourou').trim().slice(0, 16); save();
+    };
+    document.getElementById('photofile').onchange = function () {
+      var f = this.files && this.files[0];
+      if (!f) return;
+      squarePhoto(f).then(function (blob) {
+        return A.putBlob('photo:child', blob);
+      }).then(function () { toast('Photo saved'); screenParent(); })
+        .catch(function () { toast('Could not read that image'); });
+    };
+    document.getElementById('photodel').onclick = function () {
+      A.delBlob('photo:child').then(function () { toast('Photo removed'); screenParent(); });
+    };
     document.getElementById('cap').onchange = function () { S.settings.cap = +this.value; save(); };
     document.getElementById('sfx').onchange = function () { S.settings.sfx = this.checked; save(); };
-    document.getElementById('rate').onchange = function () { S.settings.rate = +this.value; A.rate = +this.value; save(); A.say('Like this.'); };
+    document.getElementById('rate').onchange = function () {
+      S.settings.rate = +this.value; A.rate = +this.value; save(); A.unlock(); A.say('Like this.');
+    };
 
     document.getElementById('backup').onclick = function () {
-      var st = document.getElementById('bstat');
-      st.textContent = 'Working…';
+      var st = document.getElementById('bstat'); st.textContent = 'Working…';
       getDB().then(function (db) {
         if (!db) { st.textContent = 'Backup is not available in this view.'; return; }
         return db.doc('progress/main').set({ state: JSON.stringify(S), at: Date.now() })
@@ -1083,28 +870,44 @@
       }).catch(function () { st.textContent = 'Backup failed.'; });
     };
     document.getElementById('restore').onclick = function () {
-      var st = document.getElementById('bstat');
-      st.textContent = 'Working…';
+      var st = document.getElementById('bstat'); st.textContent = 'Working…';
       getDB().then(function (db) {
         if (!db) { st.textContent = 'Backup is not available in this view.'; return; }
         return db.doc('progress/main').get().then(function (d) {
           var raw = d && (d.state || (d.data && d.data.state));
           if (!raw) { st.textContent = 'No backup found.'; return; }
-          S = Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), JSON.parse(raw));
-          save();
-          st.textContent = 'Restored.';
+          S = Object.assign(clone(DEFAULTS), JSON.parse(raw));
+          save(); st.textContent = 'Restored.';
           setTimeout(screenParent, 400);
         });
       }).catch(function () { st.textContent = 'Restore failed.'; });
     };
     document.getElementById('reset').onclick = function () {
-      if (this.dataset.armed === '1') {
-        S = JSON.parse(JSON.stringify(DEFAULTS)); save(); screenHome();
-      } else {
-        this.dataset.armed = '1';
-        this.textContent = 'Tap again to confirm';
-      }
+      if (this.dataset.armed === '1') { var nm = S.name; S = clone(DEFAULTS); S.name = nm; save(); screenWelcome(); }
+      else { this.dataset.armed = '1'; this.textContent = 'Tap again to confirm'; }
     };
+  }
+
+  /* Downscale and centre-crop to a square so a 4MB phone photo does not
+     sit in IndexedDB, and so the round frame always looks right. */
+  function squarePhoto(file) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function () {
+        try {
+          var side = Math.min(img.width, img.height);
+          var cv = document.createElement('canvas');
+          cv.width = cv.height = 480;
+          var g = cv.getContext('2d');
+          g.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, 480, 480);
+          URL.revokeObjectURL(url);
+          cv.toBlob(function (b) { b ? resolve(b) : reject(new Error('no blob')); }, 'image/jpeg', 0.85);
+        } catch (e) { reject(e); }
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('bad image')); };
+      img.src = url;
+    });
   }
 
   var dbPromise = null;
@@ -1123,8 +926,6 @@
   A.rate = S.settings.rate;
   A.init().then(function () {
     if (S.settings.voice) setTimeout(function () { A.setVoice(S.settings.voice); }, 300);
-    screenHome();
+    screenWelcome();
   });
-
-  if (REDUCED) document.documentElement.classList.add('reduced');
 })();

@@ -1,5 +1,42 @@
 # Phonics Tool — Product & Curriculum Plan (Age 4 → 7, Singapore)
 
+> ## Revision 2 — what changed after the first trial
+>
+> Rourou tried the first build and it was too hard. Two things were wrong:
+>
+> 1. **Wrong entry point.** The plan opened with Stage 0 (rhyme, syllable
+>    clapping, oral blending). That is the textbook prerequisite sequence,
+>    but it is abstract — there is nothing to look at, and a 4-year-old has
+>    no way in. Her school and her home teaching both start from the
+>    opposite end: **a letter, and four pictures of words it lives in.**
+> 2. **Wrong source material.** Her cards are **Oxford Phonics World (OPW)
+>    Level 1**. The keyword sets on them (apple/ax/ant/alligator,
+>    bear/bird/bed/banana, gorilla/goat/gift/girl, horse/hat/house/hot dog)
+>    match the published OPW 1 unit lists exactly. Building against a
+>    different word list means the app and the book teach different words.
+>
+> **The built curriculum is now:**
+>
+> | Level | Age | What it is | Built |
+> |---|---|---|---|
+> | 1 · Look and Listen | from 3 | Vocabulary only. Hear a word, find the picture. No letters at all. 8 themed stops. | yes |
+> | 2 · The Alphabet | from 4 | A–Z, one stop per letter, mirroring her OPW card: big **Aa**, the Phonics Friend, four keyword pictures; then *which one starts with a*, *find the letter*, *which letter is missing*. Plus 4 review stops. | yes |
+> | 3 · Reading Words | from 5 | Blending c-a-t → cat. This is where the original Stages 2–4 live. | not yet |
+> | 4 · Reading Books | from 6 | Sentences, then stories. Original Stages 5–8. | not yet |
+>
+> Phonological awareness (rhyme, syllables) has not been deleted — it moves
+> out of the child's path and into the grown-up's. It is better done out
+> loud in the car than tapped on a screen, and the dashboard's "practise
+> away from the screen" panel is where it belongs.
+>
+> Everything below is the original plan. Sections §0 (design constraints),
+> §3 (interaction design), §4 (technical), §5 (adaptivity), §6 (dashboard),
+> §8 (risks) still hold. **§1.2, §1.4 and §2 are superseded** by the table
+> above: Jolly Phonics group order and Dolch sight words are not what her
+> school uses, so they are not what the app teaches.
+
+---
+
 Target learner: 1 child, age 4.0 at start, English-dominant, schooling in Singapore.
 Target horizon: N2 (age 4) → P1/P2 (age 7).
 Delivery order: Web (PWA) → Android → iOS/iPad.

@@ -210,9 +210,17 @@
     var key = 'p:' + letter;
     return enqueue(function () {
       if (A.have[key]) return playBlobKey(key);
-      var L = window.CONTENT.LETTERS[letter];
-      var cue = L ? L.cue : letter;
-      return speakNow(cue, { rate: 0.7, pitch: 1.0 });
+      var L = window.CONTENT.ALPHABET[letter];
+      return speakNow(L ? L.sound : letter, { rate: 0.7, pitch: 1.0 });
+    });
+  };
+
+  /* Speak a letter's NAME ("ay", "bee"), not its sound. */
+  A.sayLetterName = function (letter) {
+    var key = 'n:' + letter;
+    return enqueue(function () {
+      if (A.have[key]) return playBlobKey(key);
+      return speakNow(letter === 'q' ? 'queue' : letter.toUpperCase(), { rate: 0.7 });
     });
   };
 
@@ -344,6 +352,23 @@
       return true;
     });
   };
+
+  /* ---------------- generic blob store (Rourou's photo) ---------------- */
+  A.putBlob = function (key, blob) {
+    return idbPut(key, blob).then(function (ok) {
+      if (ok) { A.have[key] = true; if (A.urls[key]) { URL.revokeObjectURL(A.urls[key]); delete A.urls[key]; } }
+      return ok;
+    });
+  };
+  A.blobURL = function (key) {
+    if (A.urls[key]) return Promise.resolve(A.urls[key]);
+    return idbGet(key).then(function (b) {
+      if (!b) return null;
+      A.urls[key] = URL.createObjectURL(b);
+      return A.urls[key];
+    });
+  };
+  A.delBlob = function (key) { return A.deleteRecording(key); };
 
   A.hasRecording = function (key) { return !!A.have[key]; };
   A.recordingCount = function () { return Object.keys(A.have).length; };

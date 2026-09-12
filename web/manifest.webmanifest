@@ -1,7 +1,7 @@
 {
-  "name": "Pip the Otter Phonics",
-  "short_name": "Pip Phonics",
-  "description": "A phonics tool for a four-year-old: hear a sound, pick a picture, drag a letter, hear how it went.",
+  "name": "Rourou's Phonics Trail",
+  "short_name": "Phonics Trail",
+  "description": "Hear a word, find the picture. Meet a letter, meet its words.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -9,7 +9,17 @@
   "background_color": "#FFF6E9",
   "theme_color": "#FFF6E9",
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
   ]
 }

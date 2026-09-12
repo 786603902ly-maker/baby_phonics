@@ -1,8 +1,8 @@
 /* Offline shell. Everything the app needs ships with it: no runtime fetches,
    so a cache-first strategy makes the whole thing work in aeroplane mode. */
-var CACHE = 'pip-phonics-v1';
+var CACHE = 'pip-phonics-v2';
 var ASSETS = [
-  './', './index.html', './icons.js', './content.js', './audio.js',
+  './', './index.html', './icons.js', './icons-words.js', './content.js', './audio.js',
   './app.js', './manifest.webmanifest', './icon.svg'
 ];
 

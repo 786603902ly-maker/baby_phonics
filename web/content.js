@@ -1,318 +1,217 @@
-/* content.js — the curriculum as data.
-   Adding a lesson is a data edit, never a code edit. See docs/PLAN.md §3.2. */
+/* content.js — the whole curriculum as data.
+   Adding or changing a lesson is a data edit, never a code edit.
+
+   The alphabet keyword sets follow Oxford Phonics World Level 1 (the book
+   Rourou already uses). Four sets are confirmed against her own cards:
+   a, b, g, h. The rest come from published OPW 1 unit word lists; where a
+   word could not be drawn clearly as a simple picture it was swapped for
+   another word with the same starting sound — those are marked `sub: true`
+   so you can see exactly what differs from the book. */
 (function () {
   'use strict';
 
   /* ------------------------------------------------------------------
-     LETTERS — Jolly Phonics group order (see docs/PLAN.md §1.2).
-     `cue`  : the spelling handed to speech synthesis as a fallback.
-              Stop consonants (t, p, b, d, k, g) unavoidably pick up a
-              schwa from any TTS engine. Parent recordings replace these:
-              Grown-ups -> Record the sounds.
-     `action`: the Jolly-style gesture, for the grown-up to copy.
+     WORDS — every picture the child sees. text = what is spoken and
+     written; icon = the drawing; sub = substituted for the book's word.
      ------------------------------------------------------------------ */
-  var LETTERS = {
-    s: { group: 1, keyword: 'sun',      cue: 'sss',  action: 'Wiggle your hand like a snake' },
-    a: { group: 1, keyword: 'apple',    cue: 'aah',  action: 'Wiggle your fingers above your elbow — ants!' },
-    t: { group: 1, keyword: 'tap',      cue: 'tuh',  action: 'Turn your head side to side, watching tennis' },
-    i: { group: 1, keyword: 'igloo',    cue: 'ih',   action: 'Pretend to be a mouse, squeaking' },
-    p: { group: 1, keyword: 'pan',      cue: 'puh',  action: 'Puff out short breaths, like a candle' },
-    n: { group: 1, keyword: 'net',      cue: 'nnn',  action: 'Hold your arms out like a plane, nnnn' },
-    c: { group: 2, keyword: 'cat',      cue: 'kuh',  action: 'Raise your hand and snap, like castanets' },
-    k: { group: 2, keyword: 'kite',     cue: 'kuh',  action: 'Raise your hand and snap, like castanets' },
-    e: { group: 2, keyword: 'egg',      cue: 'eh',   action: 'Pretend to crack an egg' },
-    h: { group: 2, keyword: 'hat',      cue: 'huh',  action: 'Pant with your hand on your chest' },
-    r: { group: 2, keyword: 'ring',     cue: 'rrr',  action: 'Pretend to be a puppy, rrrr' },
-    m: { group: 2, keyword: 'mug',      cue: 'mmm',  action: 'Rub your tummy — mmm, tasty' },
-    d: { group: 2, keyword: 'dog',      cue: 'duh',  action: 'Beat your hands like a drum' },
-    g: { group: 3, keyword: 'gift',     cue: 'guh',  action: 'Spiral your hand down, like water in a drain' },
-    o: { group: 3, keyword: 'octopus',  cue: 'oh',   action: 'Flick your fingers on and off, like a light' },
-    u: { group: 3, keyword: 'umbrella', cue: 'uh',   action: 'Put your hands up, like opening an umbrella' },
-    l: { group: 3, keyword: 'leaf',     cue: 'lll',  action: 'Lick your lips, lllll' },
-    f: { group: 3, keyword: 'fan',      cue: 'fff',  action: 'Put your hands together like a fish fin' },
-    b: { group: 3, keyword: 'bus',      cue: 'buh',  action: 'Bounce your hand like a ball' },
-    j: { group: 4, keyword: 'jug',      cue: 'juh',  action: 'Wobble your hands like jelly' },
-    z: { group: 5, keyword: 'zip',      cue: 'zzz',  action: 'Buzz like a bee' },
-    w: { group: 5, keyword: 'wok',      cue: 'wuh',  action: 'Blow your hands like the wind' },
-    v: { group: 5, keyword: 'van',      cue: 'vvv',  action: 'Hold a pretend steering wheel, vvvv' },
-    y: { group: 6, keyword: 'yoyo',     cue: 'yuh',  action: 'Pretend to eat a yoghurt' },
-    x: { group: 6, keyword: 'box',      cue: 'ks',   action: 'Pretend to take an x-ray photo' },
-    q: { group: 7, keyword: 'queen',    cue: 'kwuh', action: 'Make a duck beak with your hand — qu qu' }
-  };
-
-  /* ------------------------------------------------------------------
-     WORDS — every word the child sees has a picture, a phoneme
-     breakdown, a syllable count and a rhyme family.
-     `sg` marks the Singapore context notes used in the picture caption
-     for grown-ups; the child only hears the word itself.
-     ------------------------------------------------------------------ */
-  function w(text, icon, phonemes, syl, rhyme, sg) {
-    return { text: text, icon: icon, phonemes: phonemes, syl: syl, rhyme: rhyme, sg: sg || null };
-  }
+  function w(text, icon, sub) { return { text: text, icon: icon, sub: !!sub }; }
 
   var WORDS = {
-    /* -at */
-    cat: w('cat', 'cat', ['c', 'a', 't'], 1, 'at'),
-    hat: w('hat', 'hat', ['h', 'a', 't'], 1, 'at'),
-    mat: w('mat', 'mat', ['m', 'a', 't'], 1, 'at'),
-    rat: w('rat', 'rat', ['r', 'a', 't'], 1, 'at'),
-    bat: w('bat', 'bat', ['b', 'a', 't'], 1, 'at'),
-    /* -an */
-    pan: w('pan', 'pan', ['p', 'a', 'n'], 1, 'an'),
-    fan: w('fan', 'fan', ['f', 'a', 'n'], 1, 'an'),
-    van: w('van', 'van', ['v', 'a', 'n'], 1, 'an'),
-    /* -in */
-    pin: w('pin', 'pin', ['p', 'i', 'n'], 1, 'in'),
-    tin: w('tin', 'tin', ['t', 'i', 'n'], 1, 'in'),
-    /* -un */
-    sun: w('sun', 'sun', ['s', 'u', 'n'], 1, 'un'),
-    bun: w('bun', 'bun', ['b', 'u', 'n'], 1, 'un', 'like a kaya-toast bun'),
-    /* -og / -ug */
-    dog: w('dog', 'dog', ['d', 'o', 'g'], 1, 'og'),
-    log: w('log', 'log', ['l', 'o', 'g'], 1, 'og'),
-    mug: w('mug', 'mug', ['m', 'u', 'g'], 1, 'ug'),
-    jug: w('jug', 'jug', ['j', 'u', 'g'], 1, 'ug'),
-    /* -op / -ot */
-    top: w('top', 'top', ['t', 'o', 'p'], 1, 'op'),
-    mop: w('mop', 'mop', ['m', 'o', 'p'], 1, 'op'),
-    pot: w('pot', 'pot', ['p', 'o', 't'], 1, 'ot'),
-    cot: w('cot', 'cot', ['c', 'o', 't'], 1, 'ot'),
-    /* -ox */
-    box: w('box', 'box', ['b', 'o', 'x'], 1, 'ox'),
-    fox: w('fox', 'fox', ['f', 'o', 'x'], 1, 'ox'),
-    /* -ed / -en / -et / -eg */
-    bed: w('bed', 'bed', ['b', 'e', 'd'], 1, 'ed'),
-    hen: w('hen', 'hen', ['h', 'e', 'n'], 1, 'en'),
-    net: w('net', 'net', ['n', 'e', 't'], 1, 'et'),
-    pen: w('pen', 'pen', ['p', 'e', 'n'], 1, 'en'),
-    leg: w('leg', 'leg', ['l', 'e', 'g'], 1, 'eg'),
-    /* -ut / -up / -us */
-    nut: w('nut', 'nut', ['n', 'u', 't'], 1, 'ut'),
-    hut: w('hut', 'hut', ['h', 'u', 't'], 1, 'ut'),
-    cup: w('cup', 'cup', ['c', 'u', 'p'], 1, 'up'),
-    bus: w('bus', 'bus', ['b', 'u', 's'], 1, 'us', 'the double-decker at the bus stop'),
-    /* -ag / -ap / -ig / -ip */
-    bag: w('bag', 'bag', ['b', 'a', 'g'], 1, 'ag'),
-    tag: w('tag', 'bag', ['t', 'a', 'g'], 1, 'ag'),
-    cap: w('cap', 'cap', ['c', 'a', 'p'], 1, 'ap'),
-    tap: w('tap', 'tap', ['t', 'a', 'p'], 1, 'ap'),
-    pig: w('pig', 'pig', ['p', 'i', 'g'], 1, 'ig'),
-    wig: w('wig', 'wig', ['w', 'i', 'g'], 1, 'ig'),
-    zip: w('zip', 'zip', ['z', 'i', 'p'], 1, 'ip'),
-    /* -ock / -ick */
-    wok: w('wok', 'wok', ['w', 'o', 'k'], 1, 'ock', 'the one at the hawker stall'),
-    sock: w('sock', 'sock', ['s', 'o', 'ck'], 1, 'ock'),
-    rock: w('rock', 'rock', ['r', 'o', 'ck'], 1, 'ock'),
-    lock: w('lock', 'lock', ['l', 'o', 'ck'], 1, 'ock'),
-    duck: w('duck', 'duck', ['d', 'u', 'ck'], 1, 'uck'),
-    /* digraph words — heard now, decoded in Year 2 */
-    fish: w('fish', 'fish', ['f', 'i', 'sh'], 1, 'ish'),
-    ship: w('ship', 'ship', ['sh', 'i', 'p'], 1, 'ip'),
-    chip: w('chip', 'chip', ['ch', 'i', 'p'], 1, 'ip'),
-    /* multi-syllable, listening only */
-    apple: w('apple', 'apple', null, 2, null),
-    igloo: w('igloo', 'igloo', null, 2, null),
-    yoyo: w('yo-yo', 'yoyo', null, 2, null),
-    rabbit: w('rabbit', 'rabbit', null, 2, null),
-    banana: w('banana', 'banana', null, 3, null),
-    octopus: w('octopus', 'octopus', null, 3, null),
-    umbrella: w('umbrella', 'umbrella', null, 3, null),
-    /* one-syllable listening words */
-    star: w('star', 'star', null, 1, null),
-    tree: w('tree', 'tree', null, 1, null),
-    moon: w('moon', 'moon', null, 1, null),
-    ball: w('ball', 'ball', null, 1, null),
-    car: w('car', 'car', null, 1, null),
-    bird: w('bird', 'bird', null, 1, null),
-    egg: w('egg', 'egg', null, 1, null),
-    ring: w('ring', 'ring', null, 1, null),
-    kite: w('kite', 'kite', null, 1, null),
-    leaf: w('leaf', 'leaf', null, 1, null),
-    gift: w('gift', 'gift', null, 1, null),
-    queen: w('queen', 'queen', null, 1, null),
-    train: w('train', 'train', null, 1, 'ain', 'the MRT'),
-    durian: w('durian', 'durian', null, 3, null, 'king of fruit'),
-    toast: w('toast', 'toast', null, 1, null, 'kaya toast'),
-    hdb: w('flat', 'hdb', null, 1, null, 'your HDB block')
+    apple: w('apple', 'apple'), ax: w('ax', 'ax'), ant: w('ant', 'ant'), alligator: w('alligator', 'alligator'),
+    bear: w('bear', 'bear'), bird: w('bird', 'bird'), bed: w('bed', 'bed'), banana: w('banana', 'banana'),
+    cat: w('cat', 'cat'), cup: w('cup', 'cup'), car: w('car', 'car'), computer: w('computer', 'computer'),
+    dog: w('dog', 'dog'), desk: w('desk', 'desk'), doll: w('doll', 'doll'), duck: w('duck', 'duck'),
+    egg: w('egg', 'egg'), elephant: w('elephant', 'elephant'), elbow: w('elbow', 'elbow'), envelope: w('envelope', 'envelope'),
+    fish: w('fish', 'fish'), fan: w('fan', 'fan'), fork: w('fork', 'fork'), farm: w('farm', 'farm'),
+    gorilla: w('gorilla', 'gorilla'), goat: w('goat', 'goat'), gift: w('gift', 'gift'), girl: w('girl', 'girl'),
+    horse: w('horse', 'horse'), hat: w('hat', 'hat'), house: w('house', 'hdb'), hotdog: w('hot dog', 'hotdog'),
+    insect: w('insect', 'insect'), ink: w('ink', 'ink'), igloo: w('igloo', 'igloo'), iguana: w('iguana', 'iguana'),
+    jet: w('jet', 'jet'), jam: w('jam', 'jam'), juice: w('juice', 'juice'), jacket: w('jacket', 'jacket'),
+    kangaroo: w('kangaroo', 'kangaroo'), key: w('key', 'key'), king: w('king', 'king'), kite: w('kite', 'kite'),
+    lion: w('lion', 'lion'), lamp: w('lamp', 'lamp'), leaf: w('leaf', 'leaf'), lemon: w('lemon', 'lemon'),
+    monkey: w('monkey', 'monkey'), milk: w('milk', 'milk'), money: w('money', 'money'), mouse: w('mouse', 'mouse'),
+    nut: w('nut', 'nut'), net: w('net', 'net'), nest: w('nest', 'nest'), nose: w('nose', 'nose'),
+    octopus: w('octopus', 'octopus'), ox: w('ox', 'ox'), olive: w('olive', 'olive'), ostrich: w('ostrich', 'ostrich'),
+    peach: w('peach', 'peach'), pen: w('pen', 'pen'), panda: w('panda', 'panda'), pineapple: w('pineapple', 'pineapple'),
+    queen: w('queen', 'queen'), quilt: w('quilt', 'quilt'), question: w('question', 'question'), quiz: w('quiz', 'quiz'),
+    rabbit: w('rabbit', 'rabbit'), rose: w('rose', 'rose'), rice: w('rice', 'rice'), robot: w('robot', 'robot'),
+    seal: w('seal', 'seal'), sun: w('sun', 'sun'), soap: w('soap', 'soap'), sock: w('sock', 'sock'),
+    turtle: w('turtle', 'turtle'), tent: w('tent', 'tent'), tiger: w('tiger', 'tiger'), tomato: w('tomato', 'tomato', true),
+    umbrella: w('umbrella', 'umbrella'), up: w('up', 'up'), unicorn: w('unicorn', 'unicorn', true), ukulele: w('ukulele', 'ukulele', true),
+    van: w('van', 'van'), vest: w('vest', 'vest'), violin: w('violin', 'violin'), volcano: w('volcano', 'volcano', true),
+    wolf: w('wolf', 'wolf'), web: w('web', 'web'), water: w('water', 'water'), watch: w('watch', 'watch'),
+    box: w('box', 'box'), fox: w('fox', 'fox'), six: w('six', 'six'),
+    yoyo: w('yo-yo', 'yoyo'), yak: w('yak', 'yak'), yogurt: w('yogurt', 'yogurt'), yacht: w('yacht', 'yacht'),
+    zebra: w('zebra', 'zebra'), zipper: w('zipper', 'zip'), zero: w('zero', 'zero'), zoo: w('zoo', 'zoo'),
+
+    /* extra pictures used by the Look and Listen level */
+    bus: w('bus', 'bus'), train: w('train', 'train'), star: w('star', 'star'), tree: w('tree', 'tree'),
+    moon: w('moon', 'moon'), ball: w('ball', 'ball'), pig: w('pig', 'pig'), hen: w('hen', 'hen'),
+    bag: w('bag', 'bag'), mug: w('mug', 'mug'), pot: w('pot', 'pot'), ship: w('ship', 'ship'),
+    otter: w('otter', 'otter'), durian: w('durian', 'durian'), toast: w('toast', 'toast')
   };
 
-  /* Sight words — Dolch Pre-Primer, first 12. Taught by recognition. */
-  var SIGHT = ['the', 'a', 'I', 'to', 'and', 'is', 'it', 'in', 'go', 'we', 'see', 'up'];
+  /* ------------------------------------------------------------------
+     ALPHABET — letter, its sound cue for speech synthesis, the Phonics
+     Friend where we know it from Rourou's own cards, and four keywords.
+     ------------------------------------------------------------------ */
+  function L(sound, friend, words) { return { sound: sound, friend: friend, words: words }; }
 
-  /* Rewards, unlocked one per finished lesson. */
-  var STICKERS = [
-    'otter', 'star', 'durian', 'merlion', 'hdb', 'train', 'toast', 'medal',
-    'bird', 'tree', 'fish', 'duck', 'banana', 'kite', 'flag', 'moon',
-    'rabbit', 'fox', 'ball', 'leaf', 'gift', 'ring', 'sun', 'bus'
+  var ALPHABET = {
+    a: L('aah',  'angry apple',  ['apple', 'ax', 'ant', 'alligator']),
+    b: L('buh',  'big bear',     ['bear', 'bird', 'bed', 'banana']),
+    c: L('kuh',  null,           ['cat', 'cup', 'car', 'computer']),
+    d: L('duh',  null,           ['dog', 'desk', 'doll', 'duck']),
+    e: L('eh',   null,           ['egg', 'elephant', 'elbow', 'envelope']),
+    f: L('fff',  null,           ['fish', 'fan', 'fork', 'farm']),
+    g: L('guh',  'good gorilla', ['gorilla', 'goat', 'gift', 'girl']),
+    h: L('huh',  'happy horse',  ['horse', 'hat', 'house', 'hotdog']),
+    i: L('ih',   null,           ['insect', 'ink', 'igloo', 'iguana']),
+    j: L('juh',  null,           ['jet', 'jam', 'juice', 'jacket']),
+    k: L('kuh',  null,           ['kangaroo', 'key', 'king', 'kite']),
+    l: L('lll',  null,           ['lion', 'lamp', 'leaf', 'lemon']),
+    m: L('mmm',  null,           ['monkey', 'milk', 'money', 'mouse']),
+    n: L('nnn',  null,           ['nut', 'net', 'nest', 'nose']),
+    o: L('oh',   null,           ['octopus', 'ox', 'olive', 'ostrich']),
+    p: L('puh',  null,           ['peach', 'pen', 'panda', 'pineapple']),
+    q: L('kwuh', null,           ['queen', 'quilt', 'question', 'quiz']),
+    r: L('rrr',  null,           ['rabbit', 'rose', 'rice', 'robot']),
+    s: L('sss',  null,           ['seal', 'sun', 'soap', 'sock']),
+    t: L('tuh',  null,           ['turtle', 'tent', 'tiger', 'tomato']),
+    u: L('uh',   null,           ['umbrella', 'up', 'unicorn', 'ukulele']),
+    v: L('vvv',  null,           ['van', 'vest', 'violin', 'volcano']),
+    w: L('wuh',  null,           ['wolf', 'web', 'water', 'watch']),
+    x: L('ks',   null,           ['box', 'fox', 'six', 'ax']),
+    y: L('yuh',  null,           ['yoyo', 'yak', 'yogurt', 'yacht']),
+    z: L('zzz',  null,           ['zebra', 'zipper', 'zero', 'zoo'])
+  };
+
+  var LETTERS = 'abcdefghijklmnopqrstuvwxyz'.split('');
+
+  /* x is heard at the END of its words, never the start. Everything that
+     depends on "starts with this sound" has to know that. */
+  var END_SOUND = { x: true };
+
+  /* ------------------------------------------------------------------
+     LEVEL 1 · Look and Listen — picture vocabulary, no letters at all.
+     Eight themes drawn from the same picture set as the alphabet.
+     ------------------------------------------------------------------ */
+  var THEMES = [
+    { id: 't1', name: 'Pets and Farm',  words: ['cat', 'dog', 'duck', 'hen', 'goat', 'horse', 'pig', 'rabbit'] },
+    { id: 't2', name: 'Big Animals',    words: ['lion', 'tiger', 'bear', 'elephant', 'zebra', 'monkey', 'gorilla', 'kangaroo'] },
+    { id: 't3', name: 'In the Water',   words: ['fish', 'seal', 'octopus', 'turtle', 'yacht', 'ship', 'water', 'duck'] },
+    { id: 't4', name: 'Things to Eat',  words: ['apple', 'banana', 'egg', 'rice', 'milk', 'juice', 'peach', 'lemon'] },
+    { id: 't5', name: 'More to Eat',    words: ['tomato', 'pineapple', 'jam', 'yogurt', 'hotdog', 'toast', 'olive', 'durian'] },
+    { id: 't6', name: 'At Home',        words: ['bed', 'cup', 'lamp', 'desk', 'quilt', 'key', 'mug', 'pot'] },
+    { id: 't7', name: 'Going Places',   words: ['bus', 'car', 'van', 'jet', 'train', 'kite', 'ball', 'box'] },
+    { id: 't8', name: 'Things I Wear',  words: ['hat', 'jacket', 'vest', 'sock', 'watch', 'bag', 'zipper', 'nose'] }
   ];
 
   /* ------------------------------------------------------------------
-     STAGES — the full 9-stage arc from docs/PLAN.md §2.
-     Year 1 builds stages 0-2; 3-8 are visible but not yet built, so the
-     whole journey is legible from day one.
+     LEVELS — the whole journey. Levels 1 and 2 are built; 3 and 4 show
+     the road ahead.
      ------------------------------------------------------------------ */
-  var STAGES = [
-    { id: 0, name: 'Sound Play',      place: 'The Playground',    tint: 'leaf',  built: true,
-      blurb: 'Hearing sounds inside words. No letters yet.', age: '4.0 – 4.5' },
-    { id: 1, name: 'First Sounds',    place: 'The Void Deck',     tint: 'river', built: true,
-      blurb: 'What each letter says. 26 sounds.', age: '4.4 – 4.9' },
-    { id: 2, name: 'Blending',        place: 'The Hawker Centre', tint: 'otter', built: true,
-      blurb: 'Pushing sounds together to read a word.', age: '4.8 – 5.3' },
-    { id: 3, name: 'Two-Letter Teams', place: 'The Park Connector', tint: 'sun', built: false,
-      blurb: 'sh, ch, th, ng, qu — two letters, one sound.', age: '5.2 – 5.8' },
-    { id: 4, name: 'Sound Clusters',  place: 'The MRT',           tint: 'river', built: false,
-      blurb: 'stop, hand, jump — blends at both ends.', age: '5.6 – 6.1' },
-    { id: 5, name: 'Long Vowels',     place: 'The Botanic Gardens', tint: 'leaf', built: false,
-      blurb: 'Magic e, then ai, oa, ee.', age: '6.0 – 6.5' },
-    { id: 6, name: 'Same Sound, New Look', place: 'The Reservoir', tint: 'otter', built: false,
-      blurb: 'ai / ay / a-e all say the same thing.', age: '6.3 – 6.9' },
-    { id: 7, name: 'Longer Words',    place: 'The Library',       tint: 'sun',   built: false,
-      blurb: 'Two syllables, and -ing, -ed, -er.', age: '6.7 – 7.2' },
-    { id: 8, name: 'Real Reading',    place: 'The Bookshop',      tint: 'river', built: false,
-      blurb: 'Whole stories, read for the meaning.', age: '7.0 +' }
+  var LEVELS = [
+    { id: 1, name: 'Look and Listen', tint: 'leaf', built: true, age: 'from 3',
+      blurb: 'Hear a word, find the picture. No letters yet.' },
+    { id: 2, name: 'The Alphabet', tint: 'river', built: true, age: 'from 4',
+      blurb: 'A to Z. What each letter says, and the words it lives in.' },
+    { id: 3, name: 'Reading Words', tint: 'otter', built: false, age: 'from 5',
+      blurb: 'Push the sounds together: c-a-t says cat.' },
+    { id: 4, name: 'Reading Books', tint: 'sun', built: false, age: 'from 6',
+      blurb: 'Whole sentences, then whole stories.' }
   ];
 
   /* ------------------------------------------------------------------
-     LESSONS — Year 1. Each `activities` entry is expanded into rounds
-     by the generators in app.js.
+     LESSONS — built from the data above so the two never drift apart.
      ------------------------------------------------------------------ */
-  var LESSONS = [
-    /* ---------------- Stage 0 · Sound Play ---------------- */
-    { id: 's0-l1', stage: 0, name: 'Words That Sound the Same', skill: 'rhyme',
-      activities: [
-        { type: 'rhymePick', families: ['at', 'un', 'an'], rounds: 6 }
-      ] },
-    { id: 's0-l2', stage: 0, name: 'Clap the Word', skill: 'syllable',
-      activities: [
-        { type: 'syllableCount', words: ['cat', 'apple', 'octopus', 'sun', 'igloo', 'umbrella', 'star', 'banana'], rounds: 8 }
-      ] },
-    { id: 's0-l3', stage: 0, name: 'Rhyme Time Again', skill: 'rhyme',
-      activities: [
-        { type: 'rhymePick', families: ['og', 'ug', 'in', 'op', 'ox'], rounds: 6 }
-      ] },
-    { id: 's0-l4', stage: 0, name: 'What Starts With…', skill: 'initial',
-      activities: [
-        { type: 'initialSoundPick', sounds: ['s', 'm', 'c', 'b'], rounds: 8 }
-      ] },
-    { id: 's0-l5', stage: 0, name: 'Robot Talk', skill: 'oralblend',
-      activities: [
-        { type: 'oralBlend', words: ['cat', 'sun', 'pig', 'bus', 'dog', 'net'], rounds: 6 }
-      ] },
-    { id: 's0-l6', stage: 0, name: 'Playground Mix-Up', skill: 'mixed',
-      activities: [
-        { type: 'rhymePick', families: ['at', 'in'], rounds: 3 },
-        { type: 'syllableCount', words: ['fish', 'rabbit', 'umbrella', 'ball'], rounds: 3 },
-        { type: 'oralBlend', words: ['hat', 'mug', 'fox'], rounds: 3 }
-      ] },
+  var LESSONS = [];
 
-    /* ---------------- Stage 1 · First Sounds ---------------- */
-    { id: 's1-l1', stage: 1, name: 's · a · t', letters: ['s', 'a', 't'],
+  THEMES.forEach(function (t, i) {
+    LESSONS.push({
+      id: 'v-' + t.id, level: 1, n: i + 1, name: t.name, icon: WORDS[t.words[0]].icon,
       activities: [
-        { type: 'letterIntro', letters: ['s', 'a', 't'] },
-        { type: 'letterPick', letters: ['s', 'a', 't'], rounds: 6 },
-        { type: 'popSound', letters: ['s', 'a', 't'], rounds: 2 }
-      ] },
-    { id: 's1-l2', stage: 1, name: 'i · p · n', letters: ['i', 'p', 'n'],
-      activities: [
-        { type: 'letterIntro', letters: ['i', 'p', 'n'] },
-        { type: 'letterPick', letters: ['i', 'p', 'n', 's', 'a', 't'], rounds: 6 },
-        { type: 'popSound', letters: ['i', 'p', 'n'], rounds: 2 }
-      ] },
-    { id: 's1-l3', stage: 1, name: 'Sorting Sounds', letters: ['s', 'a', 't', 'i', 'p', 'n'],
-      activities: [
-        { type: 'soundSort', pairs: [['s', 'p'], ['t', 'n']], rounds: 4 },
-        { type: 'letterPick', letters: ['s', 'a', 't', 'i', 'p', 'n'], rounds: 6 }
-      ] },
-    { id: 's1-l4', stage: 1, name: 'c · k · e', letters: ['c', 'k', 'e'],
-      activities: [
-        { type: 'letterIntro', letters: ['c', 'k', 'e'] },
-        { type: 'letterPick', letters: ['c', 'k', 'e', 's', 't'], rounds: 6 },
-        { type: 'popSound', letters: ['c', 'k', 'e'], rounds: 2 }
-      ] },
-    { id: 's1-l5', stage: 1, name: 'h · r · m · d', letters: ['h', 'r', 'm', 'd'],
-      activities: [
-        { type: 'letterIntro', letters: ['h', 'r', 'm', 'd'] },
-        { type: 'letterPick', letters: ['h', 'r', 'm', 'd', 'c', 'e'], rounds: 8 },
-        { type: 'popSound', letters: ['h', 'r', 'm', 'd'], rounds: 2 }
-      ] },
-    { id: 's1-l6', stage: 1, name: 'Void Deck Sort', letters: ['c', 'k', 'e', 'h', 'r', 'm', 'd'],
-      activities: [
-        { type: 'soundSort', pairs: [['m', 'd'], ['h', 'r']], rounds: 4 },
-        { type: 'letterPick', letters: ['c', 'e', 'h', 'r', 'm', 'd'], rounds: 6 }
-      ] },
-    { id: 's1-l7', stage: 1, name: 'g · o · u', letters: ['g', 'o', 'u'],
-      activities: [
-        { type: 'letterIntro', letters: ['g', 'o', 'u'] },
-        { type: 'letterPick', letters: ['g', 'o', 'u', 'a', 'i', 'e'], rounds: 6 },
-        { type: 'popSound', letters: ['g', 'o', 'u'], rounds: 2 }
-      ] },
-    { id: 's1-l8', stage: 1, name: 'l · f · b', letters: ['l', 'f', 'b'],
-      activities: [
-        { type: 'letterIntro', letters: ['l', 'f', 'b'] },
-        { type: 'letterPick', letters: ['l', 'f', 'b', 'g', 'd', 'p'], rounds: 6 },
-        { type: 'popSound', letters: ['l', 'f', 'b'], rounds: 2 }
-      ] },
-    { id: 's1-l9', stage: 1, name: 'Nineteen Sounds', letters: ['s', 'a', 't', 'i', 'p', 'n', 'c', 'e', 'h', 'r', 'm', 'd', 'g', 'o', 'u', 'l', 'f', 'b'],
-      activities: [
-        { type: 'letterPick', letters: ['s', 'a', 't', 'i', 'p', 'n', 'c', 'e', 'h', 'r', 'm', 'd', 'g', 'o', 'u', 'l', 'f', 'b'], rounds: 10 },
-        { type: 'soundSort', pairs: [['f', 'b'], ['l', 'g']], rounds: 4 }
-      ] },
-    { id: 's1-l10', stage: 1, name: 'j · v · w', letters: ['j', 'v', 'w'],
-      activities: [
-        { type: 'letterIntro', letters: ['j', 'v', 'w'] },
-        { type: 'letterPick', letters: ['j', 'v', 'w', 'm', 'b'], rounds: 6 },
-        { type: 'popSound', letters: ['j', 'v', 'w'], rounds: 2 }
-      ] },
-    { id: 's1-l11', stage: 1, name: 'y · z · x · qu', letters: ['y', 'z', 'x', 'q'],
-      activities: [
-        { type: 'letterIntro', letters: ['y', 'z', 'x', 'q'] },
-        { type: 'letterPick', letters: ['y', 'z', 'x', 'q', 's', 'c'], rounds: 8 }
-      ] },
+        { type: 'picturePick', words: t.words, rounds: 6 },
+        { type: 'memoryMatch', words: t.words, pairs: 3 }
+      ]
+    });
+  });
 
-    /* ---------------- Stage 2 · Blending ---------------- */
-    { id: 's2-l1', stage: 2, name: 'First Words', words: ['pin', 'tap', 'tin', 'pan'],
+  LETTERS.forEach(function (l, i) {
+    LESSONS.push({
+      id: 'a-' + l, level: 2, n: i + 1, letter: l,
+      name: l.toUpperCase() + l + '   ' + ALPHABET[l].words.map(function (k) { return WORDS[k].text; }).join(' · '),
+      shortName: l.toUpperCase() + l,
+      icon: WORDS[ALPHABET[l].words[0]].icon,
       activities: [
-        { type: 'tapToBlend', words: ['pin', 'tap', 'tin', 'pan'] },
-        { type: 'buildWord', words: ['pin', 'tap'], distractors: ['s', 'n'] }
-      ] },
-    { id: 's2-l2', stage: 2, name: 'Build It Yourself', words: ['pan', 'tin', 'pin', 'tap'],
+        { type: 'meetLetter', letter: l },
+        { type: 'startsWith', letter: l, rounds: 4 },
+        { type: 'findLetter', letter: l, rounds: 3 },
+        { type: 'missingLetter', letter: l, rounds: 3 }
+      ]
+    });
+  });
+
+  /* one review stop after every six letters */
+  [['a', 'f'], ['g', 'l'], ['m', 'r'], ['s', 'z']].forEach(function (span, i) {
+    var from = LETTERS.indexOf(span[0]), to = LETTERS.indexOf(span[1]);
+    var set = LETTERS.slice(from, to + 1);
+    LESSONS.push({
+      id: 'r-' + span[0] + span[1], level: 2, n: 100 + i,
+      name: 'Review ' + span[0].toUpperCase() + '–' + span[1].toUpperCase(),
+      shortName: span[0].toUpperCase() + '–' + span[1].toUpperCase(),
+      icon: 'trophy', review: true, letters: set,
       activities: [
-        { type: 'buildWord', words: ['pan', 'tin', 'pin', 'tap'], distractors: ['s', 'm', 'o'] }
-      ] },
-    { id: 's2-l3', stage: 2, name: 'More Sounds, More Words', words: ['cat', 'hat', 'hen', 'bed', 'mat', 'rat'],
-      activities: [
-        { type: 'tapToBlend', words: ['cat', 'hen', 'bed'] },
-        { type: 'buildWord', words: ['cat', 'mat', 'rat'], distractors: ['d', 'p'] }
-      ] },
-    { id: 's2-l4', stage: 2, name: 'At the Hawker Centre', words: ['bus', 'mug', 'bun', 'cup', 'pot', 'wok'],
-      activities: [
-        { type: 'tapToBlend', words: ['bun', 'cup', 'pot', 'wok'] },
-        { type: 'buildWord', words: ['mug', 'bus'], distractors: ['t', 'a'] }
-      ] },
-    { id: 's2-l5', stage: 2, name: 'Read It All', words: ['dog', 'log', 'fox', 'box', 'top', 'net', 'pig', 'bag'],
-      activities: [
-        { type: 'tapToBlend', words: ['dog', 'fox', 'pig'] },
-        { type: 'buildWord', words: ['box', 'top', 'bag'], distractors: ['m', 'e'] },
-        { type: 'sightWord', words: ['the', 'a', 'I', 'to'] }
-      ] }
-  ];
+        { type: 'findLetter', letters: set, rounds: 5 },
+        { type: 'startsWith', letters: set, rounds: 5 },
+        { type: 'missingLetter', letters: set, rounds: 4 }
+      ]
+    });
+  });
+
+  /* review stops sit after the letters they cover */
+  LESSONS.sort(function (a, b) {
+    if (a.level !== b.level) return a.level - b.level;
+    var order = function (x) {
+      if (x.review) return LETTERS.indexOf(x.letters[x.letters.length - 1]) + 0.5;
+      if (x.letter) return LETTERS.indexOf(x.letter);
+      return x.n - 100;
+    };
+    return order(a) - order(b);
+  });
 
   window.CONTENT = {
-    LETTERS: LETTERS,
     WORDS: WORDS,
-    SIGHT: SIGHT,
-    STICKERS: STICKERS,
-    STAGES: STAGES,
+    ALPHABET: ALPHABET,
+    LETTERS: LETTERS,
+    END_SOUND: END_SOUND,
+    THEMES: THEMES,
+    LEVELS: LEVELS,
     LESSONS: LESSONS,
-    /* every trackable item, for the mastery map */
-    trackables: function () {
-      var t = [];
-      Object.keys(LETTERS).forEach(function (k) { t.push({ key: 'L:' + k, label: k, kind: 'letter' }); });
-      SIGHT.forEach(function (s) { t.push({ key: 'W:' + s, label: s, kind: 'sight' }); });
-      ['rhyme', 'syllable', 'initial', 'oralblend', 'blend'].forEach(function (s) {
-        t.push({ key: 'S:' + s, label: s, kind: 'skill' });
+
+    lesson: function (id) {
+      return LESSONS.filter(function (l) { return l.id === id; })[0];
+    },
+    levelLessons: function (id) {
+      return LESSONS.filter(function (l) { return l.level === id; });
+    },
+    /* every word that starts with this letter's sound */
+    startWords: function (l) { return ALPHABET[l] ? ALPHABET[l].words : []; },
+    /* pictures that do NOT start with this letter, for wrong answers */
+    otherWords: function (l, n) {
+      var out = [];
+      LETTERS.forEach(function (x) {
+        if (x !== l) out = out.concat(ALPHABET[x].words);
       });
-      return t;
+      return out;
+    },
+    /* everything the grown-up dashboard tracks */
+    trackables: function () {
+      return LETTERS.map(function (l) {
+        return { key: 'L:' + l, label: l, kind: 'letter' };
+      }).concat(THEMES.map(function (t) {
+        return { key: 'T:' + t.id, label: t.name, kind: 'theme' };
+      }));
     }
   };
 })();
