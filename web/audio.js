@@ -5,7 +5,12 @@
         real word spoken by a neural voice, so /b/ is the /b/ of `ball` rather
         than a click or a "buh". See tools/make-letter-audio.py.
      3. speech synthesis (last resort; it cannot say a bare phoneme)
-   Whole WORDS use speech synthesis, which handles them well.
+   WORDS and whole LINES follow the same order, against audio/speech/*.mp3 —
+   every fixed piece of English the app says is recorded in the voice the
+   letter clips were cut from, so it never speaks in two voices in one breath
+   and never depends on which voices a phone happens to have. Only text the
+   app cannot know in advance — a greeting with the child's name in it — falls
+   through to the device.
    Sound effects are synthesised with Web Audio, so there are no assets
    to download and nothing to break offline. */
 (function () {
@@ -216,7 +221,7 @@
 
   /* Speak a sentence of instruction. */
   A.say = function (text, opts) {
-    return enqueue(function () { return speakNow(text, opts); });
+    return enqueue(function () { return speak(text, opts); });
   };
 
   /* ---------------- clip playback ----------------
@@ -255,13 +260,18 @@
         var g = ctx.createGain();
         g.gain.value = 1;
         src.buffer = buf;
+        /* The clips are recorded at one speed, so the speaking-speed control
+           has to change how fast they are played back. 0.85 is the default and
+           means untouched; the range is kept narrow because playing a voice
+           slower also drops its pitch. */
+        src.playbackRate.value = Math.max(0.85, Math.min(1.15, A.rate / 0.85));
         src.connect(g); g.connect(ctx.destination);
         var done = false;
         function fin() { if (!done) { done = true; resolve(); } }
         src.onended = fin;
         live = src;
         src.start(0);
-        setTimeout(fin, Math.ceil(buf.duration * 1000) + 250);
+        setTimeout(fin, Math.ceil(buf.duration * 1000 / src.playbackRate.value) + 250);
       } catch (e) { resolve(); }
     });
   }
@@ -282,6 +292,23 @@
     });
   }
 
+  /* Decoded audio is held in memory so a clip plays instantly the second time.
+     The 32 letter sounds are small and constantly used, so they stay; the 272
+     words and lines are not, and a tablet should not be asked to hold all of
+     them decoded at once. */
+  var CACHE_CAP = 60;
+  var cacheOrder = [];
+
+  function remember(key, buf) {
+    bufCache[key] = buf;
+    if (key.indexOf('ph:') === 0) return;        // letter clips are pinned
+    cacheOrder.push(key);
+    while (cacheOrder.length > CACHE_CAP) {
+      var old = cacheOrder.shift();
+      if (old !== key) delete bufCache[old];
+    }
+  }
+
   /* Play a cached clip, decoding it the first time. */
   function playCached(key, getArrayBuffer, fallbackSrc) {
     if (A.muted) return Promise.resolve();
@@ -290,7 +317,7 @@
     return Promise.resolve()
       .then(getArrayBuffer)
       .then(decode)
-      .then(function (buf) { bufCache[key] = buf; return playBuffer(buf); })
+      .then(function (buf) { remember(key, buf); return playBuffer(buf); })
       .catch(function () { return fallbackSrc ? playElement(fallbackSrc) : undefined; });
   }
 
@@ -300,6 +327,32 @@
   };
 
   function clipURL(letter) { return 'audio/letters/' + letter + '.mp3'; }
+
+  /* The key a piece of text is filed under: what is left of it once case and
+     punctuation are gone. tools/make-speech-audio.py files them the same way,
+     so 'Well done!' and 'well done' are one clip. */
+  function speechKey(text) {
+    return String(text).toLowerCase().replace(/[^a-z0-9' ]+/g, ' ')
+      .replace(/\s+/g, ' ').replace(/^ | $/g, '');
+  }
+
+  function speechFile(key) {
+    var m = window.SPEECH_CLIPS;
+    return (m && m[key]) ? 'audio/speech/' + m[key] + '.mp3' : null;
+  }
+
+  /* Play a shipped clip if there is one for this text; otherwise say it with
+     the device voice. */
+  function speak(text, opts) {
+    var url = speechFile(speechKey(text));
+    if (!url || A.muted) return url ? Promise.resolve() : speakNow(text, opts);
+    return playCached('sp:' + url, function () {
+      return fetch(url).then(function (r) {
+        if (!r.ok) throw new Error('no clip');
+        return r.arrayBuffer();
+      });
+    }, url).catch(function () { return speakNow(text, opts); });
+  }
 
   /* Pull every letter clip in and decode it once, in the background. All 32
      together are smaller than a photograph, and the alternative is a child
@@ -337,11 +390,22 @@
     });
   };
 
-  /* Speak a letter's NAME ("ay", "bee"), not its sound. */
+  /* Speak a letter's NAME ("ay", "bee"), not its sound. Filed under a key of
+     its own: the letter A and the word `a` sound alike, but nothing here
+     should rest on that. */
   A.sayLetterName = function (letter) {
     var key = 'n:' + letter;
     return enqueue(function () {
       if (A.have[key]) return playBlobKey(key);
+      var url = speechFile('letter:' + letter);
+      if (url) {
+        return playCached('sp:' + url, function () {
+          return fetch(url).then(function (r) {
+            if (!r.ok) throw new Error('no clip');
+            return r.arrayBuffer();
+          });
+        }, url);
+      }
       return speakNow(letter === 'q' ? 'queue' : letter.toUpperCase(), { rate: 0.7 });
     });
   };
@@ -351,7 +415,7 @@
     var key = 'w:' + word;
     return enqueue(function () {
       if (A.have[key]) return playBlobKey(key);
-      return speakNow(word, { rate: 0.75 });
+      return speak(word, { rate: 0.75 });
     });
   };
 

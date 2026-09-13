@@ -48,6 +48,24 @@
 > must have (length, level, spectral centroid, periodicity) and the build fails
 > if one is off. 32 clips, 83 KB, shipped as mp3 and precached.
 >
+> ### Revision 5 — one voice for everything
+>
+> Words were still spoken by the device, which meant two voices in one breath
+> ("apple" from the app's recording, "Well done!" from the phone) and a
+> different pair on every device — and nothing at all resembling British
+> English where the phone has no en-GB voice. Every fixed piece of English is
+> now recorded in the same voice: 272 clips, 148 s, 970 KB, covering words,
+> sight words, letter names, sentences, story pages, questions, instructions
+> and praise. tools/speech-texts.mjs derives the list from content.js and from
+> the A.say() literals in app.js, so it cannot drift from what the app says.
+>
+> One technique worth recording: a single short word is out of distribution for
+> a voice trained on read sentences — "and" alone came out as five seconds of
+> mumbling, "to" as eighty milliseconds — so each word is spoken inside the
+> frame *The word is ____.* and cut out at the word boundary the model reports,
+> with up to six takes and the first that measures like speech kept. This
+> supersedes §3.3 for word audio as well as phoneme audio.
+>
 > **Each letter card now teaches the sound explicitly**: IPA in British English
 > (Oxford Learner's convention), a front-view mouth picture, one line on how to
 > make it, and the letter's second job where it has one — c before e/i/y, g

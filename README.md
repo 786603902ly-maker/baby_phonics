@@ -86,6 +86,41 @@ python3 tools/make-letter-audio.py           # add --dry-run to measure only
 The voice model (67 MB) downloads into `build/` on first run and is not
 committed. Synthesis is seeded, so the same command produces the same bytes.
 
+### Everything else it says
+
+The letter sounds were the loud problem; the quieter one was that the app spoke
+in whatever voices the device happened to have. "apple" in one voice and "Well
+done!" in another, in the same breath, and a different pair on every phone —
+and a phone with no British English voice reads *ax* and *durian* accordingly.
+
+So all of it is recorded too, in the same voice the letter clips were cut from:
+**272 clips, 148 seconds, 970 KB** — every keyword and sight word, every letter
+name, every sentence and story page, and every line of instruction and praise.
+`tools/make-speech-audio.py` generates them; the text comes from
+`tools/speech-texts.mjs`, which reads `content.js` and the `A.say()` literals in
+`app.js` rather than a list kept by hand, so a new line of encouragement cannot
+quietly miss its clip.
+
+A single short word is out of distribution for a voice trained on read
+sentences — ask this one for "and" alone and it produces five seconds of
+mumbling, ask it for "to" and it produces eighty milliseconds — so each word is
+spoken inside a frame (*The word is ____.*) and cut back out at the word
+boundary the model reports. The model samples noise, so a bad draw is retried
+rather than shipped: up to six takes, keeping the first that measures like real
+speech.
+
+Only text the app cannot know in advance — a greeting with the child's name in
+it — still goes to the device voice.
+
+```sh
+python3 tools/make-speech-audio.py            # --dry-run to measure only
+python3 tools/make-speech-audio.py --show-phonemes   # check the odd words
+```
+
+`--show-phonemes` prints what espeak makes of each word, which is how the
+awkward ones were checked: *ax* /aks/, *yacht* /jɒt/, *durian* /djʊəriən/,
+*tomato* /təmɑːtəʊ/, *zebra* /zɛbrə/ — British throughout.
+
 ### How the app paces itself
 
 A question never appears while the last one is still speaking. Answering used
@@ -185,6 +220,8 @@ internet at all** — every sound, picture and lesson ships with the page.
 | `tools/dist.mjs` | Copies exactly the servable files into `dist/`. `web/page.html` stays behind: it is the artifact body fragment, not a page |
 | `tools/make-icons.mjs` | Renders the PNG app icons. Dev-only, needs playwright; the PNGs are committed so a deploy never runs it |
 | `tools/make-letter-audio.py` | Cuts the 32 letter sounds out of real words and checks each one acoustically. Dev-only, needs a 67 MB voice model; the mp3s are committed so a deploy never runs it |
+| `tools/make-speech-audio.py` | Records every word, sentence and line of praise in the same voice. Dev-only, same model; the mp3s are committed |
+| `tools/speech-texts.mjs` | Lists what there is to record, read out of `content.js` and the `A.say()` literals in `app.js` |
 | `robots.txt` | Keeps the page out of search results |
 
 ### A note on privacy
@@ -239,7 +276,8 @@ Press and hold the gear on the welcome screen for two seconds.
   device, never uploaded.
 - **Voice** — every letter and letter team, with the word its clip was cut
   out of. Tap ▶ to hear any of them. Recording over one in your own voice is
-  optional and only worth doing for a sound she keeps mishearing.
+  optional and only worth doing for a sound she keeps mishearing. The words,
+  sentences and stories are the same voice and also ship with the app.
 - **Settings** — her name, her photo (stored on the device only, never
   uploaded), session cap, speaking speed, the pause between questions,
   backup, reset.
