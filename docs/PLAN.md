@@ -27,15 +27,26 @@
 > **The letter sounds are no longer spoken by the browser.** Speech synthesis
 > cannot say a bare phoneme: ask it for /k/ and it says "kuh"; ask it for the
 > vowel in *cat* and it gives /ɑː/, the vowel in *car*. Both teach a sound that
-> is wrong. `tools/make-phonemes.py` now drives espeak-ng from phoneme symbols
-> (`[[k]]`, `[[a]]`) and bakes 26 clips into the page as data: URIs. No network,
-> no API key, offline. This supersedes §1.3 and §3.3: the accent decision still
-> stands, but the delivery mechanism is bundled audio, not recording.
+> is wrong. This supersedes §1.3 and §3.3: the accent decision still stands,
+> but the delivery mechanism is bundled audio, not recording.
 >
-> Two facts about speech shaped the generator. Voiced stops (b, d, g, j) are
-> silent in isolation — they are a closure plus a release burst — so they are
-> synthesised with a following schwa and cut at vowel onset. Nasals and liquids
-> come out ~40 ms however they are marked, so they are crossfade-tiled to ~280 ms.
+> ### Revision 4 — the letter sounds, again
+>
+> Revision 3 generated the clips with espeak-ng from phoneme symbols. Correct
+> in principle, unusable in practice: the stops came out as bursts with nothing
+> after them — /b/ 50 ms, /d/ 80 ms, /k/ 100 ms of which most was silence — and
+> on a phone speaker that is a click, not a sound. The first parent report was
+> that b, c, d, e and f did not work at all.
+>
+> `tools/make-letter-audio.py` replaces it. Each sound is cut out of a real word
+> spoken by a Piper neural voice (`en_GB-cori-medium`; LibriVox source audio, so
+> public domain), using the model's own phoneme/audio alignment, refined against
+> the waveform because the duration predictor leaks — it gives the /f/ of *fish*
+> 23 ms and charges the rest to the vowel. Stops keep 75 ms of the following
+> vowel, because that is what makes them audible without turning them into
+> "buh". Every clip is checked against the acoustic signature its phoneme class
+> must have (length, level, spectral centroid, periodicity) and the build fails
+> if one is off. 32 clips, 83 KB, shipped as mp3 and precached.
 >
 > **Each letter card now teaches the sound explicitly**: IPA in British English
 > (Oxford Learner's convention), a front-view mouth picture, one line on how to

@@ -53,18 +53,49 @@ Browser speech synthesis cannot say a bare letter sound — ask it for /k/ and
 it says "kuh", ask it for the vowel in *cat* and it gives you /ɑː/, the vowel
 in *car*. Both teach the wrong thing.
 
-So the 26 sounds are **not** spoken by the browser. `tools/make-phonemes.py`
-drives espeak-ng from phoneme symbols (`[[k]]`, `[[a]]`), producing the exact
-phoneme, and bakes the clips into `web/phonemes.js` as data: URIs. No network,
-no API key, works offline. Regenerate with:
+So the letter sounds are **not** spoken by the browser, and they are not built
+out of phoneme symbols either. Each one is **cut out of a real word**: the
+clip for `b` is the /b/ of *ball*, the clip for `a` is the /æ/ of *cat*. That
+is the sound the child has to hear — the sound the letter makes inside a word.
+
+`tools/make-letter-audio.py` synthesises the carrier word with a British
+neural voice (Piper, `en_GB-cori-medium`, trained on public-domain LibriVox
+recordings), asks the model for its own phoneme/audio alignment, refines the
+boundary against the audio itself, and shapes what it finds:
+
+- **continuants and vowels** — /f/, /m/, /s/, /æ/ — are held for about a
+  quarter of a second so there is something to copy. Noise is tiled with every
+  other copy reversed, which lengthens a hiss without laying a pulse over it.
+- **stops** — /b/, /d/, /k/ — keep the burst and 75 ms of the vowel after it.
+  A stop with no release is a click, and a click is not a sound a child can
+  repeat; 75 ms is enough to hear and too little to become "buh".
+
+Every clip is then measured and has to pass: length, loudness, spectral
+centroid in the band its phoneme class requires, and voicing — /f/ must be
+aperiodic, /m/ must have a pitch. A clip that fails fails the build. The 32
+clips together are 83 KB, they ship as `web/audio/letters/*.mp3`, and the
+service worker precaches them, so the app still works with no network.
+
+Regenerate with:
 
 ```sh
-apt-get install -y espeak-ng && python3 tools/make-phonemes.py
+pip install piper-tts onnx lameenc numpy
+python3 tools/make-letter-audio.py           # add --dry-run to measure only
 ```
 
-Voiced stops (b, d, g, j) make no sound at all in isolation — that is a fact
-about speech, not a bug — so those are synthesised with a following schwa and
-cut the instant the vowel starts, leaving the release burst alone.
+The voice model (67 MB) downloads into `build/` on first run and is not
+committed. Synthesis is seeded, so the same command produces the same bytes.
+
+### How the app paces itself
+
+A question never appears while the last one is still speaking. Answering used
+to start a fixed 950 ms timer, which was shorter than the praise and the word
+that follow a correct tap — so the next question went up on screen while the
+previous answer was still being said, and it sounded as though the app had
+asked one thing and then said another. Now the runner waits for the audio
+queue to drain, then holds a deliberate pause on top (0.5 / 0.8 / 1.3 s,
+**Grown-ups → Settings**). Tapping Next or Back cuts whatever is playing,
+including the rest of a sequence that had not started yet.
 
 Each letter card also shows:
 
@@ -153,6 +184,7 @@ internet at all** — every sound, picture and lesson ships with the page.
 | `tools/build.mjs` | Generates `web/index.html` from `web/page.html`, and generates `web/sw.js` with the real asset list and a cache name hashed from every shipped file — so a new deploy is a new cache and never serves yesterday's build |
 | `tools/dist.mjs` | Copies exactly the servable files into `dist/`. `web/page.html` stays behind: it is the artifact body fragment, not a page |
 | `tools/make-icons.mjs` | Renders the PNG app icons. Dev-only, needs playwright; the PNGs are committed so a deploy never runs it |
+| `tools/make-letter-audio.py` | Cuts the 32 letter sounds out of real words and checks each one acoustically. Dev-only, needs a 67 MB voice model; the mp3s are committed so a deploy never runs it |
 | `robots.txt` | Keeps the page out of search results |
 
 ### A note on privacy
@@ -205,11 +237,12 @@ Press and hold the gear on the welcome screen for two seconds.
 - **Pictures** — replace any drawing with a real photo from the phone. A
   photo of the actual cup in your kitchen beats any drawing. Stored on the
   device, never uploaded.
-- **Voice** — the 26 built-in clips are already phonetically correct;
-  recording is optional and only worth doing for a sound she keeps
-  mishearing.
+- **Voice** — every letter and letter team, with the word its clip was cut
+  out of. Tap ▶ to hear any of them. Recording over one in your own voice is
+  optional and only worth doing for a sound she keeps mishearing.
 - **Settings** — her name, her photo (stored on the device only, never
-  uploaded), session cap, speaking speed, backup, reset.
+  uploaded), session cap, speaking speed, the pause between questions,
+  backup, reset.
 
 ## Where the word lists come from
 

@@ -1,4 +1,6 @@
 dist/
+build/
 node_modules/
 .vercel/
 .DS_Store
+__pycache__/

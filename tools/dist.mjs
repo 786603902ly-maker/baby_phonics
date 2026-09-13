@@ -17,6 +17,7 @@ let total = 0, missing = [];
 for (const f of SERVABLE) {
   const src = join(web, f);
   if (!existsSync(src)) { missing.push(f); continue; }
+  mkdirSync(dirname(join(dist, f)), { recursive: true });   // audio/letters/…
   copyFileSync(src, join(dist, f));
   total += statSync(src).size;
 }

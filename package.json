@@ -8,7 +8,7 @@
     "build": "node tools/dist.mjs",
     "start": "node tools/build.mjs && npx --yes serve web -l 8000",
     "icons": "node tools/make-icons.mjs",
-    "phonemes": "python3 tools/make-phonemes.py"
+    "letter-audio": "python3 tools/make-letter-audio.py"
   },
   "engines": { "node": ">=18" }
 }

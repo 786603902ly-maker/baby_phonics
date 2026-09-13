@@ -20,7 +20,7 @@
     boxes: {},       // srs
     runs: [],        // one entry per finished lesson
     played: {},      // 'YYYY-MM-DD' -> stops finished that day
-    settings: { voice: '', rate: 0.85, cap: 15, sfx: true }
+    settings: { voice: '', rate: 0.85, cap: 15, sfx: true, pace: 1 }
   };
 
   var S = load();
@@ -704,17 +704,38 @@
     );
     document.getElementById('quit').onclick = function () { A.stop(); run = null; screenMap(); };
     document.getElementById('again').onclick = function () { A.stop(); if (r.play) r.play(); };
-    if (!opts.silent && r.play) setTimeout(function () { r.play(); }, 240);
+    /* Nothing from the last question may still be queued when this one asks
+       its own: whatever is left is the previous answer, and hearing it here is
+       exactly the mix-up this pause is meant to prevent. */
+    if (!opts.silent && r.play) {
+      var mine = run;
+      A.stop();
+      setTimeout(function () { if (run === mine) r.play(); }, 260);
+    }
   }
 
+  /* How long to sit still between one question and the next. A four-year-old
+     needs the gap; the grown-up can widen or narrow it. */
+  var PAUSE = [500, 800, 1300];        // brisk, steady, slow
+  function pause() { return PAUSE[S.settings.pace] || PAUSE[1]; }
+
+  /* Move to the next question — but never before the last one has finished
+     speaking. Advancing on a fixed timer is what made the app talk over
+     itself: the praise and the word were still queued, so the child saw
+     question five while hearing the answer to question four. */
   function advance(ms) {
     if (!run) return;
-    setTimeout(function () {
-      if (!run) return;
-      run.i++;
-      if (run.i >= run.rounds.length) finishLesson();
-      else renderRound();
-    }, ms == null ? 950 : ms);
+    var mine = run;
+    var wait = ms == null ? pause() : ms;
+    A.idle().then(function () {
+      if (run !== mine) return;                 // quit, or a restart, meanwhile
+      setTimeout(function () {
+        if (run !== mine) return;
+        run.i++;
+        if (run.i >= run.rounds.length) finishLesson();
+        else renderRound();
+      }, wait);
+    });
   }
 
   function right(track) {
@@ -722,7 +743,7 @@
     run.correct++; run.tries++;
     if (track) SRS.hit(track);
     if (S.settings.sfx) A.sfx('correct');
-    A.say(pick(['Yes!', 'Well done!', 'You got it!', 'Clever girl!', 'That is right!']));
+    return A.say(pick(['Yes!', 'Well done!', 'You got it!', 'Clever girl!', 'That is right!']));
   }
   function wrong(track) {
     if (!run) return;
@@ -768,23 +789,27 @@
     push.onclick = function () {
       push.disabled = true;
       document.querySelector('.btiles').classList.add('squeeze');
+      var tok = A.epoch();
       var seq = Promise.resolve();
       wd.ph.forEach(function (ph, i) {
         seq = seq.then(function () {
+          if (A.epoch() !== tok) return;
           Array.prototype.forEach.call(tiles, function (x) { x.classList.remove('lit'); });
           if (tiles[i]) tiles[i].classList.add('lit');
           return A.sayPhoneme(ph);
         }).then(function () { return A.wait(90); });
       });
       seq.then(function () {
+        if (A.epoch() !== tok) return;
         Array.prototype.forEach.call(tiles, function (x) { x.classList.add('lit'); });
         return A.sayWord(wd.text);
       }).then(function () {
+        if (A.epoch() !== tok) return;
         var rev = document.getElementById('reveal');
         if (!rev) return;
         rev.hidden = false;
         right(r.track);
-        advance(1500);
+        advance(1200);
       });
     };
   }
@@ -842,6 +867,7 @@
     );
     document.getElementById('mw').onclick = function () { A.sayWord(t); };
     document.getElementById('menext').onclick = function () {
+      A.stop();                       // she tapped next; she has heard enough
       SRS.hit(r.track); run.correct++; run.tries++; advance(0);
     };
   }
@@ -904,6 +930,7 @@
       };
     });
     document.getElementById('pnext').onclick = function () {
+      A.stop();
       SRS.hit(r.track); run.correct++; run.tries++; advance(0);
     };
   }
@@ -930,8 +957,10 @@
         if (o.correct) {
           Array.prototype.forEach.call(document.querySelectorAll('.opt'), function (x) { x.dataset.spent = '1'; });
           b.classList.add('is-right');
-          right(r.track);
+          /* name the thing she just chose, then praise it: "apple" — "well
+             done", in that order, because the word is the thing being taught */
           if (o.kind === 'pic' || o.kind === 'word') A.sayWord(word(o.word).text);
+          right(r.track);
           advance();
         } else {
           b.dataset.spent = '1';
@@ -1004,11 +1033,18 @@
       };
     });
 
+    /* The card introduces itself: the letter, then its four words. That runs
+       for the best part of ten seconds, so every step checks the ticket first
+       — tap Next half way through and the rest is dropped instead of following
+       the child into the next question. */
+    var tok = A.epoch();
     setTimeout(function () {
+      if (A.epoch() !== tok) return;
       sayLetter().then(function () {
         var seq = Promise.resolve();
         L.words.forEach(function (k, i) {
           seq = seq.then(function () {
+            if (A.epoch() !== tok) return;
             var el = document.querySelector('.kw[data-i="' + i + '"]');
             if (el) { bump(el); el.classList.add('seen'); }
             return sayKeyword(k);
@@ -1016,12 +1052,14 @@
         });
         return seq;
       }).then(function () {
+        if (A.epoch() !== tok) return;
         var n = document.getElementById('cardnext');
         if (n) n.classList.add('ready');
       });
     }, 260);
 
     document.getElementById('cardnext').onclick = function () {
+      A.stop();
       SRS.hit(r.track);
       run.correct++; run.tries++;
       advance(0);
@@ -1059,9 +1097,10 @@
           var slot = document.getElementById('slot');
           slot.textContent = r.letter;
           slot.classList.add('filled');
-          right(r.track);
+          A.sayPhoneme(r.letter);
           A.sayWord(t);
-          advance(1200);
+          right(r.track);
+          advance();
         } else {
           b.dataset.spent = '1';
           b.classList.add('is-wrong');
@@ -1296,7 +1335,9 @@
 
   function tabVoice() {
     var can = A.canRecord();
-    var letters = C.LETTERS;
+    /* the five two-letter teams have clips of their own, so they belong in
+       this list next to the letters */
+    var keys = C.LETTERS.concat(Object.keys(C.TEAMS));
 
     function row(key, label, sub) {
       var has = A.hasRecording(key);
@@ -1311,8 +1352,8 @@
     document.getElementById('ptab').innerHTML =
       '<div class="panel">' +
         '<h3>Do I need to record anything?</h3>' +
-        '<p class="hint"><b>No.</b> All 26 letter sounds now play from clips built into the app. They were synthesised from phoneme symbols, so /k/ really is /k/ and the vowel in <i>cat</i> really is /&aelig;/ &mdash; not the &ldquo;kuh&rdquo; and /&#593;&#720;/ that browser speech gives you. Whole words still use the device voice, which handles them well.</p>' +
-        '<p class="hint">The built-in clips are correct but a little robotic. Recording a letter in your own voice replaces the clip for that letter &mdash; worth doing for any sound she keeps mishearing, and nothing else.</p>' +
+        '<p class="hint"><b>No.</b> Every letter sound plays from a clip that was cut out of a real word: the <b>b</b> below is the <b>b</b> of <i>ball</i>, the <b>a</b> is the <b>a</b> of <i>cat</i>. They are spoken by a British neural voice, not assembled from phoneme symbols, so they sound like a person saying the sound rather than a machine spelling it out.</p>' +
+        '<p class="hint">Tap <b>&#9654;</b> on any row to hear it. Recording over one in your own voice is optional &mdash; worth doing only for a sound she keeps mishearing. Whole words still use the device voice, which handles them well.</p>' +
         '<p class="stat"><b>' + A.recordingCount() + '</b> clips recorded' + (can ? '' : ' &middot; <span class="warn">this browser will not give the page a microphone</span>') + '</p>' +
         '<label class="field"><span>Voice</span><select id="voicepick">' +
           '<option value="">Automatic (British English preferred)</option>' +
@@ -1321,10 +1362,12 @@
           }).join('') + '</select></label>' +
       '</div>' +
       '<div class="panel"><h3>Letter sounds <small>' +
-        letters.filter(function (l) { return A.hasRecording('p:' + l); }).length + '/26 replaced by your voice &mdash; optional</small></h3>' +
-        '<div class="vlist">' + letters.map(function (l) {
-          return row('p:' + l, glyph(l) + '  ' + C.ALPHABET[l].ipa,
-            'as in ' + C.WORDS[C.ALPHABET[l].words[0]].text);
+        keys.filter(function (l) { return A.hasRecording('p:' + l); }).length + '/' + keys.length +
+        ' replaced by your voice &mdash; optional</small></h3>' +
+        '<div class="vlist">' + keys.map(function (l) {
+          var clip = (window.LETTER_CLIPS || {})[l];
+          return row('p:' + l, glyph(l) + '  ' + C.sound(l).ipa,
+            clip ? 'the sound in ' + clip.word : 'device voice');
         }).join('') + '</div>' +
       '</div>';
 
@@ -1376,6 +1419,11 @@
         '<p class="hint">Past this, the end-of-stop screen stops offering &ldquo;Next&rdquo; and says goodbye. It never interrupts a stop in progress.</p>' +
         '<label class="field field--row"><span>Sound effects</span><input type="checkbox" id="sfx"' + (S.settings.sfx ? ' checked' : '') + '></label>' +
         '<label class="field"><span>Speaking speed</span><input type="range" id="rate" min="0.6" max="1.1" step="0.05" value="' + S.settings.rate + '"></label>' +
+        '<label class="field"><span>Pause between questions</span><select id="pace">' +
+          ['Short &mdash; 0.5s', 'Steady &mdash; 0.8s', 'Long &mdash; 1.3s'].map(function (n, i) {
+            return '<option value="' + i + '"' + (S.settings.pace === i ? ' selected' : '') + '>' + n + '</option>';
+          }).join('') + '</select></label>' +
+        '<p class="hint">The next question never starts until the last one has finished speaking. This is the extra quiet on top of that.</p>' +
       '</div>' +
       '<div class="panel"><h3>Backup</h3>' +
         '<p class="hint">Stars and progress live in this browser and nowhere else. Two ways to keep a copy &mdash; the photo and any voice recordings stay on the device either way, they are too large to copy.</p>' +
@@ -1418,6 +1466,7 @@
     };
     document.getElementById('cap').onchange = function () { S.settings.cap = +this.value; save(); };
     document.getElementById('sfx').onchange = function () { S.settings.sfx = this.checked; save(); };
+    document.getElementById('pace').onchange = function () { S.settings.pace = +this.value; save(); };
     document.getElementById('rate').onchange = function () {
       S.settings.rate = +this.value; A.rate = +this.value; save(); A.unlock(); A.say('Like this.');
     };
@@ -1523,5 +1572,6 @@
   A.init().then(loadPhotos).then(function () {
     if (S.settings.voice) setTimeout(function () { A.setVoice(S.settings.voice); }, 300);
     screenWelcome();
+    A.preload();          // 83 KB, so the first tap on a letter is not a wait
   });
 })();

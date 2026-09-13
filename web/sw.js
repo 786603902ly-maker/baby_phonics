@@ -5,7 +5,7 @@
    of every shipped file, so a new deploy is a new cache: install, then drop
    the old one. Without that, a returning child gets yesterday's build for ever.
 */
-var CACHE = 'pip-phonics-eea2c43d4b';
+var CACHE = 'pip-phonics-1cba3bb8e8';
 var ASSETS = [
   "./",
   "./index.html",
@@ -13,7 +13,7 @@ var ASSETS = [
   "./icons-words.js",
   "./mouths.js",
   "./content.js",
-  "./phonemes.js",
+  "./letter-clips.js",
   "./audio.js",
   "./app.js",
   "./manifest.webmanifest",
@@ -22,7 +22,39 @@ var ASSETS = [
   "./icon-192.png",
   "./icon-512.png",
   "./icon-512-maskable.png",
-  "./robots.txt"
+  "./robots.txt",
+  "./audio/letters/a.mp3",
+  "./audio/letters/b.mp3",
+  "./audio/letters/c.mp3",
+  "./audio/letters/ch.mp3",
+  "./audio/letters/ck.mp3",
+  "./audio/letters/d.mp3",
+  "./audio/letters/e.mp3",
+  "./audio/letters/f.mp3",
+  "./audio/letters/g.mp3",
+  "./audio/letters/h.mp3",
+  "./audio/letters/i.mp3",
+  "./audio/letters/j.mp3",
+  "./audio/letters/k.mp3",
+  "./audio/letters/l.mp3",
+  "./audio/letters/m.mp3",
+  "./audio/letters/n.mp3",
+  "./audio/letters/ng.mp3",
+  "./audio/letters/o.mp3",
+  "./audio/letters/p.mp3",
+  "./audio/letters/q.mp3",
+  "./audio/letters/r.mp3",
+  "./audio/letters/s.mp3",
+  "./audio/letters/sh.mp3",
+  "./audio/letters/t.mp3",
+  "./audio/letters/th.mp3",
+  "./audio/letters/u.mp3",
+  "./audio/letters/v.mp3",
+  "./audio/letters/w.mp3",
+  "./audio/letters/wh.mp3",
+  "./audio/letters/x.mp3",
+  "./audio/letters/y.mp3",
+  "./audio/letters/z.mp3"
 ];
 
 self.addEventListener('install', function (e) {

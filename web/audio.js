@@ -1,8 +1,9 @@
 /* audio.js — the voice of the app.
    Priority order for a LETTER SOUND:
      1. a recording made by the grown-up (IndexedDB)
-     2. the bundled clip in phonemes.js — synthesised from phoneme symbols by
-        espeak-ng, so /k/ is really /k/ and not "kuh"
+     2. the shipped clip in audio/letters/<key>.mp3 — the sound cut out of a
+        real word spoken by a neural voice, so /b/ is the /b/ of `ball` rather
+        than a click or a "buh". See tools/make-letter-audio.py.
      3. speech synthesis (last resort; it cannot say a bare phoneme)
    Whole WORDS use speech synthesis, which handles them well.
    Sound effects are synthesised with Web Audio, so there are no assets
@@ -199,8 +200,17 @@
     });
   }
 
+  /* Everything spoken goes through one queue, so two sounds never overlap.
+     `gen` is what makes stop() mean stop: the tail of a sequence that is
+     already chained cannot be unchained, so each step checks on its way in
+     whether it still belongs to the run that queued it. Without this, tapping
+     past a letter card leaves its four keywords playing over the next
+     question. */
+  var gen = 0;
   function enqueue(fn) {
-    queue = queue.then(fn, fn);
+    var mine = gen;
+    function step() { return mine === gen ? fn() : null; }
+    queue = queue.then(step, step);
     return queue;
   }
 
@@ -234,6 +244,8 @@
     });
   }
 
+  var live = null;      /* the clip playing right now, so stop() can cut it */
+
   function playBuffer(buf) {
     return new Promise(function (resolve) {
       var ctx = ensureCtx();
@@ -247,6 +259,7 @@
         var done = false;
         function fin() { if (!done) { done = true; resolve(); } }
         src.onended = fin;
+        live = src;
         src.start(0);
         setTimeout(fin, Math.ceil(buf.duration * 1000) + 250);
       } catch (e) { resolve(); }
@@ -269,14 +282,6 @@
     });
   }
 
-  function base64ToBuffer(dataUri) {
-    var b64 = dataUri.slice(dataUri.indexOf(',') + 1);
-    var bin = atob(b64);
-    var out = new Uint8Array(bin.length);
-    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-    return out.buffer;
-  }
-
   /* Play a cached clip, decoding it the first time. */
   function playCached(key, getArrayBuffer, fallbackSrc) {
     if (A.muted) return Promise.resolve();
@@ -289,8 +294,28 @@
       .catch(function () { return fallbackSrc ? playElement(fallbackSrc) : undefined; });
   }
 
+  /* ---------------- letter clips ---------------- */
   A.hasClip = function (letter) {
-    return !!(window.PHONEME_AUDIO && window.PHONEME_AUDIO[letter]);
+    return !!(window.LETTER_CLIPS && window.LETTER_CLIPS[letter]);
+  };
+
+  function clipURL(letter) { return 'audio/letters/' + letter + '.mp3'; }
+
+  /* Pull every letter clip in and decode it once, in the background. All 32
+     together are smaller than a photograph, and the alternative is a child
+     tapping a letter and waiting for a fetch. */
+  A.preload = function () {
+    var keys = Object.keys(window.LETTER_CLIPS || {});
+    return keys.reduce(function (chain, k) {
+      return chain.then(function () {
+        if (bufCache['ph:' + k]) return;
+        return fetch(clipURL(k))
+          .then(function (r) { return r.ok ? r.arrayBuffer() : Promise.reject(); })
+          .then(decode)
+          .then(function (buf) { bufCache['ph:' + k] = buf; })
+          .catch(function () { /* the clip will be fetched on demand instead */ });
+      });
+    }, Promise.resolve());
   };
 
   /* Speak one letter sound. */
@@ -298,9 +323,14 @@
     var key = 'p:' + letter;
     return enqueue(function () {
       if (A.have[key]) return playBlobKey(key);
-      if (window.PHONEME_AUDIO && window.PHONEME_AUDIO[letter]) {
-        var src = window.PHONEME_AUDIO[letter];
-        return playCached('ph:' + letter, function () { return base64ToBuffer(src); }, src);
+      if (A.hasClip(letter)) {
+        var url = clipURL(letter);
+        return playCached('ph:' + letter, function () {
+          return fetch(url).then(function (r) {
+            if (!r.ok) throw new Error('no clip');
+            return r.arrayBuffer();
+          });
+        }, url);
       }
       var L = window.CONTENT.ALPHABET[letter];
       return speakNow(L ? L.sound : letter, { rate: 0.7, pitch: 1.0 });
@@ -344,9 +374,24 @@
   A.wait = wait;
 
   A.stop = function () {
+    gen++;
     try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { /* ignore */ }
+    try { if (live) live.stop(0); } catch (e) { /* already finished */ }
+    live = null;
     queue = Promise.resolve();
   };
+
+  /* A ticket for the run of audio happening now. A sequence that plays over
+     several turns of the event loop — the letter card walking its four
+     keywords, the blending of a word — holds one of these and checks it before
+     each step: after A.stop() the ticket is stale and the sequence gives up,
+     rather than queueing its remaining words on top of the next question. */
+  A.epoch = function () { return gen; };
+
+  /* Resolves when everything already asked for has finished playing. The
+     lesson runner waits on this before moving on, so a child never hears the
+     last question while looking at the next one. */
+  A.idle = function () { return enqueue(function () { return null; }); };
 
   /* ---------------- sound effects ---------------- */
   function tone(freq, start, dur, type, gain) {
