@@ -12,6 +12,7 @@ import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { expectedKeys } from './speech-texts.mjs';
 
 const web = join(dirname(fileURLToPath(import.meta.url)), '..', 'web');
 
@@ -37,6 +38,23 @@ export const STATIC = [
   'icon-192.png', 'icon-512.png', 'icon-512-maskable.png', 'robots.txt'
 ];
 export const SERVABLE = ['index.html', ...SCRIPTS, ...STATIC, ...AUDIO, 'sw.js'];
+
+/* ------------------------------------------- every spoken line has a clip
+   A line the app says with no clip behind it falls back to the device voice,
+   which is exactly the two-voices-in-one-breath problem the recordings were
+   made to end — and it fails silently, so nothing tells you. It happened once:
+   hoisting three praise lines into a variable hid them from the extractor and
+   they lost their clips without a word. This is that mistake made loud. */
+{
+  const clips = readFileSync(join(web, 'speech-clips.js'), 'utf8');
+  const missing = expectedKeys().filter((k) => !clips.includes("'" + k.replace(/'/g, "\\'") + "':"));
+  if (missing.length) {
+    console.error('\n' + missing.length + ' spoken line(s) have no clip:');
+    missing.forEach((k) => console.error('  ' + JSON.stringify(k)));
+    console.error('\nRun: python3 tools/make-speech-audio.py\n');
+    process.exit(1);
+  }
+}
 
 /* ---------------------------------------------------------------- page */
 const body = readFileSync(join(web, 'page.html'), 'utf8');

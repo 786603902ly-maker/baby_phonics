@@ -95,8 +95,13 @@
 > **Back goes back one question** instead of leaving the lesson, and changing
 > screen stops whatever is playing.
 >
-> **Each clip is seeded from its own key** and redrawn until it measures right,
-> in the letter tool as well as the speech tool.
+> **Each take is seeded from its own key** and redrawn until it measures right,
+> in the letter tool as well as the speech tool. That makes the build
+> makes a retry draw something new. It does not isolate one clip from the next,
+> and it is not what makes a build reproducible — that is the seed set before
+> the session is created. An earlier note here claimed isolation; measured, two
+> runs of the same command match, but changing one item still moves every item
+> after it.
 >
 > **Each letter card now teaches the sound explicitly**: IPA in British English
 > (Oxford Learner's convention), a front-view mouth picture, one line on how to

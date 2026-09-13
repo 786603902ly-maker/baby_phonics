@@ -83,8 +83,15 @@ def filename(k):
 
 
 def seed(k, attempt):
-    """The model samples noise, and a shared stream would mean that changing one
-    word rerolled every word after it. Seed each take from its own text."""
+    """The model samples noise. Seeding each take from its own text and attempt
+    number is what makes a retry draw something different rather than repeating
+    itself, and it is what makes the build reproducible.
+
+    It does not isolate a clip from the ones before it: reseeding does not
+    reset the session, whose state advances with every inference, so changing
+    one word does change the bytes of the words after it. What makes a build
+    reproducible is the seed set before the session is created, in
+    make-letter-audio.get_voice. Reproducible, not independent."""
     import onnxruntime
     h = hashlib.sha1(('%s#%d' % (k, attempt)).encode()).hexdigest()[:8]
     onnxruntime.set_seed(int(h, 16) & 0x7fffffff)

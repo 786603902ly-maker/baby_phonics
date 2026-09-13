@@ -145,8 +145,13 @@ about seventy milliseconds, too short to cut out and hand to a child as a word,
 so it is taken from somewhere the same sound is unhurried — the end of *banana*
 — and held to a fifth of a second.
 
-Each clip is seeded from its own text, so changing one word regenerates that
-word and leaves the other 271 byte-for-byte identical.
+The build is reproducible: the same command produces the same 272 files. That
+comes from seeding the model before its session is created; each take is then
+reseeded from its own text and attempt number, which is what makes a retry draw
+something different rather than repeating itself. Reseeding does not isolate a
+clip from the ones before it — the session's state advances with every
+inference — so changing one word does change the bytes of the words after it,
+without changing whether they pass their checks.
 
 ### What the letter card says
 

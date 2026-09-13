@@ -5,7 +5,7 @@
    of every shipped file, so a new deploy is a new cache: install, then drop
    the old one. Without that, a returning child gets yesterday's build for ever.
 */
-var CACHE = 'pip-phonics-de5d19d96e';
+var CACHE = 'pip-phonics-1152267fad';
 var ASSETS = [
   "./",
   "./index.html",

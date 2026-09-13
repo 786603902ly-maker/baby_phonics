@@ -126,16 +126,29 @@ SR_REF = 22050          # every voice here is 22.05 kHz; used by periodicity()
 
 # ---------------------------------------------------------------- the voice
 def seed(key, attempt):
-    """VITS samples noise on every run, so an unseeded build is a lottery. Seed
-    each take from its own letter rather than from one stream shared by the run:
-    a shared stream means adding one letter rerolls every letter after it."""
+    """VITS samples noise on every run, so an unseeded build is a lottery. Each
+    take is seeded from its own letter and attempt number, which is what makes a
+    retry draw something different instead of repeating itself.
+
+    It does NOT make a clip independent of the ones before it. Reseeding does
+    not reset the session, whose state advances with every inference, so
+    changing one letter still changes the bytes of the letters after it. Nor is
+    this the call that makes a build reproducible — that is the seed in
+    get_voice, set before the session exists. Both were measured, after the
+    first version of this comment claimed otherwise."""
     import onnxruntime
     h = hashlib.sha1(('%s#%d' % (key, attempt)).encode()).hexdigest()[:8]
     onnxruntime.set_seed(int(h, 16) & 0x7fffffff)
 
 
 def get_voice(name, speaker=None):
+    import onnxruntime
     from piper import PiperVoice
+    # Seed before the session exists. Measured: this is the call that makes a
+    # build reproducible — reseeding later moves the draw along but does not
+    # reset the session, so without this line two runs of the same command
+    # produce different audio.
+    onnxruntime.set_seed(20240613)
     d = os.path.join(BUILD, 'voices', 'vits-piper-' + name)
     model = os.path.join(d, name + '.onnx')
     if not os.path.exists(model):

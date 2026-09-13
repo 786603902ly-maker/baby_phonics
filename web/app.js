@@ -1196,7 +1196,6 @@
     save();
 
     if (S.settings.sfx) A.sfx('reward');
-    var praise = n === 3 ? 'Perfect! Three stars!' : n === 2 ? 'Well done! Two stars!' : 'Good try! One star!';
 
     var overCap = sessionStart && (Date.now() - sessionStart) / 60000 > S.settings.cap;
     var ls = C.levelLessons(l.level);
@@ -1219,7 +1218,11 @@
         '</div>' +
       '</div>'
     );
-    A.say(praise);          // after nav, which silences anything still playing
+    /* After nav, which silences anything still playing. Written out in full
+       rather than hoisted into a variable: tools/speech-texts.mjs finds what to
+       record by reading the literals handed to A.say(), and a variable here
+       means these three lines quietly lose their clips. */
+    A.say(n === 3 ? 'Perfect! Three stars!' : n === 2 ? 'Well done! Two stars!' : 'Good try! One star!');
     document.getElementById('dmap').onclick = function () { if (overCap) sessionStart = 0; screenMap(); };
     var dn = document.getElementById('dnext');
     if (dn) dn.onclick = function () { startLesson(next); };
