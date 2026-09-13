@@ -1,5 +1,41 @@
 # Phonics Tool — Product & Curriculum Plan (Age 4 → 7, Singapore)
 
+> ### Revision 3 — after the first week of real use
+>
+> **The letter sounds are no longer spoken by the browser.** Speech synthesis
+> cannot say a bare phoneme: ask it for /k/ and it says "kuh"; ask it for the
+> vowel in *cat* and it gives /ɑː/, the vowel in *car*. Both teach a sound that
+> is wrong. `tools/make-phonemes.py` now drives espeak-ng from phoneme symbols
+> (`[[k]]`, `[[a]]`) and bakes 26 clips into the page as data: URIs. No network,
+> no API key, offline. This supersedes §1.3 and §3.3: the accent decision still
+> stands, but the delivery mechanism is bundled audio, not recording.
+>
+> Two facts about speech shaped the generator. Voiced stops (b, d, g, j) are
+> silent in isolation — they are a closure plus a release burst — so they are
+> synthesised with a following schwa and cut at vowel onset. Nasals and liquids
+> come out ~40 ms however they are marked, so they are crossfade-tiled to ~280 ms.
+>
+> **Each letter card now teaches the sound explicitly**: IPA in British English
+> (Oxford Learner's convention), a front-view mouth picture, one line on how to
+> make it, and the letter's second job where it has one — c before e/i/y, g
+> before e/i/y, s as /z/, the vowel name sounds.
+>
+> **Pictures carry their word**, and any drawing can be replaced with a real
+> photo from the phone (Grown-ups → Pictures), stored on the device. Generated
+> photographs were considered and rejected: no image model is reachable from
+> this build, and the Artifact sandbox blocks loading images from any external
+> host, so even a paid API could not deliver them to the page. A parent's own
+> photo of the actual object is better anyway.
+>
+> **Two ways to practise**, per §2's mastery-not-age principle:
+> *one letter a day* on the welcome screen (the next unfinished letter, plus a
+> seven-day strip that records what happened and does not nag), and
+> *Mix it up*, which jumbles every letter she has met and interleaves the round
+> types. Neither is locked; the full map is always one tap away.
+>
+> ---
+>
+
 > ## Revision 2 — what changed after the first trial
 >
 > Rourou tried the first build and it was too hard. Two things were wrong:

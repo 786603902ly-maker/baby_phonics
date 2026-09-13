@@ -111,6 +111,31 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap
 .bigbtn-glyph { width: 26px; height: 26px; flex: none; }
 .bigbtn--sm { margin-top: 0; padding: 13px 30px; font-size: 19px; }
 .bigbtn--sm .bigbtn-glyph { width: 18px; height: 18px; }
+.today {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  width: min(100%, 340px); margin-top: 20px; padding: 14px 20px 18px;
+  background: var(--otter); color: #FFF9F0;
+  border-radius: var(--r2); box-shadow: var(--lift);
+}
+.today:active { transform: translateY(3px); box-shadow: var(--shadow); }
+.today-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+.today-row { display: flex; align-items: center; gap: 14px; }
+.today-letter { font-family: var(--letter); font-size: 46px; font-weight: 700; line-height: 1; }
+.today-pic { width: 52px; height: 52px; flex: none; padding: 5px; background: var(--plate); border-radius: 13px; }
+.today-word { font-family: var(--letter); font-size: 21px; font-weight: 700; }
+.today.is-done { background: var(--surface2); color: var(--ink); box-shadow: var(--shadow); border: 2px solid var(--line); }
+.today.is-done .today-eyebrow { color: var(--leaf); opacity: 1; }
+
+.week { display: flex; gap: 7px; margin-top: 22px; }
+.wk { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.wk i {
+  display: grid; place-items: center; width: 26px; height: 26px; padding: 4px;
+  background: var(--surface2); border: 2px solid var(--line); border-radius: 50%;
+}
+.wk.on i { background: color-mix(in srgb, var(--sun) 22%, var(--surface)); border-color: var(--sun); }
+.wk.now i { border-width: 3px; border-color: var(--otter); }
+.wk b { font-size: 10px; font-weight: 800; color: var(--ink2); }
+
 .wrow { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
 .wrow .ghostbtn { margin-top: 0; }
 .ghostbtn--game { display: flex; align-items: center; gap: 8px; color: var(--ink); border-color: var(--sun); }
@@ -508,6 +533,9 @@ input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--river); }
 @media (max-width: 430px) {
   .screen { padding-inline: 14px; }
   .lvtabs { grid-template-columns: 1fr; }
+  .today { padding: 12px 14px 16px; }
+  .today-letter { font-size: 40px; }
+  .wrow .ghostbtn { padding: 10px 16px; font-size: 13.5px; }
   .stop { width: 100%; }
   .kws { gap: 9px; }
   .kw { padding: 9px 7px; }

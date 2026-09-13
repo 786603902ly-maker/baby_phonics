@@ -19,6 +19,7 @@
     best: {},        // lessonId -> {correct, total}
     boxes: {},       // srs
     runs: [],        // one entry per finished lesson
+    played: {},      // 'YYYY-MM-DD' -> stops finished that day
     settings: { voice: '', rate: 0.85, cap: 15, sfx: true }
   };
 
@@ -112,6 +113,37 @@
   }
 
   /* ==================================================================
+     ONE LETTER A DAY
+     A gentle rhythm, not a rule: today's letter is simply the next one she
+     has not finished. Nothing is locked, nothing nags, and the week strip
+     just shows what happened.
+     ================================================================== */
+  function dayKey(d) {
+    d = d || new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+  function playedToday() { return (S.played[dayKey()] || 0) > 0; }
+
+  function todaysLetter() {
+    for (var i = 0; i < C.LETTERS.length; i++) {
+      if (!done('a-' + C.LETTERS[i])) return C.LETTERS[i];
+    }
+    return null;
+  }
+
+  /* last seven days, oldest first */
+  function weekStrip() {
+    var out = [];
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date();
+      d.setDate(d.getDate() - i);
+      out.push({ key: dayKey(d), on: (S.played[dayKey(d)] || 0) > 0, today: i === 0,
+        label: ['S', 'M', 'T', 'W', 'T', 'F', 'S'][d.getDay()] });
+    }
+    return out;
+  }
+
+  /* ==================================================================
      SOUND UNLOCK
      ================================================================== */
   var soundOn = false;
@@ -124,18 +156,41 @@
      ================================================================== */
   function screenWelcome() {
     var ts = totalStars();
+    var tl = todaysLetter();
+    var L = tl ? C.ALPHABET[tl] : null;
+    var doneToday = playedToday();
+
+    var today = tl
+      ? '<button class="today' + (doneToday ? ' is-done' : '') + '" id="today">' +
+          '<span class="today-eyebrow">' + (doneToday ? 'Tomorrow&rsquo;s letter &mdash; or carry on now' : 'Today&rsquo;s letter') + '</span>' +
+          '<span class="today-row">' +
+            '<span class="today-letter">' + esc(tl.toUpperCase()) + esc(tl) + '</span>' +
+            '<span class="today-pic">' + icon(word(L.words[0]).icon) + '</span>' +
+            '<span class="today-word">' + esc(word(L.words[0]).text) + '</span>' +
+          '</span>' +
+        '</button>'
+      : '<div class="today is-done"><span class="today-eyebrow">All 26 letters done</span>' +
+        '<span class="today-row"><span class="today-letter">A&ndash;Z</span></span></div>';
+
+    var week = '<div class="week">' + weekStrip().map(function (d) {
+      return '<span class="wk' + (d.on ? ' on' : '') + (d.today ? ' now' : '') + '">' +
+        '<i>' + (d.on ? icon('starOn') : '') + '</i><b>' + d.label + '</b></span>';
+    }).join('') + '</div>';
+
     nav(
       '<div class="screen wrap-welcome">' +
         '<div class="welcome">' +
           '<div class="wphoto" id="wphoto">' + icon('otter') + '</div>' +
           '<p class="weyebrow">Phonics with Pip</p>' +
           '<h1 class="wname">Hi, ' + esc(S.name) + '!</h1>' +
-          '<div class="wstars">' + icon('starOn', 'wstar') + '<b>' + ts + '</b><small>stars</small></div>' +
-          '<button class="bigbtn" id="go">' + icon('play', 'bigbtn-glyph') + '<span>Play</span></button>' +
+          '<div class="wstars">' + icon('starOn', 'wstar') + '<b>' + ts + '</b><small>star' + (ts === 1 ? '' : 's') + '</small></div>' +
+          today +
           '<div class="wrow">' +
+            '<button class="ghostbtn" id="go">All the stops</button>' +
             '<button class="ghostbtn ghostbtn--game" id="toGame">' + icon('trophy', 'gb-glyph') + 'Mix it up</button>' +
             '<button class="ghostbtn" id="toBook">My Book</button>' +
           '</div>' +
+          week +
         '</div>' +
         '<button class="gear" id="gear" aria-label="Grown-ups: press and hold">' + icon('gear') + '</button>' +
       '</div>'
@@ -146,11 +201,14 @@
       var el = document.getElementById('wphoto');
       if (el) { el.innerHTML = ''; el.style.backgroundImage = 'url(' + url + ')'; el.classList.add('has-photo'); }
     });
-    document.getElementById('go').onclick = function () {
+    var tb = document.getElementById('today');
+    if (tb) tb.onclick = function () {
       ensureSound();
-      A.say('Hello ' + S.name + '! Let us play.');
-      screenMap();
+      A.say(doneToday ? 'Let us do ' + tl.toUpperCase() + '.'
+                      : 'Hello ' + S.name + '! Today we learn ' + tl.toUpperCase() + '.');
+      startLesson(C.lesson('a-' + tl));
     };
+    document.getElementById('go').onclick = function () { ensureSound(); screenMap(); };
     document.getElementById('toBook').onclick = function () { ensureSound(); screenBook(); };
     document.getElementById('toGame').onclick = startGame;
   }
@@ -702,6 +760,7 @@
     S.runs.push({ d: Date.now(), lesson: l.id, correct: run.correct, tries: run.tries, stars: n,
       mins: Math.round((Date.now() - run.t0) / 6000) / 10 });
     if (S.runs.length > 80) S.runs = S.runs.slice(-80);
+    S.played[dayKey()] = (S.played[dayKey()] || 0) + 1;
     save();
 
     if (S.settings.sfx) A.sfx('reward');
