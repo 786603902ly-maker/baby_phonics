@@ -1,5 +1,27 @@
 # Phonics Tool — Product & Curriculum Plan (Age 4 → 7, Singapore)
 
+> ### Revision 4 — Levels 3 and 4 built
+>
+> **Reading Words** (14 stops) and **Reading Books** (7 stops) are now real,
+> which takes the app from "knows her letters" to "reads a short story".
+> Five new game types: sound-it-out with one tile per phoneme, build-the-word
+> by tapping (never dragging — a four-year-old cannot drag reliably),
+> written-word-to-picture, picture-to-written-word, and magic e. Level 4 adds
+> sentence building, sentence-to-picture, and three five-page decodable
+> stories with comprehension questions.
+>
+> Digraph clips (sh, ch, th, ng, ck) were added to the generated phoneme
+> bundle, so blending `fish` plays three sounds and not four.
+>
+> Levels 5–7 are on the map as locked cards with their scheme stated, so the
+> road to age seven is visible without being built.
+>
+> **Nothing is sequential.** Every stop on every built level is tappable at any
+> time, and a Games hub offers ten of the games on their own. The daily letter
+> is a suggestion, not a gate.
+>
+> ---
+>
 > ### Revision 3 — after the first week of real use
 >
 > **The letter sounds are no longer spoken by the browser.** Speech synthesis

@@ -16,8 +16,36 @@ cannot read yet.
 |---|---|---|---|
 | 1 · Look and Listen | from 3 | 8 | Vocabulary only. Hear a word, find the picture. Memory pairs. No letters. |
 | 2 · The Alphabet | from 4 | 26 + 4 reviews | A–Z. Each stop is her OPW card, made interactive. |
-| 3 · Reading Words | from 5 | — | Blending. Visible on the map, not built. |
-| 4 · Reading Books | from 6 | — | Sentences and stories. Visible, not built. |
+| 3 · Reading Words | from 5 | 14 | Blending. One short vowel at a time, then ck / sh / ch / th / ng, then blends, then magic e. |
+| 4 · Reading Books | from 6 | 7 | Decodable sentences to build, and three short stories with comprehension questions. |
+| 5 · Same Sound, New Look | from 6 | — | ai / ay / a-e, ee / ea, oa / ow. Scheme only. |
+| 6 · Longer Words | from 6 | — | Two syllables, -ing / -ed / -er, soft c and g. Scheme only. |
+| 7 · Real Books | from 7 | — | Whole books, and spelling from dictation. Scheme only. |
+
+### Level 3 games
+
+- **Sound It Out** — one tile per sound; tap each, then push them together and
+  the word blends and reveals its picture. `ck`, `sh`, `ch`, `th` and `ng` are
+  one tile each, because they are one sound.
+- **Build the Word** — a picture, empty slots and letter tiles. Tap to place;
+  no dragging, which a four-year-old's finger cannot do reliably.
+- **Read the Word** — a written word, three pictures. This is real reading.
+- **Which Word Says It** — the same in reverse.
+- **Magic e** — the quiet e at the end, shown in red.
+
+### Level 4 games
+
+- **Put the Words in Order** — word cards to build a sentence, which is then
+  read back.
+- **Read and Choose** — a sentence, three pictures.
+- **Stories** — five pages each, one sentence and one picture per page, every
+  word tappable to hear it, then two comprehension questions.
+
+### Free play
+
+**Games** on the welcome screen opens a hub of ten games, each playable on its
+own with whatever content she has met. Nothing in the app is locked or has to
+be done in order — the daily letter is a suggestion, not a gate.
 
 ### How each letter sounds
 

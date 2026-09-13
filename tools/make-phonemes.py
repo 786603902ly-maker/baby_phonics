@@ -25,7 +25,11 @@ PLAIN = {
     'w': 'w',   'x': 'ks',  'y': 'j',   'z': 'z:',
 }
 # stop + schwa, cut at vowel onset
-STOPS = {'b': 'b@', 'd': 'd@', 'g': 'g@', 'j': 'dZ@'}
+STOPS = {'b': 'b@', 'd': 'd@', 'g': 'g@', 'j': 'dZ@', 'ck': 'k@'}
+
+# Two letters, one sound. Needed from Level 3, where words are blended.
+PLAIN.update({'sh': 'S:', 'th': 'T:', 'ng': 'N:', 'wh': 'w'})
+STOPS.update({'ch': 'tS@'})
 
 RATE = 16000
 VOWEL_ONSET = 15000      # amplitude that means the schwa has started
@@ -128,7 +132,7 @@ def build():
         else:
             data, sw = synth(PLAIN[letter])
             data = trim(data, sw)
-        if letter in 'mnlr':
+        if letter in ('m', 'n', 'l', 'r', 'ng'):
             data = lengthen(data, sw)
         peak = audioop.max(data, sw)
         if peak:
@@ -150,6 +154,6 @@ if __name__ == '__main__':
                 '   Embedded as data: URIs so the page needs no network. */\n')
         f.write('window.PHONEME_AUDIO = {\n')
         for k in sorted(clips):
-            f.write("  %s: 'data:audio/wav;base64,%s',\n" % (k, base64.b64encode(clips[k]).decode()))
+            f.write("  '%s': 'data:audio/wav;base64,%s',\n" % (k, base64.b64encode(clips[k]).decode()))
         f.write('};\n')
     print('wrote', out, os.path.getsize(out), 'bytes')

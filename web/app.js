@@ -14,7 +14,7 @@
      ================================================================== */
   var DEFAULTS = {
     v: 2,
-    name: '',        // set on the device, never in the source
+    name: 'Rourou',
     stars: {},       // lessonId -> 1..3
     best: {},        // lessonId -> {correct, total}
     boxes: {},       // srs
@@ -187,7 +187,7 @@
           today +
           '<div class="wrow">' +
             '<button class="ghostbtn" id="go">All the stops</button>' +
-            '<button class="ghostbtn ghostbtn--game" id="toGame">' + icon('trophy', 'gb-glyph') + 'Mix it up</button>' +
+            '<button class="ghostbtn ghostbtn--game" id="toGame">' + icon('trophy', 'gb-glyph') + 'Games</button>' +
             '<button class="ghostbtn" id="toBook">My Book</button>' +
           '</div>' +
           week +
@@ -210,7 +210,7 @@
     };
     document.getElementById('go').onclick = function () { ensureSound(); screenMap(); };
     document.getElementById('toBook').onclick = function () { ensureSound(); screenBook(); };
-    document.getElementById('toGame').onclick = startGame;
+    document.getElementById('toGame').onclick = screenGamesEntry;
   }
 
   function wireGear() {
@@ -254,11 +254,11 @@
     } else {
       var ls = C.levelLessons(openLevel);
       var nxt = nextLesson(openLevel);
-      var gameCard = openLevel !== 2 ? '' :
+      var gameCard = 
         '<button class="gamecard" id="gamecard">' +
           '<span class="gamecard-icon">' + icon('trophy') + '</span>' +
-          '<span class="gamecard-text"><b>Mix it up</b><small>' +
-            learnedLetters().length + ' letters, all jumbled together</small></span>' +
+          '<span class="gamecard-text"><b>Games</b><small>' +
+            'Mix it up, or pick one game on its own</small></span>' +
           '<span class="gamecard-stars">' + stars(starsFor('game')) + '</span>' +
         '</button>';
       body = gameCard + '<div class="path">' + ls.map(function (l, i) {
@@ -296,7 +296,7 @@
       b.onclick = function () { ensureSound(); startLesson(C.lesson(b.dataset.id)); };
     });
     var gc = document.getElementById('gamecard');
-    if (gc) gc.onclick = startGame;
+    if (gc) gc.onclick = screenGames;
 
     var next = document.querySelector('.stop.is-next');
     if (next) setTimeout(function () { next.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 80);
@@ -451,6 +451,109 @@
     return out;
   };
 
+  /* ------------------------------------------------------------------
+     LEVEL 3 · Reading Words
+     ------------------------------------------------------------------ */
+  function readable(list) {
+    return list.filter(function (k) { return word(k) && word(k).ph; });
+  }
+
+  GEN.soundOut = function (cfg) {
+    return sample(readable(cfg.words), cfg.rounds || 3).map(function (k) {
+      return { kind: 'soundout', track: 'S:blend', word: k,
+        text: 'Tap each sound, then push them together',
+        play: function () { return A.say('Tap each sound.'); } };
+    });
+  };
+
+  GEN.buildWord = function (cfg) {
+    return sample(readable(cfg.words), cfg.rounds || 3).map(function (k) {
+      var ph = word(k).ph;
+      var spare = sample(C.LETTERS.filter(function (x) { return ph.indexOf(x) < 0; }), 2);
+      return { kind: 'build', track: 'S:blend', word: k, tiles: shuffle(ph.concat(spare)),
+        text: 'Build the word',
+        play: (function (t) { return function () { return A.sayWord(t); }; })(word(k).text) };
+    });
+  };
+
+  /* written word -> which picture is it */
+  GEN.readPick = function (cfg) {
+    return sample(cfg.words, cfg.rounds || 4).map(function (k) {
+      var others = sample(cfg.words.filter(function (x) { return x !== k; }), 2);
+      return { kind: 'pick', track: 'S:read', bigword: word(k).text,
+        text: 'Read it. Which one is it?',
+        play: function () { return A.say('Read the word. Which one is it?'); },
+        options: shuffle([k].concat(others)).map(function (x) {
+          return { kind: 'pic', word: x, correct: x === k };
+        }) };
+    });
+  };
+
+  /* picture -> which written word says it */
+  GEN.wordPick = function (cfg) {
+    return sample(cfg.words, cfg.rounds || 3).map(function (k) {
+      var others = sample(cfg.words.filter(function (x) { return x !== k; }), 2);
+      return { kind: 'pick', track: 'S:read', anchor: k,
+        text: 'Which word says it?',
+        play: (function (t) { return function () { return A.sayWord(t); }; })(word(k).text),
+        options: shuffle([k].concat(others)).map(function (x) {
+          return { kind: 'word', word: x, correct: x === k };
+        }) };
+    });
+  };
+
+  GEN.magicE = function (cfg) {
+    return sample(cfg.words, cfg.rounds || 4).map(function (k) {
+      return { kind: 'magice', track: 'S:read', word: k,
+        text: 'The <b class="gl">e</b> at the end is quiet &mdash; it makes the vowel say its name',
+        play: (function (t) { return function () { return A.sayWord(t); }; })(word(k).text) };
+    });
+  };
+
+  GEN.meetTeam = function (cfg) {
+    return [{ kind: 'meet', letter: cfg.team, track: 'L:' + cfg.team,
+      text: 'Two letters, one sound' }];
+  };
+
+  /* ------------------------------------------------------------------
+     LEVEL 4 · Reading Books
+     ------------------------------------------------------------------ */
+  GEN.buildSentence = function (cfg) {
+    return C.SENTENCES.slice(cfg.from, cfg.from + (cfg.rounds || 4)).map(function (sn) {
+      return { kind: 'sentence', track: 'S:sentence', sn: sn,
+        text: 'Put the words in order',
+        play: function () { return A.say(sn.text); } };
+    });
+  };
+
+  GEN.sentencePick = function (cfg) {
+    var pool = C.SENTENCES.slice(cfg.from, cfg.from + 6);
+    return sample(pool, Math.min(cfg.rounds || 6, pool.length)).map(function (sn) {
+      return { kind: 'pick', track: 'S:read', text: esc(sn.text),
+        play: function () { return A.say(sn.text); },
+        options: shuffle([sn.pic].concat(sn.not)).map(function (x) {
+          return { kind: 'pic', word: x, correct: x === sn.pic };
+        }) };
+    });
+  };
+
+  GEN.story = function (cfg) {
+    var st = C.story(cfg.story);
+    var out = st.pages.map(function (pg, i) {
+      return { kind: 'page', track: 'S:read', page: pg, n: i + 1, of: st.pages.length,
+        title: st.title, text: 'Tap any word to hear it',
+        play: (function (t) { return function () { return A.say(t); }; })(pg.text) };
+    });
+    st.questions.forEach(function (q) {
+      out.push({ kind: 'pick', track: 'S:read', text: esc(q.q),
+        play: (function (t) { return function () { return A.say(t); }; })(q.q),
+        options: shuffle([q.pic].concat(q.not)).map(function (x) {
+          return { kind: 'pic', word: x, correct: x === q.pic };
+        }) });
+    });
+    return out;
+  };
+
   /* ==================================================================
      GAME MODE — every letter she has met, all mixed together
      ================================================================== */
@@ -458,6 +561,7 @@
     var l = C.LETTERS.filter(function (x) { return done('a-' + x); });
     return l.length >= 3 ? l : C.LETTERS.slice(0, 6);
   }
+  function screenGamesEntry() { ensureSound(); screenGames(); }
 
   function gameLesson() {
     var set = learnedLetters();
@@ -477,8 +581,86 @@
 
   function startGame() {
     ensureSound();
-    var g = gameLesson();
-    startLesson(g, true);
+    startLesson(gameLesson(), true);
+  }
+
+  /* Every game she has unlocked, playable on its own. Nothing here is
+     sequential: pick a game, get eight quick rounds of it. */
+  var FREEGAMES = [
+    { id: 'picture', name: 'Find the Picture', icon: 'cat', level: 1,
+      make: function () {
+        var pool = [];
+        C.THEMES.forEach(function (t) { pool = pool.concat(t.words); });
+        return [{ type: 'picturePick', words: pool, rounds: 8 }];
+      } },
+    { id: 'memory', name: 'Memory Pairs', icon: 'starOn', level: 1,
+      make: function () {
+        var pool = [];
+        C.THEMES.forEach(function (t) { pool = pool.concat(t.words); });
+        return [{ type: 'memoryMatch', words: pool, pairs: 3 },
+                { type: 'memoryMatch', words: pool, pairs: 4 }];
+      } },
+    { id: 'letter', name: 'Find the Letter', icon: 'quiz', level: 2,
+      make: function () { return [{ type: 'findLetter', letters: learnedLetters(), rounds: 8 }]; } },
+    { id: 'starts', name: 'What Starts With…', icon: 'key', level: 2,
+      make: function () { return [{ type: 'startsWith', letters: learnedLetters(), rounds: 8 }]; } },
+    { id: 'missing', name: 'Missing Letter', icon: 'pen', level: 2,
+      make: function () { return [{ type: 'missingLetter', letters: learnedLetters(), rounds: 8 }]; } },
+    { id: 'soundout', name: 'Sound It Out', icon: 'drum', level: 3,
+      make: function () { return [{ type: 'soundOut', words: C.readable(), rounds: 6 }]; } },
+    { id: 'build', name: 'Build the Word', icon: 'robot', level: 3,
+      make: function () { return [{ type: 'buildWord', words: C.readable(), rounds: 6 }]; } },
+    { id: 'read', name: 'Read the Word', icon: 'quilt', level: 3,
+      make: function () { return [{ type: 'readPick', words: C.readable(), rounds: 5 },
+                                  { type: 'wordPick', words: C.readable(), rounds: 4 }]; } },
+    { id: 'sentence', name: 'Make a Sentence', icon: 'envelope', level: 4,
+      make: function () { return [{ type: 'buildSentence', from: 0, rounds: 4 }]; } },
+    { id: 'choose', name: 'Read and Choose', icon: 'book', level: 4,
+      make: function () { return [{ type: 'sentencePick', from: 0, rounds: 6 }]; } }
+  ];
+
+  function startFreeGame(g) {
+    ensureSound();
+    startLesson({
+      id: 'free-' + g.id, level: g.level, game: true, free: true,
+      name: g.name, shortName: g.name, icon: g.icon,
+      activities: g.make()
+    }, true);
+  }
+
+  function screenGames() {
+    nav(
+      '<div class="screen screen-games">' +
+        '<header class="mhead">' +
+          '<button class="iconbtn" id="gback" aria-label="Back">' + icon('back') + '</button>' +
+          '<h2 class="mtitle">Games</h2>' +
+          '<span class="iconbtn iconbtn--ghost"></span>' +
+        '</header>' +
+        '<p class="lvblurb">Pick any game. Nothing has to be done in order.</p>' +
+        '<button class="gamecard" id="mixcard">' +
+          '<span class="gamecard-icon">' + icon('trophy') + '</span>' +
+          '<span class="gamecard-text"><b>Mix it up</b><small>' +
+            learnedLetters().length + ' letters, all jumbled together</small></span>' +
+          '<span class="gamecard-stars">' + stars(starsFor('game')) + '</span>' +
+        '</button>' +
+        '<div class="gtiles">' + FREEGAMES.map(function (g) {
+          var lv = C.LEVELS.filter(function (x) { return x.id === g.level; })[0];
+          return '<button class="gtile" data-g="' + g.id + '">' +
+            '<span class="gtile-pic">' + icon(g.icon) + '</span>' +
+            '<b>' + esc(g.name) + '</b>' +
+            '<small>Level ' + g.level + ' &middot; ' + esc(lv.name) + '</small>' +
+            '<span class="gtile-stars">' + stars(starsFor('free-' + g.id)) + '</span>' +
+            '</button>';
+        }).join('') + '</div>' +
+      '</div>'
+    );
+    document.getElementById('gback').onclick = screenWelcome;
+    document.getElementById('mixcard').onclick = startGame;
+    Array.prototype.forEach.call(document.querySelectorAll('.gtile'), function (b) {
+      b.onclick = function () {
+        startFreeGame(FREEGAMES.filter(function (g) { return g.id === b.dataset.g; })[0]);
+      };
+    });
   }
 
   /* ==================================================================
@@ -504,6 +686,7 @@
   }
 
   function shell(inner, opts) {
+    if (!run) return;
     opts = opts || {};
     var r = run.rounds[run.i];
     var pct = Math.round((run.i / run.rounds.length) * 100);
@@ -525,7 +708,9 @@
   }
 
   function advance(ms) {
+    if (!run) return;
     setTimeout(function () {
+      if (!run) return;
       run.i++;
       if (run.i >= run.rounds.length) finishLesson();
       else renderRound();
@@ -533,12 +718,14 @@
   }
 
   function right(track) {
+    if (!run) return;
     run.correct++; run.tries++;
     if (track) SRS.hit(track);
     if (S.settings.sfx) A.sfx('correct');
     A.say(pick(['Yes!', 'Well done!', 'You got it!', 'Clever girl!', 'That is right!']));
   }
   function wrong(track) {
+    if (!run) return;
     run.tries++;
     if (track) SRS.miss(track);
     if (S.settings.sfx) A.sfx('retry');
@@ -546,19 +733,195 @@
   }
 
   function renderRound() {
+    if (!run) return;
     var r = run.rounds[run.i];
-    ({ pick: rPick, memory: rMemory, meet: rMeet, missing: rMissing })[r.kind](r);
+    ({ pick: rPick, memory: rMemory, meet: rMeet, missing: rMissing,
+       soundout: rSoundOut, build: rBuild, magice: rMagicE,
+       sentence: rSentence, page: rPage })[r.kind](r);
+  }
+
+  /* ---- tap each sound, then push them together ---- */
+  function rSoundOut(r) {
+    var wd = word(r.word);
+    shell(
+      '<div class="blend">' +
+        '<div class="btiles">' + wd.ph.map(function (t, i) {
+          return '<button class="btile" data-i="' + i + '" data-p="' + t + '">' + esc(t) + '</button>';
+        }).join('') + '</div>' +
+        '<button class="pushbtn" id="push" disabled>push them together' +
+          '<svg viewBox="0 0 60 24" aria-hidden="true"><path d="M4 12h44M40 5l9 7-9 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '</button>' +
+        '<div class="reveal" id="reveal" hidden>' + picture(r.word) + '</div>' +
+      '</div>'
+    );
+    var heard = {}, push = document.getElementById('push');
+    var tiles = document.querySelectorAll('.btile');
+    Array.prototype.forEach.call(tiles, function (el) {
+      el.onclick = function () {
+        el.classList.remove('lit'); void el.offsetWidth; el.classList.add('lit');
+        A.sayPhoneme(el.dataset.p);
+        SRS.hit('L:' + el.dataset.p);
+        heard[el.dataset.i] = true;
+        if (Object.keys(heard).length === wd.ph.length) push.disabled = false;
+      };
+    });
+    push.onclick = function () {
+      push.disabled = true;
+      document.querySelector('.btiles').classList.add('squeeze');
+      var seq = Promise.resolve();
+      wd.ph.forEach(function (ph, i) {
+        seq = seq.then(function () {
+          Array.prototype.forEach.call(tiles, function (x) { x.classList.remove('lit'); });
+          if (tiles[i]) tiles[i].classList.add('lit');
+          return A.sayPhoneme(ph);
+        }).then(function () { return A.wait(90); });
+      });
+      seq.then(function () {
+        Array.prototype.forEach.call(tiles, function (x) { x.classList.add('lit'); });
+        return A.sayWord(wd.text);
+      }).then(function () {
+        var rev = document.getElementById('reveal');
+        if (!rev) return;
+        rev.hidden = false;
+        right(r.track);
+        advance(1500);
+      });
+    };
+  }
+
+  /* ---- build the word from letter tiles (tap, no dragging) ---- */
+  function rBuild(r) {
+    var wd = word(r.word);
+    shell(
+      '<div class="builder">' +
+        '<div class="builder-pic">' + picture(r.word, true) + '</div>' +
+        '<div class="slots">' + wd.ph.map(function (_, i) {
+          return '<div class="slot" data-i="' + i + '"></div>';
+        }).join('') + '</div>' +
+        '<div class="ltiles">' + r.tiles.map(function (t, i) {
+          return '<button class="ltile" data-p="' + t + '" data-i="' + i + '">' + esc(t) + '</button>';
+        }).join('') + '</div>' +
+      '</div>'
+    );
+    var next = 0;
+    Array.prototype.forEach.call(document.querySelectorAll('.ltile'), function (el) {
+      el.onclick = function () {
+        if (el.dataset.used === '1') return;
+        A.sayPhoneme(el.dataset.p);
+        if (el.dataset.p === wd.ph[next]) {
+          var slot = document.querySelector('.slot[data-i="' + next + '"]');
+          slot.textContent = el.dataset.p;
+          slot.classList.add('filled');
+          el.dataset.used = '1';
+          el.classList.add('used');
+          if (S.settings.sfx) A.sfx('pop');
+          next++;
+          if (next === wd.ph.length) {
+            A.sayWord(wd.text).then(function () { right(r.track); advance(700); });
+          }
+        } else {
+          el.classList.add('is-wrong');
+          setTimeout(function () { el.classList.remove('is-wrong'); }, 650);
+          wrong(r.track);
+        }
+      };
+    });
+  }
+
+  /* ---- magic e ---- */
+  function rMagicE(r) {
+    var t = word(r.word).text;
+    shell(
+      '<div class="magice">' +
+        '<div class="magice-pic">' + picture(r.word, true) + '</div>' +
+        '<button class="magice-word" id="mw">' +
+          esc(t.slice(0, -1)) + '<b>' + esc(t.slice(-1)) + '</b>' +
+        '</button>' +
+        '<button class="nextbtn ready" id="menext">' + icon('play') + '</button>' +
+      '</div>'
+    );
+    document.getElementById('mw').onclick = function () { A.sayWord(t); };
+    document.getElementById('menext').onclick = function () {
+      SRS.hit(r.track); run.correct++; run.tries++; advance(0);
+    };
+  }
+
+  /* ---- put the words in order ---- */
+  function rSentence(r) {
+    var words = r.sn.text.replace(/[.!?]$/, '').split(' ');
+    var end = r.sn.text.slice(-1);
+    shell(
+      '<div class="sent">' +
+        '<div class="sent-pic">' + picture(r.sn.pic, true) + '</div>' +
+        '<div class="sent-line" id="line"></div>' +
+        '<div class="sent-bank" id="bank">' + shuffle(words.map(function (w2, i) { return { w: w2, i: i }; }))
+          .map(function (o) { return '<button class="wcard" data-w="' + esc(o.w) + '">' + esc(o.w) + '</button>'; })
+          .join('') + '</div>' +
+      '</div>'
+    );
+    var next = 0, line = document.getElementById('line');
+    Array.prototype.forEach.call(document.querySelectorAll('.wcard'), function (el) {
+      el.onclick = function () {
+        if (el.dataset.used === '1') return;
+        if (el.dataset.w === words[next]) {
+          el.dataset.used = '1';
+          el.classList.add('used');
+          var span = document.createElement('span');
+          span.className = 'placed-word';
+          span.textContent = words[next] + (next === words.length - 1 ? end : '');
+          line.appendChild(span);
+          A.sayWord(words[next]);
+          if (S.settings.sfx) A.sfx('pop');
+          next++;
+          if (next === words.length) {
+            A.say(r.sn.text).then(function () { right(r.track); advance(900); });
+          }
+        } else {
+          el.classList.add('is-wrong');
+          setTimeout(function () { el.classList.remove('is-wrong'); }, 650);
+          wrong(r.track);
+        }
+      };
+    });
+  }
+
+  /* ---- one page of a story ---- */
+  function rPage(r) {
+    shell(
+      '<div class="story">' +
+        '<p class="story-title">' + esc(r.title) + ' &middot; ' + r.n + ' of ' + r.of + '</p>' +
+        '<div class="story-pic">' + picture(r.page.pic, true) + '</div>' +
+        '<p class="story-text">' + r.page.text.split(' ').map(function (w2) {
+          return '<button class="sword">' + esc(w2) + '</button>';
+        }).join(' ') + '</p>' +
+        '<button class="nextbtn ready" id="pnext">' + icon('play') + '</button>' +
+      '</div>'
+    );
+    Array.prototype.forEach.call(document.querySelectorAll('.sword'), function (el) {
+      el.onclick = function () {
+        el.classList.remove('lit'); void el.offsetWidth; el.classList.add('lit');
+        A.sayWord(el.textContent.replace(/[^A-Za-z']/g, ''));
+      };
+    });
+    document.getElementById('pnext').onclick = function () {
+      SRS.hit(r.track); run.correct++; run.tries++; advance(0);
+    };
   }
 
   /* ---- three-choice picker (pictures OR letters) ---- */
   function rPick(r) {
     var opts = r.options.map(function (o, i) {
-      var body = o.kind === 'pic'
-        ? picture(o.word)
+      var body = o.kind === 'pic' ? picture(o.word)
+        : o.kind === 'word' ? '<span class="glyph glyph--word">' + esc(word(o.word).text) + '</span>'
         : '<span class="glyph">' + esc(glyph(o.letter)) + '</span>';
       return '<button class="opt' + (o.kind === 'pic' ? ' opt--pic' : '') + '" data-i="' + i + '">' + body + '</button>';
     }).join('');
-    shell('<div class="opts">' + opts + '</div>');
+    var anchor = r.anchor
+      ? '<div class="anchor">' + (PHOTOS[r.anchor]
+          ? '<span class="pic pic--photo" style="background-image:url(' + PHOTOS[r.anchor] + ')"></span>'
+          : icon(word(r.anchor).icon)) + '</div>'
+      : (r.bigword ? '<div class="bigword">' + esc(r.bigword) + '</div>' : '');
+    shell(anchor + '<div class="opts">' + opts + '</div>');
 
     Array.prototype.forEach.call(document.querySelectorAll('.opt'), function (b) {
       b.onclick = function () {
@@ -568,7 +931,7 @@
           Array.prototype.forEach.call(document.querySelectorAll('.opt'), function (x) { x.dataset.spent = '1'; });
           b.classList.add('is-right');
           right(r.track);
-          if (o.kind === 'pic') A.sayWord(word(o.word).text);
+          if (o.kind === 'pic' || o.kind === 'word') A.sayWord(word(o.word).text);
           advance();
         } else {
           b.dataset.spent = '1';
@@ -582,7 +945,7 @@
 
   /* ---- the letter card: big Aa, how to say it, four keyword pictures ---- */
   function rMeet(r) {
-    var L = C.ALPHABET[r.letter];
+    var L = C.sound(r.letter);
     var pics = L.words.map(function (k, i) {
       var t = word(k).text;
       return '<button class="kw" data-k="' + k + '" data-i="' + i + '">' +
@@ -597,7 +960,7 @@
       '<div class="card">' +
         '<div class="card-head">' +
           '<button class="card-top" id="cardtop">' +
-            '<span class="card-letter">' + esc(r.letter.toUpperCase()) + esc(r.letter) + '</span>' +
+            '<span class="card-letter">' + esc(L.team ? r.letter : r.letter.toUpperCase() + r.letter) + '</span>' +
             '<span class="card-ipa">' + esc(L.ipa) + '</span>' +
             (L.friend ? '<span class="card-friend">' + esc(L.friend) + '</span>' : '') +
           '</button>' +
@@ -614,6 +977,7 @@
     );
 
     function sayLetter() {
+      if (L.team) return A.sayPhoneme(r.letter).then(function () { return A.sayPhoneme(r.letter); });
       return A.sayLetterName(r.letter)
         .then(function () { return A.sayPhoneme(r.letter); })
         .then(function () { return A.sayPhoneme(r.letter); });
@@ -747,6 +1111,7 @@
 
   /* ---- end of lesson ---- */
   function finishLesson() {
+    if (!run) return;
     A.stop();
     var l = run.lesson;
     var acc = run.tries ? run.correct / run.tries : 0;
@@ -791,7 +1156,10 @@
     var dn = document.getElementById('dnext');
     if (dn) dn.onclick = function () { startLesson(next); };
     var da = document.getElementById('dagain');
-    if (da) da.onclick = startGame;
+    if (da) da.onclick = function () {
+      if (l.free) startFreeGame(FREEGAMES.filter(function (g) { return 'free-' + g.id === l.id; })[0]);
+      else startGame();
+    };
     run = null;
   }
 
@@ -872,7 +1240,9 @@
         (recent.length
           ? '<table class="tbl"><thead><tr><th>When</th><th>Stop</th><th class="num">Mins</th><th class="num">Score</th><th class="num">Stars</th></tr></thead><tbody>' +
             recent.map(function (r) {
-              var l = C.lesson(r.lesson) || (r.lesson === 'game' ? { shortName: 'Mix it up' } : null);
+              var free = FREEGAMES.filter(function (g) { return 'free-' + g.id === r.lesson; })[0];
+              var l = C.lesson(r.lesson) || free ||
+                (r.lesson === 'game' ? { shortName: 'Mix it up' } : null);
               return '<tr><td>' + new Date(r.d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + '</td>' +
                 '<td>' + esc(l ? (l.shortName || l.name) : r.lesson) + '</td>' +
                 '<td class="num">' + (r.mins || 0) + '</td>' +

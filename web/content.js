@@ -15,6 +15,7 @@
      written; icon = the drawing; sub = substituted for the book's word.
      ------------------------------------------------------------------ */
   function w(text, icon, sub) { return { text: text, icon: icon, sub: !!sub }; }
+  function r(text, icon, ph) { return { text: text, icon: icon, sub: false, ph: ph }; }
 
   var WORDS = {
     apple: w('apple', 'apple'), ax: w('ax', 'ax'), ant: w('ant', 'ant'), alligator: w('alligator', 'alligator'),
@@ -43,6 +44,35 @@
     box: w('box', 'box'), fox: w('fox', 'fox'), six: w('six', 'six'),
     yoyo: w('yo-yo', 'yoyo'), yak: w('yak', 'yak'), yogurt: w('yogurt', 'yogurt'), yacht: w('yacht', 'yacht'),
     zebra: w('zebra', 'zebra'), zipper: w('zipper', 'zip'), zero: w('zero', 'zero'), zoo: w('zoo', 'zoo'),
+
+    /* ---- Level 3: words she blends and reads for herself.
+       `ph` is the sound sequence, so 'sh' and 'ck' count as one sound. ---- */
+    pan: r('pan', 'pan', ['p', 'a', 'n']), tap: r('tap', 'tap', ['t', 'a', 'p']),
+    pin: r('pin', 'pin', ['p', 'i', 'n']), tin: r('tin', 'tin', ['t', 'i', 'n']),
+    wig: r('wig', 'wig', ['w', 'i', 'g']),
+    mat: r('mat', 'mat', ['m', 'a', 't']), rat: r('rat', 'rat', ['r', 'a', 't']),
+    bat: r('bat', 'bat', ['b', 'a', 't']), cap: r('cap', 'cap', ['c', 'a', 'p']),
+    top: r('top', 'top', ['t', 'o', 'p']), mop: r('mop', 'mop', ['m', 'o', 'p']),
+    cot: r('cot', 'cot', ['c', 'o', 't']), log: r('log', 'log', ['l', 'o', 'g']),
+    leg: r('leg', 'leg', ['l', 'e', 'g']), bun: r('bun', 'bun', ['b', 'u', 'n']),
+    nut: r('nut', 'nut', ['n', 'u', 't']), hut: r('hut', 'hut', ['h', 'u', 't']),
+    cup: r('cup', 'cup', ['c', 'u', 'p']), jug: r('jug', 'jug', ['j', 'u', 'g']),
+    sock: r('sock', 'sock', ['s', 'o', 'ck']), rock: r('rock', 'rock', ['r', 'o', 'ck']),
+    lock: r('lock', 'lock', ['l', 'o', 'ck']),
+    mud: r('mud', 'mud', ['m', 'u', 'd']),
+    thumb: r('thumb', 'thumb', ['th', 'u', 'm']),
+    three: r('three', 'three', null),
+    chair: r('chair', 'chair', ['ch', 'air']), cheese: r('cheese', 'cheese', null),
+    shell: r('shell', 'shell', ['sh', 'e', 'll']), teeth: r('teeth', 'teeth', null),
+    cake: r('cake', 'cake', null), bike: r('bike', 'bike', null),
+    bone: r('bone', 'bone', null), gate: r('gate', 'gate', null),
+    five: r('five', 'five', null),
+    frog: r('frog', 'frog', ['f', 'r', 'o', 'g']),
+    crab: r('crab', 'crab', ['c', 'r', 'a', 'b']),
+    clock: r('clock', 'clock', ['c', 'l', 'o', 'ck']),
+    flag: r('flag', 'flag', ['f', 'l', 'a', 'g']),
+    drum: r('drum', 'drum', ['d', 'r', 'u', 'm']),
+    hand: r('hand', 'hand', ['h', 'a', 'n', 'd']),
 
     /* extra pictures used by the Look and Listen level */
     bus: w('bus', 'bus'), train: w('train', 'train'), star: w('star', 'star'), tree: w('tree', 'tree'),
@@ -157,11 +187,67 @@
       words: ['zebra', 'zipper', 'zero', 'zoo'] })
   };
 
+  /* Words already in the picture set that she can now sound out. Keeping the
+     breakdown here rather than deriving it from spelling avoids every English
+     exception: 'six' ends in one sound, 'sock' ends in one sound. */
+  var SOUNDS_OF = {
+    cat: ['c', 'a', 't'], hat: ['h', 'a', 't'], mat: ['m', 'a', 't'], rat: ['r', 'a', 't'],
+    bat: ['b', 'a', 't'], pan: ['p', 'a', 'n'], van: ['v', 'a', 'n'], fan: ['f', 'a', 'n'],
+    bag: ['b', 'a', 'g'], cap: ['c', 'a', 'p'], tap: ['t', 'a', 'p'], jam: ['j', 'a', 'm'],
+    pin: ['p', 'i', 'n'], tin: ['t', 'i', 'n'], pig: ['p', 'i', 'g'], wig: ['w', 'i', 'g'],
+    zipper: null, six: ['s', 'i', 'x'],
+    dog: ['d', 'o', 'g'], log: ['l', 'o', 'g'], mop: ['m', 'o', 'p'], top: ['t', 'o', 'p'],
+    pot: ['p', 'o', 't'], cot: ['c', 'o', 't'], box: ['b', 'o', 'x'], fox: ['f', 'o', 'x'],
+    ox: ['o', 'x'],
+    bed: ['b', 'e', 'd'], hen: ['h', 'e', 'n'], pen: ['p', 'e', 'n'], net: ['n', 'e', 't'],
+    jet: ['j', 'e', 't'], leg: ['l', 'e', 'g'], egg: ['e', 'g'],
+    mug: ['m', 'u', 'g'], jug: ['j', 'u', 'g'], sun: ['s', 'u', 'n'], bun: ['b', 'u', 'n'],
+    nut: ['n', 'u', 't'], hut: ['h', 'u', 't'], cup: ['c', 'u', 'p'], bus: ['b', 'u', 's'],
+    sock: ['s', 'o', 'ck'], rock: ['r', 'o', 'ck'], lock: ['l', 'o', 'ck'], duck: ['d', 'u', 'ck'],
+    ship: ['sh', 'i', 'p'], fish: ['f', 'i', 'sh'], chip: ['ch', 'i', 'p'],
+    ring: ['r', 'i', 'ng'], king: ['k', 'i', 'ng'],
+    nest: ['n', 'e', 's', 't'], tent: ['t', 'e', 'n', 't'], desk: ['d', 'e', 's', 'k'],
+    lamp: ['l', 'a', 'm', 'p'], milk: ['m', 'i', 'l', 'k'], web: ['w', 'e', 'b']
+  };
+  Object.keys(SOUNDS_OF).forEach(function (k) {
+    if (WORDS[k] && SOUNDS_OF[k]) WORDS[k].ph = SOUNDS_OF[k];
+  });
+
   var LETTERS = 'abcdefghijklmnopqrstuvwxyz'.split('');
 
   /* x is heard at the END of its words, never the start. Everything that
      depends on "starts with this sound" has to know that. */
   var END_SOUND = { x: true };
+
+  /* ------------------------------------------------------------------
+     TEAMS — two letters that make one sound. Same shape as a letter, so
+     the "meet it" card works for both.
+     ------------------------------------------------------------------ */
+  var TEAMS = {
+    ck: { ipa: '/k/', mouth: 'back', team: true,
+      tip: 'Back of the tongue lifts. Same sound as c and k.',
+      also: 'ck only ever comes at the END of a word, after a short vowel.',
+      words: ['sock', 'rock', 'lock', 'duck'] },
+    sh: { ipa: '/ʃ/', mouth: 'roundTight', team: true,
+      tip: 'Lips pushed forward, teeth close, one long hush.',
+      also: 'The quiet sound — sh!',
+      words: ['ship', 'fish', 'shop', 'shell'] },
+    ch: { ipa: '/tʃ/', mouth: 'roundTight', team: true,
+      tip: 'Tongue tip up, then let it burst out — like a little train.',
+      words: ['chip', 'chair', 'cheese', 'chin'] },
+    th: { ipa: '/θ/', mouth: 'tongueTip', team: true,
+      tip: 'Tongue tip peeps out between the teeth, then blow.',
+      also: 'In the, this and that it buzzes instead: /ð/.',
+      words: ['thumb', 'three', 'thin', 'thick'] },
+    ng: { ipa: '/ŋ/', mouth: 'back', team: true,
+      tip: 'Back of the tongue up and hum through your nose.',
+      also: 'ng comes at the END — ring, king, sing.',
+      words: ['ring', 'king', 'wing', 'song'] }
+  };
+  /* only the first entries have pictures; the rest are said, not shown */
+  Object.keys(TEAMS).forEach(function (t) {
+    TEAMS[t].words = TEAMS[t].words.filter(function (k) { return !!WORDS[k]; });
+  });
 
   /* ------------------------------------------------------------------
      LEVEL 1 · Look and Listen — picture vocabulary, no letters at all.
@@ -187,10 +273,97 @@
       blurb: 'Hear a word, find the picture. No letters yet.' },
     { id: 2, name: 'The Alphabet', tint: 'river', built: true, age: 'from 4',
       blurb: 'A to Z. What each letter says, and the words it lives in.' },
-    { id: 3, name: 'Reading Words', tint: 'otter', built: false, age: 'from 5',
+    { id: 3, name: 'Reading Words', tint: 'otter', built: true, age: 'from 5',
       blurb: 'Push the sounds together: c-a-t says cat.' },
-    { id: 4, name: 'Reading Books', tint: 'sun', built: false, age: 'from 6',
-      blurb: 'Whole sentences, then whole stories.' }
+    { id: 4, name: 'Reading Books', tint: 'sun', built: true, age: 'from 6',
+      blurb: 'Whole sentences, then whole stories.' },
+    { id: 5, name: 'Same Sound, New Look', tint: 'leaf', built: false, age: 'from 6',
+      blurb: 'ai, ay and a-e all say the same thing. So do ee and ea, oa and ow.' },
+    { id: 6, name: 'Longer Words', tint: 'river', built: false, age: 'from 6',
+      blurb: 'Two syllables, and the endings -ing, -ed, -er. Soft c and soft g.' },
+    { id: 7, name: 'Real Books', tint: 'otter', built: false, age: 'from 7',
+      blurb: 'Reading a whole book for the story, and writing words down from hearing them.' }
+  ];
+
+  /* ------------------------------------------------------------------
+     LEVEL 3 · Reading Words — one short vowel at a time, then the teams,
+     then two sounds together, then magic e.
+     ------------------------------------------------------------------ */
+  var WORDSETS = [
+    { id: 'a', name: 'Sound It Out: a', vowel: 'a', words: ['cat', 'hat', 'mat', 'rat', 'bat', 'pan', 'van', 'fan', 'bag', 'cap', 'tap', 'jam'] },
+    { id: 'i', name: 'Sound It Out: i', vowel: 'i', words: ['pin', 'tin', 'pig', 'wig', 'six'] },
+    { id: 'o', name: 'Sound It Out: o', vowel: 'o', words: ['dog', 'log', 'mop', 'top', 'pot', 'cot', 'box', 'fox'] },
+    { id: 'e', name: 'Sound It Out: e', vowel: 'e', words: ['bed', 'hen', 'pen', 'net', 'jet', 'leg', 'web'] },
+    { id: 'u', name: 'Sound It Out: u', vowel: 'u', words: ['mug', 'jug', 'sun', 'bun', 'nut', 'hut', 'cup', 'bus', 'mud'] }
+  ];
+
+  var BLENDSETS = [
+    { id: 'start', name: 'Two Sounds to Start', words: ['frog', 'crab', 'clock', 'flag', 'drum'] },
+    { id: 'end', name: 'Two Sounds to Finish', words: ['nest', 'tent', 'desk', 'lamp', 'milk', 'hand'] }
+  ];
+
+  /* Magic e is a pattern, not a blend — she reads these whole. */
+  var MAGICE = ['cake', 'bike', 'bone', 'gate', 'kite', 'five', 'nose', 'rose'];
+
+  /* ------------------------------------------------------------------
+     LEVEL 4 · Reading Books — decodable sentences, then short stories.
+     `pic` is the one picture that answers "which one is this about?".
+     ------------------------------------------------------------------ */
+  var SIGHT = ['the', 'a', 'is', 'in', 'on', 'it', 'and', 'I', 'can', 'see',
+    'my', 'to', 'at', 'has', 'was', 'up', 'no', 'said', 'he', 'she'];
+
+  var SENTENCES = [
+    { text: 'The cat sat on the mat.', pic: 'cat', not: ['dog', 'pig'] },
+    { text: 'I can see a big bus.', pic: 'bus', not: ['van', 'jet'] },
+    { text: 'A fox is in the box.', pic: 'fox', not: ['cat', 'duck'] },
+    { text: 'The pig is in the mud.', pic: 'pig', not: ['hen', 'frog'] },
+    { text: 'My dog has a bone.', pic: 'dog', not: ['cat', 'rat'] },
+    { text: 'The hen is on the nest.', pic: 'hen', not: ['duck', 'bird'] },
+    { text: 'A red bus and a big van.', pic: 'van', not: ['car', 'jet'] },
+    { text: 'I can see six ducks.', pic: 'duck', not: ['fish', 'hen'] },
+    { text: 'The sun is up.', pic: 'sun', not: ['moon', 'star'] },
+    { text: 'My cup is on the desk.', pic: 'cup', not: ['mug', 'pot'] },
+    { text: 'A frog sat on a log.', pic: 'frog', not: ['fish', 'rat'] },
+    { text: 'The king has a big ring.', pic: 'king', not: ['queen', 'girl'] }
+  ];
+
+  var STORIES = [
+    { id: 'catrat', title: 'The Cat and the Rat',
+      pages: [
+        { text: 'A cat sat on a mat.', pic: 'cat' },
+        { text: 'A rat ran up to the cat.', pic: 'rat' },
+        { text: 'The cat had a nap.', pic: 'bed' },
+        { text: 'The rat sat on the cat!', pic: 'rat' },
+        { text: 'The cat got up. The rat ran.', pic: 'cat' }
+      ],
+      questions: [
+        { q: 'Who sat on the mat?', pic: 'cat', not: ['rat', 'dog'] },
+        { q: 'Who sat on the cat?', pic: 'rat', not: ['hen', 'fox'] }
+      ] },
+    { id: 'foxbox', title: 'The Fox and the Box',
+      pages: [
+        { text: 'A fox got a big box.', pic: 'fox' },
+        { text: 'A hot bun was in it.', pic: 'bun' },
+        { text: 'The fox had the bun.', pic: 'fox' },
+        { text: 'It was too hot!', pic: 'sun' },
+        { text: 'The fox ran to the log.', pic: 'log' }
+      ],
+      questions: [
+        { q: 'What was in the box?', pic: 'bun', not: ['nut', 'egg'] },
+        { q: 'Where did the fox run?', pic: 'log', not: ['bed', 'bus'] }
+      ] },
+    { id: 'pigmud', title: 'Pig in the Mud',
+      pages: [
+        { text: 'A pig sat in the mud.', pic: 'pig' },
+        { text: 'A hen ran up to him.', pic: 'hen' },
+        { text: '"Get up!" said the hen.', pic: 'hen' },
+        { text: 'The pig did not get up.', pic: 'pig' },
+        { text: 'So the hen sat in the mud too!', pic: 'mud' }
+      ],
+      questions: [
+        { q: 'Who sat in the mud first?', pic: 'pig', not: ['hen', 'duck'] },
+        { q: 'Who came to the pig?', pic: 'hen', not: ['dog', 'goat'] }
+      ] }
   ];
 
   /* ------------------------------------------------------------------
@@ -240,11 +413,102 @@
     });
   });
 
+  /* ---- Level 3 ---- */
+  WORDSETS.forEach(function (set, i) {
+    LESSONS.push({
+      id: 'w-' + set.id, level: 3, n: i + 1, name: set.name,
+      shortName: set.name.replace('Sound It Out: ', 'Short '),
+      icon: WORDS[set.words[0]].icon, words: set.words,
+      activities: [
+        { type: 'soundOut', words: set.words, rounds: 4 },
+        { type: 'buildWord', words: set.words, rounds: 3 },
+        { type: 'wordPick', words: set.words, rounds: 3 }
+      ]
+    });
+  });
+
+  LESSONS.push({
+    id: 'w-review1', level: 3, n: 6, name: 'Read Them All', shortName: 'Read Them All',
+    icon: 'trophy', review: true,
+    words: WORDSETS.reduce(function (a, s2) { return a.concat(s2.words); }, []),
+    activities: [
+      { type: 'readPick', words: WORDSETS.reduce(function (a, s2) { return a.concat(s2.words); }, []), rounds: 6 },
+      { type: 'wordPick', words: WORDSETS.reduce(function (a, s2) { return a.concat(s2.words); }, []), rounds: 5 }
+    ]
+  });
+
+  ['ck', 'sh', 'ch', 'th', 'ng'].forEach(function (t, i) {
+    var ws = TEAMS[t].words.filter(function (k) { return WORDS[k]; });
+    LESSONS.push({
+      id: 't-' + t, level: 3, n: 10 + i, team: t,
+      name: 'Team ' + t, shortName: t,
+      icon: WORDS[ws[0]].icon,
+      activities: [
+        { type: 'meetTeam', team: t },
+        { type: 'soundOut', words: ws.filter(function (k) { return WORDS[k].ph; }), rounds: 2 },
+        { type: 'wordPick', words: ws, rounds: 3 },
+        { type: 'readPick', words: ws, rounds: 2 }
+      ].filter(function (a) { return a.type !== 'soundOut' || a.words.length; })
+    });
+  });
+
+  BLENDSETS.forEach(function (set, i) {
+    LESSONS.push({
+      id: 'b-' + set.id, level: 3, n: 20 + i, name: set.name, shortName: set.name.replace('Two Sounds ', ''),
+      icon: WORDS[set.words[0]].icon, words: set.words,
+      activities: [
+        { type: 'soundOut', words: set.words, rounds: 3 },
+        { type: 'buildWord', words: set.words, rounds: 2 },
+        { type: 'readPick', words: set.words, rounds: 3 }
+      ]
+    });
+  });
+
+  LESSONS.push({
+    id: 'w-magice', level: 3, n: 30, name: 'Magic e', shortName: 'Magic e',
+    icon: 'cake', words: MAGICE, magice: true,
+    activities: [
+      { type: 'magicE', words: MAGICE, rounds: 4 },
+      { type: 'readPick', words: MAGICE, rounds: 4 },
+      { type: 'wordPick', words: MAGICE, rounds: 3 }
+    ]
+  });
+
+  /* ---- Level 4 ---- */
+  LESSONS.push({
+    id: 's-build1', level: 4, n: 1, name: 'My First Sentence', shortName: 'First Sentence',
+    icon: 'cat',
+    activities: [{ type: 'buildSentence', from: 0, rounds: 4 }]
+  });
+  LESSONS.push({
+    id: 's-pick1', level: 4, n: 2, name: 'Read and Choose', shortName: 'Read & Choose',
+    icon: 'quiz',
+    activities: [{ type: 'sentencePick', from: 0, rounds: 6 }]
+  });
+  LESSONS.push({
+    id: 's-build2', level: 4, n: 3, name: 'More Sentences', shortName: 'More Sentences',
+    icon: 'pen',
+    activities: [{ type: 'buildSentence', from: 6, rounds: 4 }]
+  });
+  STORIES.forEach(function (st, i) {
+    LESSONS.push({
+      id: 'st-' + st.id, level: 4, n: 10 + i, name: st.title, shortName: st.title,
+      icon: WORDS[st.pages[0].pic].icon, story: st.id,
+      activities: [{ type: 'story', story: st.id }]
+    });
+  });
+  LESSONS.push({
+    id: 's-pick2', level: 4, n: 20, name: 'Read and Choose Again', shortName: 'Read & Choose 2',
+    icon: 'trophy', review: true,
+    activities: [{ type: 'sentencePick', from: 6, rounds: 6 }]
+  });
+
   /* review stops sit after the letters they cover */
   LESSONS.sort(function (a, b) {
     if (a.level !== b.level) return a.level - b.level;
     var order = function (x) {
-      if (x.review) return LETTERS.indexOf(x.letters[x.letters.length - 1]) + 0.5;
+      if (x.level !== 2) return x.n;
+      if (x.letters) return LETTERS.indexOf(x.letters[x.letters.length - 1]) + 0.5;
       if (x.letter) return LETTERS.indexOf(x.letter);
       return x.n - 100;
     };
@@ -254,6 +518,17 @@
   window.CONTENT = {
     WORDS: WORDS,
     ALPHABET: ALPHABET,
+    TEAMS: TEAMS,
+    SIGHT: SIGHT,
+    SENTENCES: SENTENCES,
+    STORIES: STORIES,
+    MAGICE: MAGICE,
+    story: function (id) { return STORIES.filter(function (x) { return x.id === id; })[0]; },
+    /* letters and teams share a shape, so one lookup serves both cards */
+    sound: function (k) { return ALPHABET[k] || TEAMS[k]; },
+    readable: function () {
+      return Object.keys(WORDS).filter(function (k) { return WORDS[k].ph; });
+    },
     LETTERS: LETTERS,
     END_SOUND: END_SOUND,
     THEMES: THEMES,

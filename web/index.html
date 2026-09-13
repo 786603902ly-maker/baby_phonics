@@ -20,7 +20,7 @@
   img { max-width: 100%; }
   [hidden] { display: none !important; }
 </style>
-<title>Phonics Trail</title>
+<title>Rourou's Phonics Trail</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
@@ -302,7 +302,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap
 .opt:active { transform: scale(.95); }
 .opt--pic { aspect-ratio: 4 / 5; }
 .opt .pic { display: block; width: 100%; max-width: 96px; aspect-ratio: 1; }
-.pic { background: var(--plate); border-radius: 14px; padding: 5px; }
+.pic { display: block; background: var(--plate); border-radius: 14px; padding: 5px; }
 .pic--photo { padding: 0; }
 .pic--photo { background-size: cover; background-position: center; border-radius: 12px; }
 .picword {
@@ -397,6 +397,119 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap
 .mcard.up .mface, .mcard.matched .mface { opacity: 1; }
 .mcard.up .mback, .mcard.matched .mback { opacity: 0; }
 .mcard.matched { border-color: var(--leaf); background: color-mix(in srgb, var(--leaf) 14%, var(--surface)); }
+
+/* ---- level 3: sound it out ---- */
+.blend { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.btiles { display: flex; gap: 10px; transition: gap .5s ease; flex-wrap: wrap; justify-content: center; }
+.btiles.squeeze { gap: 1px; }
+.btile {
+  min-width: 68px; height: 88px; padding: 0 10px;
+  display: grid; place-items: center;
+  background: var(--surface); border: 3px solid var(--line);
+  border-radius: var(--r); box-shadow: var(--shadow);
+  font-family: var(--letter); font-size: clamp(30px, 9vw, 42px); font-weight: 700;
+}
+.btile.lit { border-color: var(--otter); background: color-mix(in srgb, var(--otter) 16%, var(--surface)); animation: pop .35s ease; }
+.pushbtn {
+  display: flex; align-items: center; gap: 10px; padding: 12px 22px; border-radius: 999px;
+  background: var(--river); color: #FFF9F0; font-weight: 800; font-size: 14px; box-shadow: var(--shadow);
+}
+.pushbtn svg { width: 42px; height: 18px; }
+.pushbtn:disabled { background: var(--surface2); color: var(--ink2); box-shadow: none; cursor: default; }
+.reveal { animation: pop .5s ease; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.reveal .pic { width: 108px; height: 108px; }
+.reveal .picword { font-size: 26px; }
+
+/* ---- level 3: build the word ---- */
+.builder { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.builder-pic .pic { width: clamp(96px, 26vw, 124px); height: clamp(96px, 26vw, 124px); }
+.slots { display: flex; gap: 9px; }
+.slot {
+  min-width: 62px; height: 78px; padding: 0 8px;
+  background: var(--surface2); border: 3px dashed var(--line); border-radius: var(--r);
+  display: grid; place-items: center;
+  font-family: var(--letter); font-size: clamp(26px, 8vw, 36px); font-weight: 700;
+}
+.slot.filled { border-style: solid; border-color: var(--leaf); background: var(--surface); animation: pop .35s ease; }
+.ltiles { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; }
+.ltile {
+  min-width: 60px; height: 74px; padding: 0 10px;
+  display: grid; place-items: center;
+  background: var(--surface); border: 3px solid var(--line);
+  border-radius: var(--r); box-shadow: var(--shadow);
+  font-family: var(--letter); font-size: clamp(26px, 8vw, 36px); font-weight: 700;
+}
+.ltile.used { opacity: .25; box-shadow: none; }
+.ltile.is-wrong { border-color: var(--coral); animation: wob .4s ease; }
+
+/* ---- level 3: magic e ---- */
+.magice { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.magice-pic .pic { width: clamp(110px, 30vw, 150px); height: clamp(110px, 30vw, 150px); }
+.magice-word {
+  font-family: var(--letter); font-size: clamp(42px, 13vw, 62px); font-weight: 700;
+  padding: 8px 26px; background: var(--surface); border: 3px solid var(--line);
+  border-radius: var(--r2); box-shadow: var(--shadow);
+}
+.magice-word b { color: var(--coral); }
+
+/* ---- level 3: read the word ---- */
+.bigword {
+  font-family: var(--letter); font-size: clamp(44px, 14vw, 70px); font-weight: 700;
+  text-align: center; margin-bottom: 18px;
+}
+.anchor { display: flex; justify-content: center; margin-bottom: 16px; }
+.anchor svg, .anchor .pic { width: clamp(96px, 26vw, 130px); height: clamp(96px, 26vw, 130px); }
+.anchor .pic { background: var(--plate); border-radius: 16px; padding: 6px; }
+
+/* ---- level 4: sentences ---- */
+.sent { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.sent-pic .pic { width: clamp(84px, 22vw, 110px); height: clamp(84px, 22vw, 110px); }
+.sent-line {
+  min-height: 60px; width: 100%; max-width: 520px;
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center;
+  padding: 10px 12px; background: var(--surface2);
+  border: 3px dashed var(--line); border-radius: var(--r2);
+}
+.placed-word {
+  font-family: var(--letter); font-size: clamp(19px, 5.4vw, 26px); font-weight: 700;
+  animation: pop .35s ease;
+}
+.sent-bank { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; }
+.wcard {
+  padding: 10px 16px; border-radius: var(--r);
+  background: var(--surface); border: 3px solid var(--line); box-shadow: var(--shadow);
+  font-family: var(--letter); font-size: clamp(18px, 5vw, 24px); font-weight: 700;
+}
+.wcard.used { opacity: .25; box-shadow: none; }
+.wcard.is-wrong { border-color: var(--coral); animation: wob .4s ease; }
+
+/* ---- level 4: a page of a story ---- */
+.story { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.story-title { margin: 0; font-size: 11.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--ink2); }
+.story-pic .pic { width: clamp(120px, 34vw, 168px); height: clamp(120px, 34vw, 168px); }
+.story-text {
+  margin: 0; max-width: 520px; text-align: center;
+  display: flex; flex-wrap: wrap; gap: 4px 8px; justify-content: center;
+}
+.sword {
+  font-family: var(--letter); font-size: clamp(21px, 6vw, 30px); font-weight: 700;
+  padding: 2px 4px; border-radius: 8px;
+}
+.sword.lit { background: color-mix(in srgb, var(--sun) 40%, transparent); animation: pop .3s ease; }
+
+/* ===================== GAMES HUB ===================== */
+.gtiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 16px; }
+.gtile {
+  display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 14px 10px 12px;
+  background: var(--surface); border: 3px solid var(--line);
+  border-radius: var(--r2); box-shadow: var(--shadow); text-align: center;
+}
+.gtile:active { transform: translateY(2px); }
+.gtile-pic { width: 52px; height: 52px; padding: 5px; background: var(--plate); border-radius: 14px; }
+.gtile b { font-family: var(--display); font-size: 15.5px; font-weight: 600; line-height: 1.15; }
+.gtile small { font-size: 10.5px; font-weight: 700; color: var(--ink2); }
+.gtile-stars { display: flex; gap: 2px; margin-top: 2px; }
+.gtile-stars .st { width: 13px; height: 13px; }
 
 /* ===================== END OF STOP ===================== */
 .screen-done { display: grid; place-items: center; min-height: 76vh; }
