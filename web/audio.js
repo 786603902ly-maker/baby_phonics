@@ -153,6 +153,15 @@
         speechSynthesis.speak(u);
       }
     } catch (e) { /* ignore */ }
+    /* <audio> is gated separately from Web Audio and from speech synthesis.
+       Play one silent frame now, inside the gesture, so the fallback path
+       is allowed later. */
+    try {
+      var sil = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQAAAAA=');
+      sil.volume = 0;
+      var sp = sil.play();
+      if (sp && sp.catch) sp.catch(function () { /* still gated; Web Audio carries us */ });
+    } catch (e) { /* ignore */ }
     A.unlocked = true;
   };
 
@@ -180,21 +189,13 @@
   }
 
   function playBlobKey(key) {
-    return new Promise(function (resolve) {
-      if (A.muted) return resolve();
-      idbGet(key).then(function (blob) {
-        if (!blob) return resolve();
-        try {
-          if (!A.urls[key]) A.urls[key] = URL.createObjectURL(blob);
-          var el = new Audio(A.urls[key]);
-          var done = false;
-          function fin() { if (!done) { done = true; resolve(); } }
-          el.onended = fin;
-          el.onerror = fin;
-          el.play().catch(fin);
-          setTimeout(fin, 4000);
-        } catch (e) { resolve(); }
-      });
+    if (A.muted) return Promise.resolve();
+    return idbGet(key).then(function (blob) {
+      if (!blob) return;
+      if (!A.urls[key]) A.urls[key] = URL.createObjectURL(blob);
+      return playCached('rec:' + key, function () {
+        return blob.arrayBuffer ? blob.arrayBuffer() : new Response(blob).arrayBuffer();
+      }, A.urls[key]);
     });
   }
 
@@ -208,23 +209,84 @@
     return enqueue(function () { return speakNow(text, opts); });
   };
 
-  /* Bundled phoneme clips, played from their data: URI. */
-  var clipCache = {};
-  function playClip(src) {
+  /* ---------------- clip playback ----------------
+     Everything pre-recorded goes through the AudioContext, which the opening
+     tap already unlocked. Playing these through <audio> instead looks fine on
+     a desktop and is silently blocked on a phone: <audio> is gated on its own
+     user gesture, and a clip started from a timer is not one. */
+  var bufCache = {};
+
+  function ensureCtx() {
+    try {
+      var Ctor = window.AudioContext || window.webkitAudioContext;
+      if (Ctor && !A.ctx) A.ctx = new Ctor();
+      if (A.ctx && A.ctx.state === 'suspended') A.ctx.resume();
+    } catch (e) { /* no Web Audio here */ }
+    return A.ctx;
+  }
+
+  function decode(arrayBuffer) {
+    return new Promise(function (resolve, reject) {
+      var ctx = ensureCtx();
+      if (!ctx) return reject(new Error('no context'));
+      var r = ctx.decodeAudioData(arrayBuffer, resolve, reject);
+      if (r && r.then) r.then(resolve, reject);   /* promise form */
+    });
+  }
+
+  function playBuffer(buf) {
     return new Promise(function (resolve) {
-      if (A.muted) return resolve();
+      var ctx = ensureCtx();
+      if (!ctx) return resolve();
       try {
-        var el = clipCache[src] || (clipCache[src] = new Audio(src));
+        var src = ctx.createBufferSource();
+        var g = ctx.createGain();
+        g.gain.value = 1;
+        src.buffer = buf;
+        src.connect(g); g.connect(ctx.destination);
+        var done = false;
+        function fin() { if (!done) { done = true; resolve(); } }
+        src.onended = fin;
+        src.start(0);
+        setTimeout(fin, Math.ceil(buf.duration * 1000) + 250);
+      } catch (e) { resolve(); }
+    });
+  }
+
+  /* Last resort when there is no Web Audio at all. */
+  function playElement(src) {
+    return new Promise(function (resolve) {
+      try {
+        var el = new Audio(src);
         var done = false;
         function fin() { if (!done) { done = true; resolve(); } }
         el.onended = fin;
         el.onerror = fin;
-        el.currentTime = 0;
         var p = el.play();
         if (p && p.catch) p.catch(fin);
-        setTimeout(fin, 1600);
+        setTimeout(fin, 2000);
       } catch (e) { resolve(); }
     });
+  }
+
+  function base64ToBuffer(dataUri) {
+    var b64 = dataUri.slice(dataUri.indexOf(',') + 1);
+    var bin = atob(b64);
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out.buffer;
+  }
+
+  /* Play a cached clip, decoding it the first time. */
+  function playCached(key, getArrayBuffer, fallbackSrc) {
+    if (A.muted) return Promise.resolve();
+    if (bufCache[key]) return playBuffer(bufCache[key]);
+    if (!ensureCtx()) return fallbackSrc ? playElement(fallbackSrc) : Promise.resolve();
+    return Promise.resolve()
+      .then(getArrayBuffer)
+      .then(decode)
+      .then(function (buf) { bufCache[key] = buf; return playBuffer(buf); })
+      .catch(function () { return fallbackSrc ? playElement(fallbackSrc) : undefined; });
   }
 
   A.hasClip = function (letter) {
@@ -237,7 +299,8 @@
     return enqueue(function () {
       if (A.have[key]) return playBlobKey(key);
       if (window.PHONEME_AUDIO && window.PHONEME_AUDIO[letter]) {
-        return playClip(window.PHONEME_AUDIO[letter]);
+        var src = window.PHONEME_AUDIO[letter];
+        return playCached('ph:' + letter, function () { return base64ToBuffer(src); }, src);
       }
       var L = window.CONTENT.ALPHABET[letter];
       return speakNow(L ? L.sound : letter, { rate: 0.7, pitch: 1.0 });
@@ -365,6 +428,7 @@
         idbPut(key, blob).then(function (ok) {
           if (ok) {
             A.have[key] = true;
+            delete bufCache['rec:' + key];
             if (A.urls[key]) { URL.revokeObjectURL(A.urls[key]); delete A.urls[key]; }
             resolve(blob);
           } else reject(new Error('save failed'));
@@ -377,6 +441,7 @@
   A.deleteRecording = function (key) {
     return idbDel(key).then(function () {
       delete A.have[key];
+      delete bufCache['rec:' + key];
       if (A.urls[key]) { URL.revokeObjectURL(A.urls[key]); delete A.urls[key]; }
       return true;
     });
