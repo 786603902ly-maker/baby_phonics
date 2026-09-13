@@ -22,7 +22,7 @@ So each clip is cut out of a real word, spoken by a neural voice:
 
 Requires: piper-tts, onnx, lameenc, numpy.  Run: python3 tools/make-letter-audio.py
 """
-import argparse, io, json, math, os, sys, tarfile, urllib.request, wave
+import argparse, hashlib, io, json, math, os, sys, tarfile, urllib.request, wave
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -65,11 +65,15 @@ LETTERS = {
     's':  dict(word='sun',   ph=['s'],        at='onset',   kind='sibilant', voiced=False),
     't':  dict(word='tent',  ph=['t'],        at='onset',   kind='stop'),
     'u':  dict(word='cup',   ph=['V'],        at='nucleus', kind='vowel'),
-    'v':  dict(word='van',   ph=['v'],        at='onset',   kind='fric', voiced=True),
+    'v':  dict(word='van',   ph=['v'],        at='onset',   kind='fric', voiced='buzz'),
     'w':  dict(word='web',   ph=['w'],        at='onset',   kind='glide'),
     'x':  dict(word='box',   ph=['k', 's'],   at='coda',    kind='sibilant', voiced=False),
     'y':  dict(word='yak',   ph=['j'],        at='onset',   kind='glide'),
-    'z':  dict(word='zoo',   ph=['z'],        at='onset',   kind='sibilant'),
+    # /z/ is frication AND a pitch at once. Seeding on the most periodic frame
+    # lands in the vowel; on the least, in the devoiced start of the word, which
+    # is why this used to come out as a second /s/ — a child cannot learn z from
+    # a clip that measures like s.
+    'z':  dict(word='zoo',   ph=['z'],        at='onset',   kind='sibilant', voiced='buzz'),
     # ck only ever ends a word, and a word-final stop is a click with nothing
     # after it to release into. It says exactly /k/, so it is cut from an onset.
     'ck': dict(word='kite',  ph=['k'],        at='onset',   kind='stop'),
@@ -97,6 +101,12 @@ HOLD = {'vowel': 0.30, 'nasal': 0.28, 'liquid': 0.28, 'fric': 0.28,
 # nothing to hear; with more it turns into "buh".
 STOP_TAIL = 0.075
 
+# The letter card says the sound once, unhurried, before it starts on the four
+# words. That first time is a demonstration, so it is cut from a slower reading
+# of the same word and held for longer — a real slow take, not the fast one
+# played back at a lower speed, which would drop the pitch with it.
+SLOW = 1.35
+
 # What each phoneme class must look like acoustically. Spectral centroid in Hz,
 # and whether the vocal folds should be running.
 CHECK = {
@@ -110,16 +120,22 @@ CHECK = {
     'stop':     dict(centroid=(400, 6500),  voiced=None),
 }
 MIN_MS, MAX_MS = 90, 620
+TRIES = 8              # the model samples noise; a bad draw is retried, not shipped
 SR_REF = 22050          # every voice here is 22.05 kHz; used by periodicity()
 
 
 # ---------------------------------------------------------------- the voice
-def get_voice(name, speaker=None):
+def seed(key, attempt):
+    """VITS samples noise on every run, so an unseeded build is a lottery. Seed
+    each take from its own letter rather than from one stream shared by the run:
+    a shared stream means adding one letter rerolls every letter after it."""
     import onnxruntime
+    h = hashlib.sha1(('%s#%d' % (key, attempt)).encode()).hexdigest()[:8]
+    onnxruntime.set_seed(int(h, 16) & 0x7fffffff)
+
+
+def get_voice(name, speaker=None):
     from piper import PiperVoice
-    # VITS samples noise on every run, so without a fixed seed no two builds
-    # produce the same clip and the checks below would be a lottery.
-    onnxruntime.set_seed(20240613)
     d = os.path.join(BUILD, 'voices', 'vits-piper-' + name)
     model = os.path.join(d, name + '.onnx')
     if not os.path.exists(model):
@@ -221,7 +237,23 @@ def frames(a, sr):
     return feats, energy, voice
 
 
-def refine(a, sr, start, end, voiced, grow_left, grow_right, thr=0.72):
+# How alike two frames must be for the clip to keep growing. At 0.72 a nasal
+# slid all the way into the vowel after it — /m/ cut from `mat` ended up three
+# times brighter at its end than at its start, and tiling that to length gave
+# something closer to "muh" than to a hum. 0.88 stops at the phoneme.
+SAME = 0.88
+
+
+def centroid_of(a, sr, frame_index):
+    seg = a[frame_index * HOP:frame_index * HOP + FRAME]
+    if len(seg) < 32:
+        return 0.0
+    mag = np.abs(np.fft.rfft(seg * np.hanning(len(seg))))
+    freq = np.fft.rfftfreq(len(seg), 1.0 / sr)
+    return float((mag * freq).sum() / (mag.sum() + 1e-9))
+
+
+def refine(a, sr, start, end, voiced, grow_left, grow_right, thr=SAME):
     """Return the sample range the phoneme really occupies.
 
     The seed frame is not simply the middle of the predicted span — for a weak
@@ -239,7 +271,14 @@ def refine(a, sr, start, end, voiced, grow_left, grow_right, thr=0.72):
     loud = [i for i in range(lo, hi) if e[i] > floor]
     if not loud:
         return start, end
-    if voiced is False:
+    if voiced == 'buzz':
+        # a voiced fricative: the noisiest frame that still has a pitch
+        pitched = [i for i in loud if v[i] > 0.40]
+        if not pitched:
+            return start, end
+        mid = max(pitched, key=lambda i: centroid_of(a, sr, i))
+        ok = lambda i: v[i] > 0.35
+    elif voiced is False:
         mid = min(loud, key=lambda i: v[i])
         ok = lambda i: v[i] < 0.55
     elif voiced is True:
@@ -318,7 +357,7 @@ def envelope(a, sr, fade_in=0.008, fade_out=0.035):
     return a.astype(np.float32)
 
 
-def carve(audio, sr, spec, spans):
+def carve(audio, sr, spec, spans, stretch=1.0):
     found = locate(spans, [ipa(p) for p in spec['ph']], spec['at'])
     if not found:
         return None, 'phoneme %s not found in %s' % (spec['ph'], [p for p, _, _ in spans])
@@ -329,7 +368,7 @@ def carve(audio, sr, spec, spans):
         # A stop is a closure and a release: on its own it is a click, and a
         # click is not something a child can copy. Keep the burst and a short
         # slice of what follows — enough to hear, too little to become "buh".
-        tail = int(sr * (0.02 if spec['at'] == 'coda' else STOP_TAIL))
+        tail = int(sr * (0.02 if spec['at'] == 'coda' else STOP_TAIL) * stretch)
         seg = audio[max(0, start - int(sr * 0.005)):min(len(audio), end + tail)]
         seg = trim(seg, sr)
     else:
@@ -340,11 +379,12 @@ def carve(audio, sr, spec, spans):
         if len(seg) < int(sr * 0.03):        # refinement found nothing usable
             seg = audio[start:end]
         seg = trim(seg, sr)
-        cap = int(sr * (HOLD[kind] + 0.12))  # never a drawn-out drone
+        target = HOLD[kind] * stretch
+        cap = int(sr * (target + 0.12))      # never a drawn-out drone
         if len(seg) > cap:
             off = (len(seg) - cap) // 2
             seg = seg[off:off + cap]
-        seg = hold(seg, sr, HOLD[kind], mirror=kind in ('fric', 'sibilant', 'breath'))
+        seg = hold(seg, sr, target, mirror=kind in ('fric', 'sibilant', 'breath'))
 
     if not len(seg):
         return None, 'empty segment'
@@ -364,16 +404,29 @@ def measure(a, sr):
     lo, hi = int(sr / 400), min(int(sr / 60), len(ac) - 1)
     voiced = float(ac[lo:hi].max() / (ac[0] + 1e-9)) if hi > lo else 0.0
     rms = float(np.sqrt((a ** 2).mean()))
-    return dict(ms=1000.0 * n / sr, centroid=centroid, voicing=voiced, rms=rms)
+    # how far the sound travels between its start and its end: a held phoneme
+    # should stay where it is, and one that slides is one that leaked into the
+    # vowel next to it
+    third = max(64, n // 3)
+    def cen(x):
+        if len(x) < 64:
+            return 0.0
+        m = np.abs(np.fft.rfft(x * np.hanning(len(x))))
+        f = np.fft.rfftfreq(len(x), 1.0 / sr)
+        return float((m * f).sum() / (m.sum() + 1e-9))
+    early, late = cen(a[:third]), cen(a[-third:])
+    drift = abs(late - early) / max(early, 1.0)
+    return dict(ms=1000.0 * n / sr, centroid=centroid, voicing=voiced, rms=rms, drift=drift)
 
 
-def check(key, kind, m, voiced=None):
+def check(key, kind, m, voiced=None, stretch=1.0):
     want = dict(CHECK[kind])
     if voiced is not None:
         want['voiced'] = voiced
     bad = []
-    if not (MIN_MS <= m['ms'] <= MAX_MS):
-        bad.append('length %.0f ms outside %d-%d' % (m['ms'], MIN_MS, MAX_MS))
+    lo, hi = MIN_MS * stretch, MAX_MS * stretch
+    if not (lo <= m['ms'] <= hi):
+        bad.append('length %.0f ms outside %.0f-%.0f' % (m['ms'], lo, hi))
     lo, hi = want['centroid']
     if not (lo <= m['centroid'] <= hi):
         bad.append('centroid %.0f Hz outside %d-%d' % (m['centroid'], lo, hi))
@@ -381,6 +434,10 @@ def check(key, kind, m, voiced=None):
         bad.append('should be voiced, periodicity %.2f' % m['voicing'])
     if want['voiced'] is False and m['voicing'] > 0.55:
         bad.append('should be voiceless, periodicity %.2f' % m['voicing'])
+    if want['voiced'] == 'buzz' and m['voicing'] < 0.40:
+        bad.append('should buzz, periodicity %.2f' % m['voicing'])
+    if kind != 'stop' and m['drift'] > 0.50:
+        bad.append('slides into the next sound, spectrum moves %.0f%%' % (100 * m['drift']))
     if m['rms'] < 0.04:
         bad.append('too quiet, rms %.3f' % m['rms'])
     return bad
@@ -416,25 +473,40 @@ def main():
     manifest, failures, total = {}, [], 0
     for key in sorted(LETTERS):
         spec = LETTERS[key]
-        audio, spans = say(voice, spec['word'], args.length_scale)
-        clip, err = carve(audio, sr, spec, spans)
-        if clip is None:
-            failures.append('%s: %s' % (key, err))
-            print('%-3s FAIL  %s' % (key, err))
-            continue
-        m = measure(clip, sr)
-        bad = check(key, spec['kind'], m, spec.get('voiced'))
-        mp3 = to_mp3(clip, sr, args.kbps)
-        total += len(mp3)
-        if not args.dry_run:
-            with open(os.path.join(OUT, key + '.mp3'), 'wb') as f:
-                f.write(mp3)
-        manifest[key] = dict(word=spec['word'], ms=round(m['ms']))
-        print('%-3s %-6s %-6s %4.0f ms  centroid %5.0f Hz  voicing %.2f  %5d B  %s'
-              % (key, spec['word'], spec['kind'], m['ms'], m['centroid'], m['voicing'],
-                 len(mp3), '; '.join(bad) if bad else 'ok'))
-        if bad:
-            failures.append('%s (%s): %s' % (key, spec['kind'], '; '.join(bad)))
+        row = {'word': spec['word']}
+        for label, stretch in (('', 1.0), ('-slow', SLOW)):
+            # Keep drawing until the clip measures like the phoneme it is meant
+            # to be. A poor draw is a poor draw, not a fact about the letter.
+            best, bad, m = None, None, None
+            for attempt in range(TRIES):
+                seed(key + label, attempt)
+                audio, spans = say(voice, spec['word'], args.length_scale * stretch)
+                clip, err = carve(audio, sr, spec, spans, stretch)
+                if clip is None:
+                    bad = [err]
+                    continue
+                got = measure(clip, sr)
+                why = check(key, spec['kind'], got, spec.get('voiced'), stretch)
+                if best is None or len(why) < len(bad):
+                    best, bad, m = clip, why, got
+                if not why:
+                    break
+            if best is None:
+                failures.append('%s%s: %s' % (key, label, '; '.join(bad or ['nothing synthesised'])))
+                print('%-8s FAIL  %s' % (key + label, '; '.join(bad or ['nothing synthesised'])))
+                continue
+            mp3 = to_mp3(best, sr, args.kbps)
+            total += len(mp3)
+            if not args.dry_run:
+                with open(os.path.join(OUT, key + label + '.mp3'), 'wb') as f:
+                    f.write(mp3)
+            row['ms' if not label else 'slowMs'] = round(m['ms'])
+            print('%-8s %-6s %-6s %4.0f ms  centroid %5.0f Hz  voicing %.2f  drift %.2f  %5d B  %s'
+                  % (key + label, spec['word'], spec['kind'], m['ms'], m['centroid'],
+                     m['voicing'], m['drift'], len(mp3), '; '.join(bad) if bad else 'ok'))
+            if bad:
+                failures.append('%s%s (%s): %s' % (key, label, spec['kind'], '; '.join(bad)))
+        manifest[key] = row
 
     print('\n%d clips, %.0f KB total' % (len(manifest), total / 1024))
     if failures:
@@ -446,13 +518,15 @@ def main():
         with open(MANIFEST, 'w') as f:
             f.write('/* letter-clips.js — GENERATED by tools/make-letter-audio.py. Do not edit.\n'
                     '   Which letter sounds ship as audio, and the word each one was cut out\n'
-                    '   of. The clips themselves are audio/letters/<key>.mp3.\n'
+                    '   of. The clips are audio/letters/<key>.mp3, with a slower take of the\n'
+                    '   same sound at <key>-slow.mp3 for the first, teaching reading.\n'
                     '   Voice: %s (Piper), trained on public-domain LibriVox recordings. */\n'
                     % args.voice)
             f.write('window.LETTER_CLIPS = {\n')
             for k in sorted(manifest):
-                f.write("  '%s': { word: '%s', ms: %d },\n"
-                        % (k, manifest[k]['word'], manifest[k]['ms']))
+                r = manifest[k]
+                f.write("  '%s': { word: '%s', ms: %d, slowMs: %d },\n"
+                        % (k, r['word'], r.get('ms', 0), r.get('slowMs', 0)))
             f.write('};\n')
         print('wrote', MANIFEST)
     return 0

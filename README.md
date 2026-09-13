@@ -70,11 +70,28 @@ boundary against the audio itself, and shapes what it finds:
   A stop with no release is a click, and a click is not a sound a child can
   repeat; 75 ms is enough to hear and too little to become "buh".
 
-Every clip is then measured and has to pass: length, loudness, spectral
-centroid in the band its phoneme class requires, and voicing — /f/ must be
-aperiodic, /m/ must have a pitch. A clip that fails fails the build. The 32
-clips together are 83 KB, they ship as `web/audio/letters/*.mp3`, and the
-service worker precaches them, so the app still works with no network.
+Every clip is then measured and has to pass four things: length, loudness,
+spectral centroid in the band its phoneme class requires, and voicing — /f/
+must be aperiodic, /m/ must have a pitch, /z/ must buzz or a child cannot tell
+it from /s/. A clip that fails fails the build, and the model is asked for
+another take rather than shipping a poor one.
+
+The fourth check is **drift**: how far the spectrum moves between the start of
+the clip and its end. A held phoneme should stay where it is. The first version
+of these clips grew the cut until the sound stopped resembling itself, which
+was too loose a rule for a nasal — the /m/ of *mat* slid into the /æ/ after it
+and finished three times brighter than it started, and tiling that to length
+gave something closer to "muh" than to a hum. That is what made f, l, m, n, r,
+s, v and z sound like the letters' names rather than their sounds. The clip now
+stops where the phoneme does.
+
+Each letter also ships a **slower take**, cut from a slower reading of the same
+word, which is what the letter card plays the first time it introduces the
+sound. It is a real slow recording, not the fast one played back at a lower
+speed, which would drop the pitch with it.
+
+64 clips, 185 KB, shipped as `web/audio/letters/<key>.mp3` and `<key>-slow.mp3`
+and precached by the service worker, so the app still works with no network.
 
 Regenerate with:
 
@@ -131,6 +148,16 @@ so it is taken from somewhere the same sound is unhurried — the end of *banana
 Each clip is seeded from its own text, so changing one word regenerates that
 word and leaves the other 271 byte-for-byte identical.
 
+### What the letter card says
+
+Opening a letter card plays the sound **once**, slowly, and then the four
+words, each as its sound and then the word: /f/ — *fish*, /f/ — *fan*. It used
+to open with the letter's name and then the sound twice, which is three things
+before the first word; and for f, l, m, n, r, s, v and z the name contains the
+sound (*ef*, *el*, *em*, *en*, *ar*, *es*, *vee*, *zed*), so leading with the
+name taught the name. The name is still there — it is what tapping the big
+letter plays — it is just not what the card opens with.
+
 ### How the app paces itself
 
 A question never appears while the last one is still speaking. Answering used
@@ -139,8 +166,14 @@ that follow a correct tap — so the next question went up on screen while the
 previous answer was still being said, and it sounded as though the app had
 asked one thing and then said another. Now the runner waits for the audio
 queue to drain, then holds a deliberate pause on top (0.5 / 0.8 / 1.3 s,
-**Grown-ups → Settings**). Tapping Next or Back cuts whatever is playing,
-including the rest of a sequence that had not started yet.
+**Grown-ups → Settings**). Changing screen cuts whatever is playing, including
+the rest of a sequence that had not started yet — a child who has tapped Back
+has stopped listening.
+
+**Back goes back one question**, not out of the lesson: she is usually trying
+to hear a word again, and landing on the welcome screen instead is no use.
+Only from the first screen of a lesson does Back leave. A question answered
+before is not scored twice on the way through again.
 
 Each letter card also shows:
 

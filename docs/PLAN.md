@@ -71,6 +71,33 @@
 > taken from the end of *banana* and held. Each clip is seeded from its own
 > text, so a change to one word does not reroll the rest.
 >
+> ### Revision 6 — after the second week
+>
+> Four things, all from watching a four-year-old use it.
+>
+> **The sounds for f, l, m, n, r, s, v, z were heard as the letters' names.**
+> Two causes. The card opened with the letter's name and then the sound twice —
+> and for exactly those letters the name contains the sound (*ef*, *el*, *em*,
+> *en*, *ar*, *es*, *vee*, *zed*), so the first thing heard taught the wrong
+> thing. And the cut itself was too loose: growing the clip while the sound
+> still "resembled itself" at 0.72 similarity let a nasal slide into the vowel
+> after it, so /m/ finished three times brighter than it started and tiling it
+> gave "muh". At 0.88 the drift falls from 2.44 to 0.04, and drift is now a
+> build check in its own right. /z/ had a third problem: word-initial /z/ is
+> genuinely devoiced, so the clip measured like /s/; it is now seeded on the
+> noisiest frame that still has a pitch, giving 4.8 kHz of frication with
+> periodicity 0.73.
+>
+> **The card now says the sound once, slowly**, then the four words. Each letter
+> ships a second, slower take for that first reading — a real slow recording,
+> not the fast one played at a lower speed, which would drop the pitch with it.
+>
+> **Back goes back one question** instead of leaving the lesson, and changing
+> screen stops whatever is playing.
+>
+> **Each clip is seeded from its own key** and redrawn until it measures right,
+> in the letter tool as well as the speech tool.
+>
 > **Each letter card now teaches the sound explicitly**: IPA in British English
 > (Oxford Learner's convention), a front-view mouth picture, one line on how to
 > make it, and the letter's second job where it has one — c before e/i/y, g

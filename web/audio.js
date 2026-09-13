@@ -326,7 +326,11 @@
     return !!(window.LETTER_CLIPS && window.LETTER_CLIPS[letter]);
   };
 
-  function clipURL(letter) { return 'audio/letters/' + letter + '.mp3'; }
+  /* Each letter ships twice: the everyday clip, and a slower reading used the
+     first time the card introduces the sound. */
+  function clipURL(letter, slow) {
+    return 'audio/letters/' + letter + (slow ? '-slow' : '') + '.mp3';
+  }
 
   /* The key a piece of text is filed under: what is left of it once case and
      punctuation are gone. tools/make-speech-audio.py files them the same way,
@@ -358,27 +362,33 @@
      together are smaller than a photograph, and the alternative is a child
      tapping a letter and waiting for a fetch. */
   A.preload = function () {
-    var keys = Object.keys(window.LETTER_CLIPS || {});
-    return keys.reduce(function (chain, k) {
+    var want = [];
+    Object.keys(window.LETTER_CLIPS || {}).forEach(function (k) {
+      want.push([k, false]);
+      want.push([k, true]);
+    });
+    return want.reduce(function (chain, pair) {
       return chain.then(function () {
-        if (bufCache['ph:' + k]) return;
-        return fetch(clipURL(k))
+        var key = 'ph:' + pair[0] + (pair[1] ? '-slow' : '');
+        if (bufCache[key]) return;
+        return fetch(clipURL(pair[0], pair[1]))
           .then(function (r) { return r.ok ? r.arrayBuffer() : Promise.reject(); })
           .then(decode)
-          .then(function (buf) { bufCache['ph:' + k] = buf; })
+          .then(function (buf) { bufCache[key] = buf; })
           .catch(function () { /* the clip will be fetched on demand instead */ });
       });
     }, Promise.resolve());
   };
 
-  /* Speak one letter sound. */
-  A.sayPhoneme = function (letter) {
+  /* Speak one letter sound. `slow` asks for the unhurried reading, which the
+     letter card uses the first time it introduces the sound. */
+  A.sayPhoneme = function (letter, slow) {
     var key = 'p:' + letter;
     return enqueue(function () {
-      if (A.have[key]) return playBlobKey(key);
+      if (A.have[key]) return playBlobKey(key);      // a grown-up's own recording
       if (A.hasClip(letter)) {
-        var url = clipURL(letter);
-        return playCached('ph:' + letter, function () {
+        var url = clipURL(letter, slow);
+        return playCached('ph:' + letter + (slow ? '-slow' : ''), function () {
           return fetch(url).then(function (r) {
             if (!r.ok) throw new Error('no clip');
             return r.arrayBuffer();

@@ -91,7 +91,10 @@
     setTimeout(function () { el.remove(); }, 2600);
   }
 
-  function nav(html) { root.innerHTML = html; window.scrollTo(0, 0); }
+  /* Changing screen silences whatever is playing. A child who taps Back has
+     stopped listening; carrying the last sentence into the next screen is the
+     same mix-up as talking over a question. */
+  function nav(html) { A.stop(); root.innerHTML = html; window.scrollTo(0, 0); }
 
   /* ==================================================================
      PROGRESS QUERIES
@@ -204,9 +207,9 @@
     var tb = document.getElementById('today');
     if (tb) tb.onclick = function () {
       ensureSound();
+      startLesson(C.lesson('a-' + tl));
       A.say(doneToday ? 'Let us do ' + tl.toUpperCase() + '.'
                       : 'Hello' + (S.name ? ' ' + S.name : '') + '! Today we learn ' + tl.toUpperCase() + '.');
-      startLesson(C.lesson('a-' + tl));
     };
     document.getElementById('go').onclick = function () { ensureSound(); screenMap(); };
     document.getElementById('toBook').onclick = function () { ensureSound(); screenBook(); };
@@ -693,7 +696,8 @@
     nav(
       '<div class="screen screen-play">' +
         '<div class="pbar-row">' +
-          '<button class="iconbtn" id="quit" aria-label="Back to the map">' + icon('back') + '</button>' +
+          '<button class="iconbtn" id="quit" aria-label="' +
+            (run.i > 0 ? 'Back to the last one' : 'Back to the map') + '">' + icon('back') + '</button>' +
           '<div class="pbar"><i style="width:' + pct + '%"></i></div>' +
           '<div class="scorechip">' + icon('starOn', 'sc-glyph') + '<b>' + run.correct + '</b></div>' +
           '<button class="iconbtn" id="again" aria-label="Say it again">' + icon('ear') + '</button>' +
@@ -702,7 +706,14 @@
         '<div class="stagearea">' + inner + '</div>' +
       '</div>'
     );
-    document.getElementById('quit').onclick = function () { A.stop(); run = null; screenMap(); };
+    document.getElementById('quit').onclick = function () {
+      A.stop();
+      /* Back means the question before this one, not out of the lesson
+         altogether — she is usually trying to hear a word again. Only from the
+         first question does it leave. */
+      if (run && run.i > 0) { run.i--; renderRound(); return; }
+      run = null; screenMap();
+    };
     document.getElementById('again').onclick = function () { A.stop(); if (r.play) r.play(); };
     /* Nothing from the last question may still be queued when this one asks
        its own: whatever is left is the previous answer, and hearing it here is
@@ -738,10 +749,21 @@
     });
   }
 
-  function right(track) {
-    if (!run) return;
+  /* Score a round once. Now that Back can return to a question already
+     answered, answering it again must not hand out a second star. */
+  function credit(track) {
+    if (!run) return false;
+    var r = run.rounds[run.i];
+    if (r && r.scored) return false;
+    if (r) r.scored = true;
     run.correct++; run.tries++;
     if (track) SRS.hit(track);
+    return true;
+  }
+
+  function right(track) {
+    if (!run) return;
+    credit(track);
     if (S.settings.sfx) A.sfx('correct');
     return A.say(pick(['Yes!', 'Well done!', 'You got it!', 'Clever girl!', 'That is right!']));
   }
@@ -868,7 +890,7 @@
     document.getElementById('mw').onclick = function () { A.sayWord(t); };
     document.getElementById('menext').onclick = function () {
       A.stop();                       // she tapped next; she has heard enough
-      SRS.hit(r.track); run.correct++; run.tries++; advance(0);
+      credit(r.track); advance(0);
     };
   }
 
@@ -931,7 +953,7 @@
     });
     document.getElementById('pnext').onclick = function () {
       A.stop();
-      SRS.hit(r.track); run.correct++; run.tries++; advance(0);
+      credit(r.track); advance(0);
     };
   }
 
@@ -1005,10 +1027,17 @@
       { silent: true }
     );
 
+    /* What the card says when it opens: the SOUND, once, unhurried. It used to
+       open with the letter's name and then the sound twice — three things
+       before the first word, and for f, l, m, n, r, s, v, z the name contains
+       the sound, so leading with it teaches "ef" where the card says /f/. */
+    function introduce() { return A.sayPhoneme(r.letter, true); }
+
+    /* Tapping the big letter is the deliberate way to hear its name, which is
+       still worth knowing — it is just not what the card opens with. */
     function sayLetter() {
-      if (L.team) return A.sayPhoneme(r.letter).then(function () { return A.sayPhoneme(r.letter); });
+      if (L.team) return A.sayPhoneme(r.letter);
       return A.sayLetterName(r.letter)
-        .then(function () { return A.sayPhoneme(r.letter); })
         .then(function () { return A.sayPhoneme(r.letter); });
     }
     function sayKeyword(k) {
@@ -1040,7 +1069,7 @@
     var tok = A.epoch();
     setTimeout(function () {
       if (A.epoch() !== tok) return;
-      sayLetter().then(function () {
+      introduce().then(function () {
         var seq = Promise.resolve();
         L.words.forEach(function (k, i) {
           seq = seq.then(function () {
@@ -1060,8 +1089,7 @@
 
     document.getElementById('cardnext').onclick = function () {
       A.stop();
-      SRS.hit(r.track);
-      run.correct++; run.tries++;
+      credit(r.track);
       advance(0);
     };
   }
@@ -1168,7 +1196,7 @@
     save();
 
     if (S.settings.sfx) A.sfx('reward');
-    A.say(n === 3 ? 'Perfect! Three stars!' : n === 2 ? 'Well done! Two stars!' : 'Good try! One star!');
+    var praise = n === 3 ? 'Perfect! Three stars!' : n === 2 ? 'Well done! Two stars!' : 'Good try! One star!';
 
     var overCap = sessionStart && (Date.now() - sessionStart) / 60000 > S.settings.cap;
     var ls = C.levelLessons(l.level);
@@ -1191,6 +1219,7 @@
         '</div>' +
       '</div>'
     );
+    A.say(praise);          // after nav, which silences anything still playing
     document.getElementById('dmap').onclick = function () { if (overCap) sessionStart = 0; screenMap(); };
     var dn = document.getElementById('dnext');
     if (dn) dn.onclick = function () { startLesson(next); };
