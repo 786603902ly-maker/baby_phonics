@@ -41,6 +41,11 @@
     {
       "source": "/(.*).png",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
+    },
+    {
+      "comment": "The audio filenames are stable across deploys, so a clip that is regenerated keeps its name. Caching it for a week would let a returning browser hand the stale file straight to the service worker's precache; revalidating costs a conditional request only when a new build installs.",
+      "source": "/audio/(.*).mp3",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     }
   ]
 }
