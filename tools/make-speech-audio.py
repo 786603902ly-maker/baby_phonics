@@ -45,13 +45,24 @@ WORD_SCALE, LINE_SCALE = 1.18, 1.05
 # phrase — `up` comes out as 130 ms with the /p/ swallowed — so those are taken
 # from the second frame instead, where the word is followed by another.
 FRAME_TEXT = 'The word is %s.'
-FRAME_MID = 'Say %s again.'
+FRAME_MID = 'Say %s once more.'
 WORD_MS = (140, 1800)
 LINE_MS = (400, 9000)
 TRIES = 6              # the model samples noise; a bad draw is retried, not shipped
 
 # Words the app writes one way and says another.
-SPOKEN = {'i': 'I', 'yo-yo': 'yo-yo', 'a': 'a'}
+SPOKEN = {'i': 'I'}
+
+# `a` on its own is the letter name, /eɪ/ — espeak gives it that and it is not
+# wrong, it is just not the word. In running text the article is /ə/, which is
+# how it is read in `A cat sat on a mat.`, so it is taken from a frame where it
+# stays unstressed and then held: a schwa cut out of fluent speech is too brief
+# on its own to be a word a child can hear.
+# In fluent speech the article is compressed to about seventy milliseconds,
+# which is too short to cut and hand to a child as a word. So it is taken from
+# somewhere the same sound is unhurried: the end of `banana`, which is a word
+# she already knows, and held to a fifth of a second.
+OVERRIDE = {'a': dict(from_word='banana', phoneme='ə', hold=0.20, floor_ms=150)}
 
 
 def key(text):
@@ -71,6 +82,14 @@ def filename(k):
     return 'l' + hashlib.sha1(k.encode()).hexdigest()[:11]
 
 
+def seed(k, attempt):
+    """The model samples noise, and a shared stream would mean that changing one
+    word rerolled every word after it. Seed each take from its own text."""
+    import onnxruntime
+    h = hashlib.sha1(('%s#%d' % (k, attempt)).encode()).hexdigest()[:8]
+    onnxruntime.set_seed(int(h, 16) & 0x7fffffff)
+
+
 def synth(voice, text, scale):
     from piper.config import SynthesisConfig
     cfg = SynthesisConfig(length_scale=scale, noise_scale=0.4, noise_w_scale=0.4,
@@ -81,22 +100,58 @@ def synth(voice, text, scale):
     return np.concatenate(parts).astype(np.float32)
 
 
-def word_clip(voice, text, mid=False):
-    """Say the word inside a frame and cut it out again."""
-    frame = FRAME_MID if mid else FRAME_TEXT
-    audio, spans = letters.say(voice, frame % text, LINE_SCALE)
+def groups_of(spans):
+    """Split the frame's alignment into one span range per spoken word."""
+    out, start = [], None
+    for p, a, b in spans:
+        if p == '^':
+            start = b
+        elif p == ' ':
+            out.append((start, a))
+            start = b
+        elif p == '$':
+            out.append((start, a))
+            start = None
+    if start is not None:
+        out.append((start, spans[-1][2]))
+    return out
+
+
+def word_clip(voice, text, frame=None, index=None):
+    """Say the word inside a frame and cut it out again.
+
+    Default: the frame ends with the word, and the cut runs to the end of the
+    audio so the final release and its decay come with it. With `index`, the
+    word sits inside the frame instead and only its own span is taken — needed
+    for a word whose sound depends on being unstressed."""
+    audio, spans = letters.say(voice, (frame or FRAME_TEXT) % text, LINE_SCALE)
     # how many espeak words the target is: `hot dog` and `yo-yo` are two
-    groups = 1 + voice.phonemize(text)[0].count(' ')
-    gaps = [i for i, (p, _, _) in enumerate(spans) if p == ' ']
-    if len(gaps) < groups + (1 if mid else 0):
+    n = 1 + voice.phonemize(text)[0].count(' ')
+    words = groups_of(spans)
+    if len(words) < n:
         return None
-    if mid:
-        return audio[spans[gaps[0]][2]:spans[gaps[groups]][1]]
-    return audio[spans[gaps[-groups]][2]:]
+    if index is None:
+        return audio[words[-n][0]:]
+    if index + n > len(words):
+        return None
+    return audio[words[index][0]:words[index + n - 1][1]]
 
 
-def shape(a, sr):
+def phoneme_clip(voice, carrier, phoneme):
+    """Cut one phoneme out of a carrier word — the same trick the letter clips
+    use, for a sound no frame will give at a usable length."""
+    audio, spans = letters.say(voice, FRAME_TEXT % carrier, LINE_SCALE)
+    hits = [i for i, (p, _, _) in enumerate(spans) if p == phoneme]
+    if not hits:
+        return None
+    _, a, b = spans[hits[-1]]
+    return audio[a:b]
+
+
+def shape(a, sr, hold=None):
     a = letters.trim(a, sr, floor=0.008)
+    if hold:
+        a = letters.hold(a, sr, hold)
     return letters.envelope(a, sr, fade_in=0.006, fade_out=0.03)
 
 
@@ -137,16 +192,23 @@ def main():
         # Every clip is drawn from the model with noise, so a poor draw is a
         # poor draw and not a fact about the word: try again, alternating the
         # frame, and keep the first take that measures like real speech.
+        over = OVERRIDE.get(k, {})
         lo, hi = WORD_MS if is_word else LINE_MS
+        lo = over.get('floor_ms', lo)
         best, bad = None, ['nothing synthesised']
         for attempt in range(TRIES):
-            if is_word:
-                raw = word_clip(voice, text, mid=bool(attempt % 2))
+            seed(k, attempt)
+            if over.get('from_word'):
+                raw = phoneme_clip(voice, over['from_word'], over['phoneme'])
+            elif is_word:
+                raw = word_clip(voice, text,
+                                frame=FRAME_MID if attempt % 2 else FRAME_TEXT,
+                                index=1 if attempt % 2 else None)
             else:
                 raw = synth(voice, text, scale)
             if raw is None or not len(raw):
                 continue
-            take = shape(raw, sr)
+            take = shape(raw, sr, over.get('hold'))
             ms = 1000.0 * len(take) / sr
             rms = float(np.sqrt((take ** 2).mean()))
             why = []

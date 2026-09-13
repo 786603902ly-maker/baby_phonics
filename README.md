@@ -121,6 +121,16 @@ python3 tools/make-speech-audio.py --show-phonemes   # check the odd words
 awkward ones were checked: *ax* /aks/, *yacht* /jɒt/, *durian* /djʊəriən/,
 *tomato* /təmɑːtəʊ/, *zebra* /zɛbrə/ — British throughout.
 
+One word needed deciding rather than checking. Asked for `a` on its own, espeak
+gives the letter name /eɪ/, which is not wrong but is not the word: in *A cat
+sat on a mat* the article is /ə/. In fluent speech that /ə/ is squeezed down to
+about seventy milliseconds, too short to cut out and hand to a child as a word,
+so it is taken from somewhere the same sound is unhurried — the end of *banana*
+— and held to a fifth of a second.
+
+Each clip is seeded from its own text, so changing one word regenerates that
+word and leaves the other 271 byte-for-byte identical.
+
 ### How the app paces itself
 
 A question never appears while the last one is still speaking. Answering used

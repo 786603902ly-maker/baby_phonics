@@ -66,6 +66,11 @@
 > with up to six takes and the first that measures like speech kept. This
 > supersedes §3.3 for word audio as well as phoneme audio.
 >
+> The article `a` is /ə/, not the letter name /eɪ/ espeak gives it in isolation.
+> The reduced form is about 70 ms in fluent speech — too short to cut — so it is
+> taken from the end of *banana* and held. Each clip is seeded from its own
+> text, so a change to one word does not reroll the rest.
+>
 > **Each letter card now teaches the sound explicitly**: IPA in British English
 > (Oxford Learner's convention), a front-view mouth picture, one line on how to
 > make it, and the letter's second job where it has one — c before e/i/y, g
