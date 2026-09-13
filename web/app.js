@@ -1606,6 +1606,6 @@
   A.init().then(loadPhotos).then(function () {
     if (S.settings.voice) setTimeout(function () { A.setVoice(S.settings.voice); }, 300);
     screenWelcome();
-    A.preload();          // 83 KB, so the first tap on a letter is not a wait
+    A.preload();          // 185 KB of letter sounds, so the first tap is not a wait
   });
 })();
