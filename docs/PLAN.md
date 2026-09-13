@@ -71,6 +71,20 @@
 > taken from the end of *banana* and held. Each clip is seeded from its own
 > text, so a change to one word does not reroll the rest.
 >
+> ### Revision 7 — the deploy that never happened
+>
+> Three commits in a row did not reach production and nothing said so. Vercel
+> validates vercel.json before the build starts and refuses an unknown key, so
+> there are no build logs and the Production card keeps showing the last valid
+> commit. The unknown key was a `"comment"` added inside a headers rule to
+> explain a cache-control choice — a comment in a file that does not take them.
+>
+> Guards: tools/check-config.mjs validates the file against the keys Vercel
+> accepts and tools/build.mjs will not run without it; a GitHub Actions
+> preflight runs the same checks plus Vercel's own build command on every push;
+> and the built page carries the commit it came from, shown in Grown-ups →
+> Settings, so "is what I pushed what is live" is a question with an answer.
+>
 > ### Revision 6 — after the second week
 >
 > Four things, all from watching a four-year-old use it.

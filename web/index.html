@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Phonics">
 <meta name="description" content="Phonics for a four-year-old: one letter a day, with its real sound, its mouth shape, and the four words it lives in.">
 <meta name="robots" content="noindex">
+<meta name="build" content="dev">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -685,6 +686,7 @@ input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--river); }
 <script src="app.js"></script>
 
 <script>
+  window.BUILD = 'dev';
   var secure = location.protocol === 'https:' || ['localhost', '127.0.0.1'].indexOf(location.hostname) >= 0;
     if ('serviceWorker' in navigator && secure && window.top === window.self) {
     window.addEventListener('load', function () {

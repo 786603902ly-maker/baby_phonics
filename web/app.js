@@ -1443,6 +1443,7 @@
           '<input type="file" id="photofile" accept="image/*" hidden>' +
           '<button class="btn btn--ghost" id="photodel">Remove</button></div></div>' +
         '<p class="hint">The photo is stored only on this device, inside this browser. It is never uploaded and never included if you share the page link.</p>' +
+        '<p class="hint">Build <b>' + esc(window.BUILD || 'dev') + '</b> &mdash; the commit this copy was deployed from. If it does not match what you just pushed, the deploy did not land.</p>' +
       '</div>' +
       '<div class="panel"><h3>Session</h3>' +
         '<label class="field"><span>Soft stop after</span><select id="cap">' +

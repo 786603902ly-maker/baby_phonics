@@ -13,8 +13,26 @@ import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expectedKeys } from './speech-texts.mjs';
+import { checkVercelJson } from './check-config.mjs';
 
 const web = join(dirname(fileURLToPath(import.meta.url)), '..', 'web');
+
+/* ------------------------------------------------- the deploy must be valid
+   An unknown key in vercel.json makes Vercel refuse the deployment before the
+   build starts, with no logs — Production silently stays on the last commit
+   that was valid. Three commits went out that way before anyone noticed. */
+{
+  const problems = checkVercelJson();
+  if (problems.length) {
+    console.error('vercel.json would be rejected by Vercel, so this would never deploy:');
+    problems.forEach((p) => console.error('  ' + p));
+    process.exit(1);
+  }
+}
+
+/* Which commit this build came from. Vercel sets the variable; locally there is
+   nothing to stamp, and stamping HEAD would put a stale sha in every commit. */
+const BUILD = (process.env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 7) || 'dev';
 
 /* Order matters: the page loads these in sequence. */
 export const SCRIPTS = [
@@ -72,6 +90,7 @@ const head = `<!doctype html>
 <meta name="apple-mobile-web-app-title" content="Phonics">
 <meta name="description" content="Phonics for a four-year-old: one letter a day, with its real sound, its mouth shape, and the four words it lives in.">
 <meta name="robots" content="noindex">
+<meta name="build" content="${BUILD}">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -88,6 +107,7 @@ const inHead = body.slice(0, splitAt);
 const inBody = body.slice(splitAt);
 
 const register = `<script>
+  window.BUILD = '${BUILD}';
   var secure = location.protocol === 'https:' || ['localhost', '127.0.0.1'].indexOf(location.hostname) >= 0;
     if ('serviceWorker' in navigator && secure && window.top === window.self) {
     window.addEventListener('load', function () {
@@ -98,7 +118,7 @@ const register = `<script>
 
 writeFileSync(join(web, 'index.html'),
   head + inHead + '</head>\n<body>\n' + inBody + '\n' + register + '\n</body>\n</html>\n');
-console.log('wrote web/index.html');
+console.log('wrote web/index.html  (build ' + BUILD + ')');
 
 /* ------------------------------------------------------- service worker */
 const hash = createHash('sha1');

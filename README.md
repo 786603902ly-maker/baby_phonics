@@ -272,6 +272,32 @@ internet at all** — every sound, picture and lesson ships with the page.
 | `tools/speech-texts.mjs` | Lists what there is to record, read out of `content.js` and the `A.say()` literals in `app.js` |
 | `robots.txt` | Keeps the page out of search results |
 
+### Why a deploy can silently not happen
+
+Vercel validates `vercel.json` against a strict schema and refuses the
+deployment **before the build starts** if it finds a key it does not know.
+There are no build logs, because there was no build; the Production card simply
+keeps showing the last commit that was valid, looking healthy.
+
+That happened here. A `"comment"` key was added inside a headers rule to explain
+a cache-control choice — Vercel rejected the file, the next three commits failed
+the same way, and Production sat on the commit before them for hours. **Prose
+about the configuration belongs in this README, never in `vercel.json`.**
+
+Two guards now stand in the way of a repeat:
+
+- `node tools/check-config.mjs` validates `vercel.json` against the keys Vercel
+  accepts, and `tools/build.mjs` refuses to run if it fails — so a config that
+  cannot deploy cannot be built either.
+- `.github/workflows/preflight.yml` runs the same checks on every push, plus
+  Vercel's own build command, a check that every clip the page asks for is in
+  `dist/`, and a check that the service worker precaches everything shipped.
+  A deployment that cannot land now shows as a red cross on the commit.
+
+And to see what is actually live: **Grown-ups → Settings** shows the commit the
+running copy was built from (`dev` when served locally). If it does not match
+what you pushed, the deploy did not land.
+
 ### A note on privacy
 
 **No child's name is in the source.** The welcome screen says just "Hi!"

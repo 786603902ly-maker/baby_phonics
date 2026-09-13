@@ -1,0 +1,76 @@
+# Runs the same checks Vercel would, on every push, so a deployment that cannot
+# land shows up here as a red cross instead of as a Production card quietly
+# stuck on an older commit.
+#
+# Vercel refuses an invalid vercel.json before the build starts, which means no
+# build logs and no failed-looking deployment — just a stale one. That is how
+# three commits in a row went nowhere unnoticed. This job would have caught the
+# first of them.
+name: preflight
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # vercel.json must be something Vercel will accept
+      - run: node tools/check-config.mjs
+
+      # every spoken line must have a clip, and dist/ must assemble —
+      # this is the exact command Vercel runs
+      - run: node tools/dist.mjs
+
+      # the audio the page asks for must actually be in dist/
+      - name: check the shipped audio
+        run: |
+          node -e '
+            const { readFileSync, existsSync } = require("fs");
+            const page = readFileSync("dist/index.html", "utf8");
+            const win = {};
+            new Function("window", readFileSync("dist/letter-clips.js", "utf8"))(win);
+            new Function("window", readFileSync("dist/speech-clips.js", "utf8"))(win);
+            const want = [];
+            for (const k of Object.keys(win.LETTER_CLIPS)) {
+              want.push("dist/audio/letters/" + k + ".mp3", "dist/audio/letters/" + k + "-slow.mp3");
+            }
+            for (const k of Object.keys(win.SPEECH_CLIPS)) {
+              want.push("dist/audio/speech/" + win.SPEECH_CLIPS[k] + ".mp3");
+            }
+            const missing = want.filter((f) => !existsSync(f));
+            if (missing.length) {
+              console.error(missing.length + " audio files are referenced but not shipped:");
+              missing.slice(0, 20).forEach((f) => console.error("  " + f));
+              process.exit(1);
+            }
+            console.log(want.length + " audio files present");
+            if (!/name="build"/.test(page)) { console.error("index.html has no build stamp"); process.exit(1); }
+          '
+
+      # the service worker must precache exactly what is in dist/
+      - name: check the offline manifest
+        run: |
+          node -e '
+            const { readFileSync, readdirSync, statSync } = require("fs");
+            const sw = readFileSync("dist/sw.js", "utf8");
+            const listed = new Set(JSON.parse(sw.match(/var ASSETS = (\[[\s\S]*?\]);/)[1]));
+            const walk = (d, base) => readdirSync(d).flatMap((f) => {
+              const p = d + "/" + f;
+              return statSync(p).isDirectory() ? walk(p, base + f + "/") : [base + f];
+            });
+            const onDisk = walk("dist", "").filter((f) => f !== "sw.js");
+            const missing = onDisk.filter((f) => !listed.has("./" + f));
+            if (missing.length) {
+              console.error(missing.length + " files ship but are not precached:");
+              missing.slice(0, 20).forEach((f) => console.error("  " + f));
+              process.exit(1);
+            }
+            console.log(onDisk.length + " files shipped, all precached");
+          '
