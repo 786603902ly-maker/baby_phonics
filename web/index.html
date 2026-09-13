@@ -3,32 +3,38 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<meta name="theme-color" content="#FFF6E9">
+<meta name="theme-color" content="#FFF6E9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#17151F" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Pip Phonics">
-<meta name="description" content="A phonics tool for a four-year-old: hear a sound, pick a picture, drag a letter, hear how it went.">
+<meta name="apple-mobile-web-app-title" content="Phonics">
+<meta name="description" content="Phonics for a four-year-old: one letter a day, with its real sound, its mouth shape, and the four words it lives in.">
+<meta name="robots" content="noindex">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <style>
   html, body { min-height: 100%; }
   img { max-width: 100%; }
   [hidden] { display: none !important; }
 </style>
-<title>Rourou's Phonics Trail</title>
+<title>Phonics Trail</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
 
 <style>
 /* ==========================================================================
-   Rourou's Phonics Trail
+   Phonics Trail
    Three typefaces, each with a job:
      Fredoka — display, rounded, friendly
      Nunito  — grown-up interface text
      Andika  — every letter the CHILD reads. Designed by SIL for literacy
                learners: single-storey a and g, unambiguous l / I / 1.
                A teaching decision, not a styling one.
-   The first letter of every keyword is red, the way her paper cards do it.
+   The first letter of every keyword is red, the way the paper cards do it.
    ========================================================================== */
 
 :root {
@@ -552,14 +558,6 @@ input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--river); }
 }
 </style>
 
-
-<script>
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http') && window.top === window.self) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function () { /* offline support unavailable */ });
-    });
-  }
-</script>
 </head>
 <body>
 <div id="app"></div>
@@ -572,5 +570,13 @@ input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--river); }
 <script src="audio.js"></script>
 <script src="app.js"></script>
 
+<script>
+  var secure = location.protocol === 'https:' || ['localhost', '127.0.0.1'].indexOf(location.hostname) >= 0;
+    if ('serviceWorker' in navigator && secure && window.top === window.self) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () { /* offline support unavailable */ });
+    });
+  }
+</script>
 </body>
 </html>

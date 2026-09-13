@@ -1,25 +1,37 @@
 {
-  "name": "Rourou's Phonics Trail",
-  "short_name": "Phonics Trail",
+  "name": "Phonics Trail",
+  "short_name": "Phonics",
   "description": "Hear a word, find the picture. Meet a letter, meet its words.",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#FFF6E9",
   "theme_color": "#FFF6E9",
   "icons": [
     {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "id": "/",
+  "categories": [
+    "education",
+    "kids"
+  ],
+  "lang": "en-GB"
 }

@@ -1,9 +1,9 @@
 /* content.js — the whole curriculum as data.
    Adding or changing a lesson is a data edit, never a code edit.
 
-   The alphabet keyword sets follow Oxford Phonics World Level 1 (the book
-   Rourou already uses). Four sets are confirmed against her own cards:
-   a, b, g, h. The rest come from published OPW 1 unit word lists; where a
+   The alphabet keyword sets follow Oxford Phonics World Level 1, the book
+   the child already uses. Four sets are confirmed against her own printed
+   cards: a, b, g, h. The rest come from published OPW 1 unit word lists; where a
    word could not be drawn clearly as a simple picture it was swapped for
    another word with the same starting sound — those are marked `sub: true`
    so you can see exactly what differs from the book. */
@@ -53,7 +53,7 @@
 
   /* ------------------------------------------------------------------
      ALPHABET — letter, its sound cue for speech synthesis, the Phonics
-     Friend where we know it from Rourou's own cards, and four keywords.
+     Friend where a printed card confirms it, and four keywords.
      ------------------------------------------------------------------ */
   /* sound  : espeak-style fallback spelling, used only if the bundled clip
                and any parent recording are both missing
@@ -62,7 +62,7 @@
      also   : the other job this letter does, for the grown-up
      mouth  : which mouth picture in mouths.js
      tip    : how to make the sound
-     friend : the OPW Phonics Friend, where Rourou's own card confirms it */
+     friend : the OPW Phonics Friend, where a printed card confirms it */
   function L(o) { return o; }
 
   var ALPHABET = {

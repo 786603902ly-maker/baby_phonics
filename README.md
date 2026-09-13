@@ -1,4 +1,4 @@
-# baby_phonics — Rourou's Phonics Trail
+# baby_phonics — Phonics Trail
 
 A phonics tool for a four-year-old in Singapore, built around the book she
 already uses: **Oxford Phonics World Level 1**.
@@ -84,6 +84,74 @@ cd web && python3 -m http.server 8000   # http://localhost:8000
 Works offline after the first load. On an iPad: open in Safari, Share →
 **Add to Home Screen**. It then launches full-screen with no browser
 chrome, which is what a four-year-old should see.
+
+
+## Deploying to Vercel
+
+The repo is ready: `vercel.json` sets the build, `tools/dist.mjs` assembles
+`dist/`, and the PNG icons and service worker are generated and committed.
+There are **no npm dependencies** — the build is one Node script.
+
+### Once, from the Vercel dashboard
+
+1. **vercel.com → Add New → Project → Import** this GitHub repo.
+2. Change nothing. `vercel.json` already sets Build Command
+   `node tools/dist.mjs`, Output Directory `dist`, and Install Command to a
+   no-op. Leave Framework Preset on *Other*.
+3. **Deploy.** Roughly ten seconds — there is nothing to install or compile.
+
+Every push to the branch redeploys automatically.
+
+### Or from the terminal
+
+```sh
+npm i -g vercel
+vercel login
+vercel --prod
+```
+
+### Then, on the iPad
+
+Open the Vercel URL in Safari → Share → **Add to Home Screen**. On a real
+HTTPS origin the service worker registers (it cannot inside the Claude
+preview), so from then on it launches full-screen and **works with no
+internet at all** — every sound, picture and lesson ships with the page.
+
+### What the config does
+
+| File | Why |
+|---|---|
+| `vercel.json` | Build and output; `no-cache` on the page, scripts and service worker so a deploy is picked up on the next load; a week of caching on the PNGs; `noindex` and a tight `Permissions-Policy` (microphone allowed for voice recording, everything else off) |
+| `tools/build.mjs` | Generates `web/index.html` from `web/page.html`, and generates `web/sw.js` with the real asset list and a cache name hashed from every shipped file — so a new deploy is a new cache and never serves yesterday's build |
+| `tools/dist.mjs` | Copies exactly the servable files into `dist/`. `web/page.html` stays behind: it is the artifact body fragment, not a page |
+| `tools/make-icons.mjs` | Renders the PNG app icons. Dev-only, needs playwright; the PNGs are committed so a deploy never runs it |
+| `robots.txt` | Keeps the page out of search results |
+
+### A note on privacy
+
+**No child's name is in the source.** The welcome screen says just "Hi!"
+until a name is typed in **Grown-ups → Settings**, and that lives in the
+browser's local storage on that one device — never in the repo, never on the
+server. The photo and any voice recordings are the same: stored on the
+device, never uploaded.
+
+A Vercel Hobby URL is public to anyone who has it, though `noindex` and
+`robots.txt` keep it out of search. If you want it behind a password, that
+is Vercel's Deployment Protection, which is a paid feature.
+
+### Backup after deploying
+
+The "back up to your Claude account" button only works on the Claude preview
+link. On your own site use **Grown-ups → Settings → Save to a file**, which
+writes a small `.json` you can keep anywhere and load on another device.
+
+## Local development
+
+```sh
+npm start                 # builds, then serves web/ on http://localhost:8000
+node tools/build.mjs      # regenerate index.html + sw.js after editing page.html
+node tools/dist.mjs       # assemble dist/ exactly as Vercel will
+```
 
 ## Editing content
 

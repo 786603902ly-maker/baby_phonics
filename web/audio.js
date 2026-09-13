@@ -447,7 +447,7 @@
     });
   };
 
-  /* ---------------- generic blob store (Rourou's photo) ---------------- */
+  /* ---------------- generic blob store (the child's photo) ---------------- */
   A.putBlob = function (key, blob) {
     return idbPut(key, blob).then(function (ok) {
       if (ok) { A.have[key] = true; if (A.urls[key]) { URL.revokeObjectURL(A.urls[key]); delete A.urls[key]; } }

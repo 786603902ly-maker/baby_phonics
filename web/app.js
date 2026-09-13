@@ -14,7 +14,7 @@
      ================================================================== */
   var DEFAULTS = {
     v: 2,
-    name: 'Rourou',
+    name: '',        // set on the device, never in the source
     stars: {},       // lessonId -> 1..3
     best: {},        // lessonId -> {correct, total}
     boxes: {},       // srs
@@ -182,7 +182,7 @@
         '<div class="welcome">' +
           '<div class="wphoto" id="wphoto">' + icon('otter') + '</div>' +
           '<p class="weyebrow">Phonics with Pip</p>' +
-          '<h1 class="wname">Hi, ' + esc(S.name) + '!</h1>' +
+          '<h1 class="wname">Hi' + (S.name ? ', ' + esc(S.name) : '') + '!</h1>' +
           '<div class="wstars">' + icon('starOn', 'wstar') + '<b>' + ts + '</b><small>star' + (ts === 1 ? '' : 's') + '</small></div>' +
           today +
           '<div class="wrow">' +
@@ -205,7 +205,7 @@
     if (tb) tb.onclick = function () {
       ensureSound();
       A.say(doneToday ? 'Let us do ' + tl.toUpperCase() + '.'
-                      : 'Hello ' + S.name + '! Today we learn ' + tl.toUpperCase() + '.');
+                      : 'Hello' + (S.name ? ' ' + S.name : '') + '! Today we learn ' + tl.toUpperCase() + '.');
       startLesson(C.lesson('a-' + tl));
     };
     document.getElementById('go').onclick = function () { ensureSound(); screenMap(); };
@@ -322,7 +322,7 @@
       '<div class="screen screen-book">' +
         '<header class="mhead">' +
           '<button class="iconbtn" id="back" aria-label="Back">' + icon('back') + '</button>' +
-          '<h2 class="mtitle">' + esc(S.name) + '&rsquo;s Book</h2>' +
+          '<h2 class="mtitle">' + (S.name ? esc(S.name) + '&rsquo;s Book' : 'My Book') + '</h2>' +
           '<span class="iconbtn iconbtn--ghost"></span>' +
         '</header>' +
         '<div class="bigstars"><span class="bigstar">' + icon('starOn') + '</span><b>' + totalStars() + '</b><small>stars so far</small></div>' +
@@ -369,7 +369,7 @@
     }];
   };
 
-  /* Level 2: the letter card — exactly the shape of Rourou's paper card. */
+  /* Level 2: the letter card — exactly the shape of the printed card. */
   GEN.meetLetter = function (cfg) {
     return [{ kind: 'meet', letter: cfg.letter, track: 'L:' + cfg.letter,
       text: 'Tap each picture to hear it' }];
@@ -1008,7 +1008,16 @@
         '<label class="field"><span>Speaking speed</span><input type="range" id="rate" min="0.6" max="1.1" step="0.05" value="' + S.settings.rate + '"></label>' +
       '</div>' +
       '<div class="panel"><h3>Backup</h3>' +
-        '<p class="hint">Stars and progress live in this browser. A backup copies them to your Claude account. The photo and any recordings stay on the device.</p>' +
+        '<p class="hint">Stars and progress live in this browser and nowhere else. Two ways to keep a copy &mdash; the photo and any voice recordings stay on the device either way, they are too large to copy.</p>' +
+        '<h4>To a file</h4>' +
+        '<p class="hint">Saves a small <code>.json</code> you can put in your photos, email to yourself, or load on another device.</p>' +
+        '<div class="btnrow">' +
+          '<button class="btn btn--ghost" id="exp">Save to a file</button>' +
+          '<label class="btn btn--ghost" for="impfile">Load from a file</label>' +
+          '<input type="file" id="impfile" accept="application/json,.json" hidden>' +
+        '</div>' +
+        '<h4>To your Claude account</h4>' +
+        '<p class="hint">Only works on the Claude preview link, not on your own website.</p>' +
         '<div class="btnrow"><button class="btn btn--ghost" id="backup">Back up now</button>' +
         '<button class="btn btn--ghost" id="restore">Restore</button></div>' +
         '<p class="hint" id="bstat"></p>' +
@@ -1024,7 +1033,7 @@
     });
 
     document.getElementById('kidname').onchange = function () {
-      S.name = (this.value || 'Rourou').trim().slice(0, 16); save();
+      S.name = this.value.trim().slice(0, 16); save();
     };
     document.getElementById('photofile').onchange = function () {
       var f = this.files && this.files[0];
@@ -1043,10 +1052,45 @@
       S.settings.rate = +this.value; A.rate = +this.value; save(); A.unlock(); A.say('Like this.');
     };
 
+    document.getElementById('exp').onclick = function () {
+      var st = document.getElementById('bstat');
+      try {
+        var blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'phonics-' + (S.name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'progress') + '-' + dayKey() + '.json';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        st.textContent = 'Saved ' + a.download;
+      } catch (e) {
+        st.textContent = 'This view will not allow downloads. Use the Claude account backup, or open the app on your own website.';
+      }
+    };
+    document.getElementById('impfile').onchange = function () {
+      var f = this.files && this.files[0];
+      var st = document.getElementById('bstat');
+      if (!f) return;
+      var fr = new FileReader();
+      fr.onload = function () {
+        try {
+          var p = JSON.parse(fr.result);
+          if (!p || typeof p !== 'object' || !p.stars) throw new Error('not a phonics backup');
+          S = Object.assign(clone(DEFAULTS), p);
+          S.settings = Object.assign({}, DEFAULTS.settings, p.settings || {});
+          save();
+          st.textContent = 'Loaded ' + Object.keys(S.stars).length + ' stops, ' + totalStars() + ' stars.';
+          setTimeout(screenParent, 500);
+        } catch (e) { st.textContent = 'That file is not a phonics backup.'; }
+      };
+      fr.onerror = function () { st.textContent = 'Could not read that file.'; };
+      fr.readAsText(f);
+    };
+
     document.getElementById('backup').onclick = function () {
       var st = document.getElementById('bstat'); st.textContent = 'Working…';
       getDB().then(function (db) {
-        if (!db) { st.textContent = 'Backup is not available in this view.'; return; }
+        if (!db) { st.textContent = 'Account backup only works on the Claude preview link. Use "Save to a file" here.'; return; }
         return db.doc('progress/main').set({ state: JSON.stringify(S), at: Date.now() })
           .then(function () { st.textContent = 'Backed up ' + new Date().toLocaleString() + '.'; });
       }).catch(function () { st.textContent = 'Backup failed.'; });
@@ -1054,7 +1098,7 @@
     document.getElementById('restore').onclick = function () {
       var st = document.getElementById('bstat'); st.textContent = 'Working…';
       getDB().then(function (db) {
-        if (!db) { st.textContent = 'Backup is not available in this view.'; return; }
+        if (!db) { st.textContent = 'Account backup only works on the Claude preview link. Use "Load from a file" here.'; return; }
         return db.doc('progress/main').get().then(function (d) {
           var raw = d && (d.state || (d.data && d.data.state));
           if (!raw) { st.textContent = 'No backup found.'; return; }
