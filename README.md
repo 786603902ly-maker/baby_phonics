@@ -76,6 +76,20 @@ must be aperiodic, /m/ must have a pitch, /z/ must buzz or a child cannot tell
 it from /s/. A clip that fails fails the build, and the model is asked for
 another take rather than shipping a poor one.
 
+The fifth is **repeats**: how much of the clip is real audio. A phoneme is
+only as long as the model makes it, and where a word starts, this voice gives
+/f/ forty milliseconds and /æ/ a hundred and fifty. The first version reached
+the target length by laying that fragment end to end — /θ/ was 7.4 copies of
+40 ms, /æ/ two copies of 150 ms — and a child hears that as a wobble, not as a
+sound. Length now comes from the model instead: the generator searches over how
+slowly to speak the carrier (up to five times slower), and for the sounds that
+are simply short at the start of a word, over where in the word to take them
+from. A fricative at the *end* of a word runs several times longer and is the
+same sound, so /f/ comes out of *wolf* and /ŋ/ out of *song*; /l/ and /r/ may
+not move, because English coda /l/ is dark and coda /r/ is not said at all.
+Every clip is now at least 95% real audio, and more than 1.55 copies fails the
+build.
+
 The fourth check is **drift**: how far the spectrum moves between the start of
 the clip and its end. A held phoneme should stay where it is. The first version
 of these clips grew the cut until the sound stopped resembling itself, which
@@ -284,6 +298,25 @@ a cache-control choice — Vercel rejected the file, the next three commits fail
 the same way, and Production sat on the commit before them for hours. **Prose
 about the configuration belongs in this README, never in `vercel.json`.**
 
+### Why a new deploy can take three reloads to arrive
+
+The service worker serves everything but the page from its cache. On the first
+load after a deploy the page itself is new — it is fetched network-first — but
+it asks for `app.js`, and the *old* service worker, still in charge for that
+load, answers from its own cache with the old one. The new worker installs
+during that load and takes over afterwards. Measured against Vercel's real
+headers: **a new build took three reloads to appear**. On a tablet opened once
+a day, a fix can sit unseen for days and look exactly like a deploy that never
+happened.
+
+Every script and audio URL now carries the build's hash — `app.js?v=502797a129`.
+The old cache has never seen that URL, so it falls through to the network, and
+the first load after a deploy is the new build. Re-measured: one reload.
+
+`node tools/serve.mjs` serves `dist/` with the headers from `vercel.json`,
+which is the only way to test this locally — a generic static server sends its
+own cache headers and quietly invalidates the experiment.
+
 Two guards now stand in the way of a repeat:
 
 - `node tools/check-config.mjs` validates `vercel.json` against the keys Vercel
@@ -291,7 +324,8 @@ Two guards now stand in the way of a repeat:
   cannot deploy cannot be built either.
 - `.github/workflows/preflight.yml` runs the same checks on every push, plus
   Vercel's own build command, a check that every clip the page asks for is in
-  `dist/`, and a check that the service worker precaches everything shipped.
+  `dist/`, a check that the service worker precaches everything shipped, and a
+  check that every script and clip is precached under its versioned URL.
   A deployment that cannot land now shows as a red cross on the commit.
 
 And to see what is actually live: **Grown-ups → Settings** shows the commit the
@@ -320,6 +354,8 @@ writes a small `.json` you can keep anywhere and load on another device.
 
 ```sh
 npm start                 # builds, then serves web/ on http://localhost:8000
+node tools/serve.mjs      # serves dist/ with vercel.json's headers — the only
+                          # way to test service-worker updates truthfully
 node tools/build.mjs      # regenerate index.html + sw.js after editing page.html
 node tools/dist.mjs       # assemble dist/ exactly as Vercel will
 ```

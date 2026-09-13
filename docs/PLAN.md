@@ -71,6 +71,26 @@
 > taken from the end of *banana* and held. Each clip is seeded from its own
 > text, so a change to one word does not reroll the rest.
 >
+> ### Revision 8 — the wobble, and the deploy that took three reloads
+>
+> A parent reported the /æ/ clip "抖动了三次" — wobbling three times. It was
+> literal: 150 ms of real vowel laid end to end to reach 305 ms. Measured across
+> the set, /θ/ was 7.4 copies of a 40 ms fragment, /f/ 5.8, /n/ 3.7. Tiling was
+> always the wrong answer to "this phoneme is too short"; the right one is to
+> ask the model to speak the carrier more slowly, and where that is not enough,
+> to take the sound from the end of a word instead of the start — a fricative
+> is several times longer there and is the same sound. /l/ and /r/ cannot move
+> (dark l, and no coda /r/ in this accent). Every clip is now at least 95% real
+> audio and the repeat factor is a build check.
+>
+> The same report said the card still spoke the letter's name, which Revision 6
+> removed. It had: a new deploy took THREE reloads to reach an installed app.
+> The page is network-first so it was new, but it asked for `app.js` and the old
+> service worker answered from its cache. Every script and clip URL now carries
+> the build hash, so the old cache cannot answer and the first load is the new
+> build. tools/serve.mjs serves dist/ with vercel.json's headers, without which
+> the test says whatever the test server's caching says.
+>
 > ### Revision 7 — the deploy that never happened
 >
 > Three commits in a row did not reach production and nothing said so. Vercel

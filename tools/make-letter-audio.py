@@ -46,26 +46,37 @@ LETTERS = {
     'c':  dict(word='cat',   ph=['k'],        at='onset',   kind='stop'),
     'd':  dict(word='dog',   ph=['d'],        at='onset',   kind='stop'),
     'e':  dict(word='egg',   ph=['E'],        at='nucleus', kind='vowel'),
-    'f':  dict(word='fish',  ph=['f'],        at='onset',   kind='fric', voiced=False),
+    # A fricative at the end of a word runs several times longer than at the
+    # start and is the same sound, so these may be cut from either. /l/ and /r/
+    # may not: English coda /l/ is dark, and coda /r/ is not said at all here.
+    'f':  dict(word='fish',  ph=['f'],        at='onset',   kind='fric', voiced=False,
+               alts=[('wolf', 'coda'), ('leaf', 'coda')]),
     'g':  dict(word='goat',  ph=['g'],        at='onset',   kind='stop'),
     # /h/ is the only sound here with no voicing rule: before a vowel it is
     # that vowel's shape breathed rather than voiced, so it comes out somewhere
     # between the two and the periodicity reading is not meaningful.
-    'h':  dict(word='hat',   ph=['h'],        at='onset',   kind='breath'),
+    'h':  dict(word='hat',   ph=['h'],        at='onset',   kind='breath',
+               alts=[('horse', 'onset'), ('house', 'onset')]),
     'i':  dict(word='pig',   ph=['I'],        at='nucleus', kind='vowel'),
     'j':  dict(word='jam',   ph=['d', 'Z'],   at='onset',   kind='stop'),
     'k':  dict(word='kite',  ph=['k'],        at='onset',   kind='stop'),
-    'l':  dict(word='lamp',  ph=['l'],        at='onset',   kind='liquid'),
-    'm':  dict(word='mat',   ph=['m'],        at='onset',   kind='nasal', voiced=True),
-    'n':  dict(word='nut',   ph=['n'],        at='onset',   kind='nasal'),
+    'l':  dict(word='lamp',  ph=['l'],        at='onset',   kind='liquid',
+               alts=[('lion', 'onset'), ('leaf', 'onset')]),
+    'm':  dict(word='mat',   ph=['m'],        at='onset',   kind='nasal', voiced=True,
+               alts=[('thumb', 'coda'), ('ham', 'coda')]),
+    'n':  dict(word='nut',   ph=['n'],        at='onset',   kind='nasal',
+               alts=[('sun', 'coda'), ('van', 'coda')]),
     'o':  dict(word='dog',   ph=['0'],        at='nucleus', kind='vowel'),
     'p':  dict(word='pen',   ph=['p'],        at='onset',   kind='stop'),
     'q':  dict(word='queen', ph=['k', 'w'],   at='onset',   kind='stop'),
-    'r':  dict(word='rat',   ph=['r'],        at='onset',   kind='liquid'),
-    's':  dict(word='sun',   ph=['s'],        at='onset',   kind='sibilant', voiced=False),
+    'r':  dict(word='rat',   ph=['r'],        at='onset',   kind='liquid',
+               alts=[('rose', 'onset'), ('rabbit', 'onset')]),
+    's':  dict(word='sun',   ph=['s'],        at='onset',   kind='sibilant', voiced=False,
+               alts=[('bus', 'coda'), ('six', 'coda')]),
     't':  dict(word='tent',  ph=['t'],        at='onset',   kind='stop'),
     'u':  dict(word='cup',   ph=['V'],        at='nucleus', kind='vowel'),
-    'v':  dict(word='van',   ph=['v'],        at='onset',   kind='fric', voiced='buzz'),
+    'v':  dict(word='van',   ph=['v'],        at='onset',   kind='fric', voiced='buzz',
+               alts=[('five', 'coda')]),
     'w':  dict(word='web',   ph=['w'],        at='onset',   kind='glide'),
     'x':  dict(word='box',   ph=['k', 's'],   at='coda',    kind='sibilant', voiced=False),
     'y':  dict(word='yak',   ph=['j'],        at='onset',   kind='glide'),
@@ -73,14 +84,21 @@ LETTERS = {
     # lands in the vowel; on the least, in the devoiced start of the word, which
     # is why this used to come out as a second /s/ — a child cannot learn z from
     # a clip that measures like s.
-    'z':  dict(word='zoo',   ph=['z'],        at='onset',   kind='sibilant', voiced='buzz'),
+    'z':  dict(word='zoo',   ph=['z'],        at='onset',   kind='sibilant', voiced='buzz',
+               alts=[('zebra', 'onset'), ('roses', 'onset'), ('lazy', 'onset')]),
     # ck only ever ends a word, and a word-final stop is a click with nothing
     # after it to release into. It says exactly /k/, so it is cut from an onset.
     'ck': dict(word='kite',  ph=['k'],        at='onset',   kind='stop'),
-    'sh': dict(word='ship',  ph=['S'],        at='onset',   kind='sibilant', voiced=False),
+    'sh': dict(word='ship',  ph=['S'],        at='onset',   kind='sibilant', voiced=False,
+               alts=[('fish', 'coda')]),
     'ch': dict(word='chip',  ph=['t', 'S'],   at='onset',   kind='stop'),
-    'th': dict(word='thin',  ph=['T'],        at='onset',   kind='fric', voiced=False),
-    'ng': dict(word='king',  ph=['N'],        at='coda',    kind='nasal'),
+    'th': dict(word='thin',  ph=['T'],        at='onset',   kind='fric', voiced=False,
+               alts=[('teeth', 'coda'), ('thumb', 'onset')]),
+    # /ŋ/ only ever ends a word, so every carrier is a coda one; the search
+    # needs several to find a draw long enough to use as it stands.
+    'ng': dict(word='king',  ph=['N'],        at='coda',    kind='nasal',
+               alts=[('ring', 'coda'), ('song', 'coda'), ('wing', 'coda'),
+                     ('sing', 'coda'), ('long', 'coda')]),
     'wh': dict(word='web',   ph=['w'],        at='onset',   kind='glide'),
 }
 
@@ -94,9 +112,21 @@ IPA = {'a': ('a', 'æ'), 'E': ('ɛ', 'e'), 'I': ('ɪ',), '0': ('ɒ', 'ɔ'), 'V':
 def ipa(sym):
     return IPA.get(sym, (sym,))
 
-# How long the finished clip should be, and how it is shaped.
-HOLD = {'vowel': 0.30, 'nasal': 0.28, 'liquid': 0.28, 'fric': 0.28,
-        'sibilant': 0.30, 'glide': 0.22, 'breath': 0.22, 'stop': 0.0}
+# How long the finished clip should be, and how it is shaped. These are what
+# the search below aims for by slowing the carrier down, not by repeating a
+# fragment: /h/ is a puff of breath and cannot be held for a quarter of a
+# second however much you want it to.
+HOLD = {'vowel': 0.30, 'nasal': 0.26, 'liquid': 0.26, 'fric': 0.24,
+        'sibilant': 0.28, 'glide': 0.22, 'breath': 0.16, 'stop': 0.0}
+
+# Ask the model for the carrier word at these speeds. A phoneme is only as long
+# as the model makes it, and at 1.15 the /f/ of `fish` is forty milliseconds —
+# tiling that up to a quarter of a second is what a child heard as a wobble.
+SCALES = (1.15, 1.6, 2.2, 3.0, 4.0, 5.0)
+
+# How much of the finished clip may be the same fragment laid end to end. Above
+# about 1.5 the repeat is audible as a flutter, which is worse than a short clip.
+MAX_TILES = 1.55
 # Stops keep this much of the vowel after the burst — without it there is
 # nothing to hear; with more it turns into "buh".
 STOP_TAIL = 0.075
@@ -370,10 +400,14 @@ def envelope(a, sr, fade_in=0.008, fade_out=0.035):
     return a.astype(np.float32)
 
 
-def carve(audio, sr, spec, spans, stretch=1.0):
-    found = locate(spans, [ipa(p) for p in spec['ph']], spec['at'])
+def carve(audio, sr, spec, spans, stretch=1.0, word=None, at=None):
+    """Cut the phoneme out and shape it. Returns (clip, tiles, error) where
+    tiles is how many times longer the clip is than the audio it was cut
+    from — 1.0 means every sample is real, 3.0 means two thirds of what the
+    child hears is the same fragment played again."""
+    found = locate(spans, [ipa(p) for p in spec['ph']], at or spec['at'])
     if not found:
-        return None, 'phoneme %s not found in %s' % (spec['ph'], [p for p, _, _ in spans])
+        return None, 0, 'phoneme %s not found in %s' % (spec['ph'], [p for p, _, _ in spans])
     start, end, nxt = found
     kind = spec['kind']
 
@@ -381,27 +415,31 @@ def carve(audio, sr, spec, spans, stretch=1.0):
         # A stop is a closure and a release: on its own it is a click, and a
         # click is not something a child can copy. Keep the burst and a short
         # slice of what follows — enough to hear, too little to become "buh".
-        tail = int(sr * (0.02 if spec['at'] == 'coda' else STOP_TAIL) * stretch)
+        tail = int(sr * (0.02 if (at or spec['at']) == 'coda' else STOP_TAIL) * stretch)
         seg = audio[max(0, start - int(sr * 0.005)):min(len(audio), end + tail)]
         seg = trim(seg, sr)
-    else:
-        voiced = spec.get('voiced', kind in ('vowel', 'nasal', 'liquid', 'glide'))
-        s2, e2 = refine(audio, sr, start, end, voiced,
-                        grow_left=int(sr * 0.06), grow_right=int(sr * 0.16))
-        seg = audio[s2:e2]
-        if len(seg) < int(sr * 0.03):        # refinement found nothing usable
-            seg = audio[start:end]
-        seg = trim(seg, sr)
-        target = HOLD[kind] * stretch
-        cap = int(sr * (target + 0.12))      # never a drawn-out drone
-        if len(seg) > cap:
-            off = (len(seg) - cap) // 2
-            seg = seg[off:off + cap]
-        seg = hold(seg, sr, target, mirror=kind in ('fric', 'sibilant', 'breath'))
+        if not len(seg):
+            return None, 0, 'empty segment'
+        return envelope(seg, sr), 1.0, None
 
+    voiced = spec.get('voiced', kind in ('vowel', 'nasal', 'liquid', 'glide'))
+    s2, e2 = refine(audio, sr, start, end, voiced,
+                    grow_left=int(sr * 0.06), grow_right=int(sr * 0.16))
+    seg = audio[s2:e2]
+    if len(seg) < int(sr * 0.03):        # refinement found nothing usable
+        seg = audio[start:end]
+    seg = trim(seg, sr)
     if not len(seg):
-        return None, 'empty segment'
-    return envelope(seg, sr), None
+        return None, 0, 'empty segment'
+    source = len(seg)
+
+    target = HOLD[kind] * stretch
+    cap = int(sr * (target + 0.12))      # never a drawn-out drone
+    if len(seg) > cap:
+        off = (len(seg) - cap) // 2
+        seg = seg[off:off + cap]
+    seg = hold(seg, sr, target, mirror=kind in ('fric', 'sibilant', 'breath'))
+    return envelope(seg, sr), len(seg) / max(source, 1), None
 
 
 # ---------------------------------------------------------------- checking
@@ -432,7 +470,7 @@ def measure(a, sr):
     return dict(ms=1000.0 * n / sr, centroid=centroid, voicing=voiced, rms=rms, drift=drift)
 
 
-def check(key, kind, m, voiced=None, stretch=1.0):
+def check(key, kind, m, voiced=None, stretch=1.0, tiles=1.0):
     want = dict(CHECK[kind])
     if voiced is not None:
         want['voiced'] = voiced
@@ -453,6 +491,8 @@ def check(key, kind, m, voiced=None, stretch=1.0):
         bad.append('slides into the next sound, spectrum moves %.0f%%' % (100 * m['drift']))
     if m['rms'] < 0.04:
         bad.append('too quiet, rms %.3f' % m['rms'])
+    if kind != 'stop' and tiles > MAX_TILES:
+        bad.append('%.1fx repeats — a fragment laid end to end flutters' % tiles)
     return bad
 
 
@@ -486,37 +526,49 @@ def main():
     manifest, failures, total = {}, [], 0
     for key in sorted(LETTERS):
         spec = LETTERS[key]
-        row = {'word': spec['word']}
+        carriers = [(spec['word'], spec['at'])] + list(spec.get('alts', []))
+        row = {}
         for label, stretch in (('', 1.0), ('-slow', SLOW)):
-            # Keep drawing until the clip measures like the phoneme it is meant
-            # to be. A poor draw is a poor draw, not a fact about the letter.
-            best, bad, m = None, None, None
-            for attempt in range(TRIES):
-                seed(key + label, attempt)
-                audio, spans = say(voice, spec['word'], args.length_scale * stretch)
-                clip, err = carve(audio, sr, spec, spans, stretch)
-                if clip is None:
-                    bad = [err]
-                    continue
-                got = measure(clip, sr)
-                why = check(key, spec['kind'], got, spec.get('voiced'), stretch)
-                if best is None or len(why) < len(bad):
-                    best, bad, m = clip, why, got
-                if not why:
+            # Search for a take that measures like the phoneme AND is mostly
+            # real audio. A phoneme is only as long as the model makes it, so
+            # the search is over how slowly the carrier is spoken — and, for
+            # the sounds that are simply short where a word starts, over where
+            # in the word to take them from.
+            best = None                       # (score, clip, tiles, measure, word)
+            for word, at in carriers:
+                for scale in SCALES:
+                    for attempt in range(TRIES):
+                        seed('%s%s|%s|%.2f' % (key, label, word, scale), attempt)
+                        audio, spans = say(voice, word, args.length_scale * scale * stretch)
+                        clip, tiles, err = carve(audio, sr, spec, spans, stretch, word, at)
+                        if clip is None:
+                            continue
+                        got = measure(clip, sr)
+                        why = check(key, spec['kind'], got, spec.get('voiced'), stretch, tiles)
+                        score = (len(why), round(tiles, 2))
+                        if best is None or score < best[0]:
+                            best = (score, clip, tiles, got, word, why)
+                        if not why and tiles <= 1.15:
+                            break                      # all real audio; done
+                    if best and not best[5] and best[2] <= 1.15:
+                        break
+                if best and not best[5] and best[2] <= 1.15:
                     break
             if best is None:
-                failures.append('%s%s: %s' % (key, label, '; '.join(bad or ['nothing synthesised'])))
-                print('%-8s FAIL  %s' % (key + label, '; '.join(bad or ['nothing synthesised'])))
+                failures.append('%s%s: nothing synthesised' % (key, label))
+                print('%-8s FAIL  nothing synthesised' % (key + label))
                 continue
-            mp3 = to_mp3(best, sr, args.kbps)
+            _, clip, tiles, m, word, bad = best
+            mp3 = to_mp3(clip, sr, args.kbps)
             total += len(mp3)
             if not args.dry_run:
                 with open(os.path.join(OUT, key + label + '.mp3'), 'wb') as f:
                     f.write(mp3)
+            row['word'] = word if not label else row.get('word', word)
             row['ms' if not label else 'slowMs'] = round(m['ms'])
-            print('%-8s %-6s %-6s %4.0f ms  centroid %5.0f Hz  voicing %.2f  drift %.2f  %5d B  %s'
-                  % (key + label, spec['word'], spec['kind'], m['ms'], m['centroid'],
-                     m['voicing'], m['drift'], len(mp3), '; '.join(bad) if bad else 'ok'))
+            print('%-8s %-6s %-6s %4.0f ms  centroid %5.0f Hz  voicing %.2f  drift %.2f  %.1fx  %5d B  %s'
+                  % (key + label, word, spec['kind'], m['ms'], m['centroid'],
+                     m['voicing'], m['drift'], tiles, len(mp3), '; '.join(bad) if bad else 'ok'))
             if bad:
                 failures.append('%s%s (%s): %s' % (key, label, spec['kind'], '; '.join(bad)))
         manifest[key] = row

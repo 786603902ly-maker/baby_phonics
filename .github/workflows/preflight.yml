@@ -54,13 +54,16 @@ jobs:
             if (!/name="build"/.test(page)) { console.error("index.html has no build stamp"); process.exit(1); }
           '
 
-      # the service worker must precache exactly what is in dist/
+      # the service worker must precache exactly what is in dist/, and every
+      # script and clip must be asked for by the versioned URL it precaches —
+      # without that a new deploy takes three reloads to reach an installed app
       - name: check the offline manifest
         run: |
           node -e '
             const { readFileSync, readdirSync, statSync } = require("fs");
             const sw = readFileSync("dist/sw.js", "utf8");
-            const listed = new Set(JSON.parse(sw.match(/var ASSETS = (\[[\s\S]*?\]);/)[1]));
+            const listed = new Set(JSON.parse(sw.match(/var ASSETS = (\[[\s\S]*?\]);/)[1])
+              .map((u) => u.split("?")[0]));
             const walk = (d, base) => readdirSync(d).flatMap((f) => {
               const p = d + "/" + f;
               return statSync(p).isDirectory() ? walk(p, base + f + "/") : [base + f];
@@ -73,4 +76,16 @@ jobs:
               process.exit(1);
             }
             console.log(onDisk.length + " files shipped, all precached");
+            const page = readFileSync("dist/index.html", "utf8");
+            const v = (page.match(/window\.ASSET_V = .([0-9a-f]+)./) || [])[1];
+            if (!v) { console.error("index.html carries no ASSET_V"); process.exit(1); }
+            const unstamped = JSON.parse(sw.match(/var ASSETS = (\[[\s\S]*?\]);/)[1])
+              .filter((u) => /\.(js|mp3)$/.test(u));
+            if (unstamped.length) {
+              console.error(unstamped.length + " asset(s) precached without ?v=, so a deploy would not reach an installed app:");
+              unstamped.slice(0, 10).forEach((u) => console.error("  " + u));
+              process.exit(1);
+            }
+            if (!page.includes("app.js?v=" + v)) { console.error("index.html does not load app.js with the version stamp"); process.exit(1); }
+            console.log("assets stamped with version " + v);
           '

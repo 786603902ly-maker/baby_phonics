@@ -326,10 +326,17 @@
     return !!(window.LETTER_CLIPS && window.LETTER_CLIPS[letter]);
   };
 
+  /* Every audio URL carries the build's version, for the same reason the
+     scripts do: on the first load after a deploy the old service worker is
+     still answering, and it answers `a.mp3` from its own cache. A URL it has
+     never seen falls through to the network instead, so a new recording is
+     heard the first time rather than the third. */
+  function v() { return window.ASSET_V ? '?v=' + window.ASSET_V : ''; }
+
   /* Each letter ships twice: the everyday clip, and a slower reading used the
      first time the card introduces the sound. */
   function clipURL(letter, slow) {
-    return 'audio/letters/' + letter + (slow ? '-slow' : '') + '.mp3';
+    return 'audio/letters/' + letter + (slow ? '-slow' : '') + '.mp3' + v();
   }
 
   /* The key a piece of text is filed under: what is left of it once case and
@@ -342,7 +349,7 @@
 
   function speechFile(key) {
     var m = window.SPEECH_CLIPS;
-    return (m && m[key]) ? 'audio/speech/' + m[key] + '.mp3' : null;
+    return (m && m[key]) ? 'audio/speech/' + m[key] + '.mp3' + v() : null;
   }
 
   /* Play a shipped clip if there is one for this text; otherwise say it with
