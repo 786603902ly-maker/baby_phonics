@@ -50,7 +50,8 @@ LETTERS = {
     # start and is the same sound, so these may be cut from either. /l/ and /r/
     # may not: English coda /l/ is dark, and coda /r/ is not said at all here.
     'f':  dict(word='fish',  ph=['f'],        at='onset',   kind='fric', voiced=False,
-               alts=[('wolf', 'coda'), ('leaf', 'coda')]),
+               alts=[('safe', 'coda'), ('stuff', 'coda'), ('wolf', 'coda'),
+                     ('leaf', 'coda'), ('cliff', 'coda')]),
     'g':  dict(word='goat',  ph=['g'],        at='onset',   kind='stop'),
     # /h/ is the only sound here with no voicing rule: before a vowel it is
     # that vowel's shape breathed rather than voiced, so it comes out somewhere
@@ -125,6 +126,12 @@ HOLD = {'vowel': 0.30, 'nasal': 0.26, 'liquid': 0.26, 'fric': 0.24,
 # tiling that up to a quarter of a second is what a child heard as a wobble.
 SCALES = (1.15, 1.6, 2.2, 3.0, 4.0, 5.0)
 
+# A voiced fricative is a short sound — the voice and the friction fight each
+# other, and English does not hold /v/ or /z/ the way it holds /s/. The longest
+# clean take of either from this voice is about 165 ms, so asking for 280 was
+# asking for the difference to be padded with repeats. These are held less.
+HOLD_OVERRIDE = {'v': 0.18, 'z': 0.18}
+
 # How much of the finished clip may be the same fragment laid end to end. Above
 # about 1.5 the repeat is audible as a flutter, which is worse than a short clip.
 MAX_TILES = 1.55
@@ -148,29 +155,64 @@ SLOW = 1.35
 # measures 0.4 is a whisper of one, and letting it through is how the search
 # came back with a thin /w/ when a full one was available from `web`. The
 # floors are what make the search keep looking.
+# What each phoneme class must be, in terms of where its power sits: the
+# fraction below 1 kHz, and the fraction above 3 kHz. Every figure here was set
+# by measuring the letters that sounded right and checking that it rejects the
+# ones that did not:
+#
+#   /f/ measured 86% below 1 kHz and 11% above 3 kHz, where /θ/ — the same
+#   class, and correct — is 0% and 99%. That is not a voiceless fricative, it
+#   is a vowel tail with a little hiss on it, and it is why f buzzed.
+#   /v/ measured 100% below 1 kHz and 0% above 3: a hum with no friction at all.
+#   /z/ measured 0% below 1 kHz: no voice bar, so it was simply /s/ again.
+#   /l/ measured 82% below 1 kHz where /r/, correct, is 92%.
+#
+# `ideal` is what the search aims at. It does not reject anything; it decides
+# which of the takes that pass is the one to keep.
 CHECK = {
-    'vowel':    dict(centroid=(300, 2600),  voiced=True,  voiced_min=0.60),
-    'nasal':    dict(centroid=(150, 1900),  voiced=True,  voiced_min=0.60),
-    'liquid':   dict(centroid=(250, 2200),  voiced=True,  voiced_min=0.60),
-    'glide':    dict(centroid=(250, 2100),  voiced=True,  voiced_min=0.60),
+    'vowel':    dict(centroid=(300, 2600),  voiced=True,  voiced_min=0.60,
+                     lo=(0.60, 1.00), hi=(0.00, 0.06), ideal=dict(lo=0.90)),
+    'nasal':    dict(centroid=(150, 1900),  voiced=True,  voiced_min=0.60,
+                     lo=(0.92, 1.00), hi=(0.00, 0.03), ideal=dict(lo=0.99)),
+    'liquid':   dict(centroid=(250, 2200),  voiced=True,  voiced_min=0.60,
+                     lo=(0.85, 1.00), hi=(0.00, 0.05), ideal=dict(lo=0.94)),
+    'glide':    dict(centroid=(250, 2100),  voiced=True,  voiced_min=0.60,
+                     lo=(0.88, 1.00), hi=(0.00, 0.05), ideal=dict(lo=0.98)),
     'fric':     dict(centroid=(1200, 8000), voiced=None),
     'sibilant': dict(centroid=(2000, 9000), voiced=None),
-    'breath':   dict(centroid=(400, 5000),  voiced=None),
-    'stop':     dict(centroid=(400, 6500),  voiced=None),
+    'breath':   dict(centroid=(400, 5000),  voiced=None,
+                     hi=(0.12, 0.85), ideal=dict(hi=0.35)),
+    # A stop here is a burst released into a schwa, so what ships should look
+    # like the schwa: low and voiced. /t/ came back 38% below 1 kHz at
+    # periodicity 0.18 — the burst with the release missing — while every stop
+    # that sounded right measures around 98% and 0.88. Stops had no quality
+    # rule at all until this; they were passing on length alone.
+    'stop':     dict(centroid=(400, 6500),  voiced=None, min_voicing=0.55,
+                     lo=(0.70, 1.00), ideal=dict(lo=0.96)),
 }
-# A voiced sibilant has to buzz AND hiss: /z/ with the hiss missing measures
-# like a hum and teaches nothing that /s/ does not.
-BUZZ_MIN_CENTROID = {'sibilant': 3000}
 
-# A VOICELESS fricative is turbulence and nothing else, so its energy sits high.
-# A dull one is a take that did not really make the sound: synthesised on its
-# own, /θ/ came out at 2876 Hz where the /θ/ of `thin` measures 6616, and /ks/
-# at 3131 against 6867 from `box`. This floor is what sends the search back to
-# the word for those two.
-HISS_MIN_CENTROID = 3500
+# Fricatives split by voicing rather than by class: a voiceless one is
+# turbulence and nothing else, a voiced one is turbulence over a voice bar.
+FRICATION = {
+    ('fric', False):     dict(hi=(0.60, 1.00), ideal=dict(hi=0.95)),
+    ('sibilant', False): dict(hi=(0.75, 1.00), ideal=dict(hi=0.98)),
+    # /v/ and /z/ get a rule of their own, and it is a compromise this voice
+    # forces. Asked for either between two vowels, at six speeds, from ten
+    # carriers, it never once produced a take that both buzzed and hissed —
+    # the voice and the friction seem to exclude each other in this model. So
+    # the gate is on the feature that separates the sound from the one it
+    # would otherwise be mistaken for: /z/ that does not buzz is simply /s/,
+    # and /v/ that does not buzz is /f/. Friction stays in `ideal`, so the
+    # search still takes it where it can get it, but it cannot veto a /z/ that
+    # is at least audibly a /z/. A grown-up who wants better can record these
+    # two in Grown-ups -> Voice.
+    ('fric', 'buzz'):     dict(lo=(0.30, 1.00), min_voicing=0.55, ideal=dict(hi=0.30)),
+    ('sibilant', 'buzz'): dict(lo=(0.05, 0.98), min_voicing=0.55, ideal=dict(hi=0.55)),
+}
 
 MIN_MS, MAX_MS = 90, 620
-TRIES = 8              # the model samples noise; a bad draw is retried, not shipped
+TRIES = 5              # the model samples noise; a bad draw is retried, not shipped
+GOOD_ENOUGH = 0.05     # a take this close to the class ideal ends the search
 SR_REF = 22050          # every voice here is 22.05 kHz; used by periodicity()
 
 
@@ -493,7 +535,7 @@ def carve(audio, sr, spec, spans, stretch=1.0, word=None, at=None):
         return None, 0, 'empty segment'
     source = len(seg)
 
-    target = HOLD[kind] * stretch
+    target = HOLD_OVERRIDE.get(spec.get('key'), HOLD[kind]) * stretch
     cap = int(sr * (target + 0.12))      # never a drawn-out drone
     if len(seg) > cap:
         off = (len(seg) - cap) // 2
@@ -527,13 +569,44 @@ def measure(a, sr):
         return float((m * f).sum() / (m.sum() + 1e-9))
     early, late = cen(a[:third]), cen(a[-third:])
     drift = abs(late - early) / max(early, 1.0)
-    return dict(ms=1000.0 * n / sr, centroid=centroid, voicing=voiced, rms=rms, drift=drift)
+    # Where the power sits. This says more about what a sound IS than the
+    # centroid does: the centroid is magnitude-weighted, so a whisper of
+    # high-frequency noise drags it upwards and a clean nasal can read as
+    # bright. Power in bands does not do that.
+    power = spec ** 2
+    total = power.sum() + 1e-12
+    band = dict(lo=float(power[freq < 1000].sum() / total),
+                mid=float(power[(freq >= 1000) & (freq < 3000)].sum() / total),
+                hi=float(power[freq >= 3000].sum() / total))
+    return dict(ms=1000.0 * n / sr, centroid=centroid, voicing=voiced, rms=rms,
+                drift=drift, **band)
 
 
-def check(key, kind, m, voiced=None, stretch=1.0, tiles=1.0):
+def rules_for(kind, voiced):
     want = dict(CHECK[kind])
     if voiced is not None:
         want['voiced'] = voiced
+    extra = FRICATION.get((kind, want.get('voiced')))
+    if extra:
+        want = dict(want)
+        want.update({k: v for k, v in extra.items() if k != 'ideal'})
+        want['ideal'] = dict(want.get('ideal', {}), **extra.get('ideal', {}))
+    return want
+
+
+def distance(spec, m):
+    """How far a take sits from what its class ideally measures. Lower is
+    better; this is what picks between takes that all pass."""
+    want = rules_for(spec['kind'], spec.get('voiced'))
+    ideal = want.get('ideal') or {}
+    d = sum(abs(m[band] - target) for band, target in ideal.items())
+    if want.get('voiced') is True or want.get('min_voicing'):
+        d += max(0.0, 0.90 - m['voicing'])         # voiced sounds want full voice
+    return d
+
+
+def check(key, kind, m, voiced=None, stretch=1.0, tiles=1.0):
+    want = rules_for(kind, voiced)
     bad = []
     lo, hi = MIN_MS * stretch, MAX_MS * stretch
     if not (lo <= m['ms'] <= hi):
@@ -541,25 +614,27 @@ def check(key, kind, m, voiced=None, stretch=1.0, tiles=1.0):
     lo, hi = want['centroid']
     if not (lo <= m['centroid'] <= hi):
         bad.append('centroid %.0f Hz outside %d-%d' % (m['centroid'], lo, hi))
+    if want.get('min_voicing') and m['voicing'] < want['min_voicing']:
+        bad.append('too little voice, periodicity %.2f (needs %.2f)'
+                   % (m['voicing'], want['min_voicing']))
     floor = want.get('voiced_min', 0.30)
     if want['voiced'] is True and m['voicing'] < floor:
         bad.append('should be voiced, periodicity %.2f (needs %.2f)' % (m['voicing'], floor))
     if want['voiced'] is False:
         if m['voicing'] > 0.55:
             bad.append('should be voiceless, periodicity %.2f' % m['voicing'])
-        if kind in ('fric', 'sibilant') and m['centroid'] < HISS_MIN_CENTROID:
-            bad.append('too dull for a voiceless fricative, centroid %.0f Hz (needs %d)'
-                       % (m['centroid'], HISS_MIN_CENTROID))
     if want['voiced'] == 'buzz':
         if m['voicing'] < 0.40:
             bad.append('should buzz, periodicity %.2f' % m['voicing'])
-        lo2 = BUZZ_MIN_CENTROID.get(kind)
-        if lo2 and m['centroid'] < lo2:
-            bad.append('buzz without the hiss, centroid %.0f Hz (needs %d)' % (m['centroid'], lo2))
     if kind != 'stop' and m['drift'] > 0.50:
         bad.append('slides into the next sound, spectrum moves %.0f%%' % (100 * m['drift']))
     if m['rms'] < 0.04:
         bad.append('too quiet, rms %.3f' % m['rms'])
+    for band, nice in (('lo', 'below 1 kHz'), ('hi', 'above 3 kHz')):
+        span = want.get(band)
+        if span and not (span[0] <= m[band] <= span[1]):
+            bad.append('%.0f%% of its power is %s (needs %.0f-%.0f%%)'
+                       % (100 * m[band], nice, 100 * span[0], 100 * span[1]))
     if kind != 'stop' and tiles > MAX_TILES:
         bad.append('%.1fx repeats — a fragment laid end to end flutters' % tiles)
     return bad
@@ -599,6 +674,7 @@ def main():
     manifest, failures, total = {}, [], 0
     for key in sorted(LETTERS):
         spec = LETTERS[key]
+        spec['key'] = key
         spec['ipa_label'] = label_of(spec)
         # The sound itself first; the words are the fallback for the few that
         # the model will not produce cleanly on their own.
@@ -627,20 +703,25 @@ def main():
                             continue
                         got = measure(clip, sr)
                         why = check(key, spec['kind'], got, spec.get('voiced'), stretch, tiles)
-                        score = (len(why), round(tiles, 2))
+                        score = (len(why), round(distance(spec, got), 3), round(tiles, 2))
                         if best is None or score < best[0]:
-                            best = (score, clip, tiles, got, word or spec['ipa_label'], why)
-                        if not why and tiles <= 1.15:
-                            break                      # all real audio; done
-                    if best and not best[5] and best[2] <= 1.15:
+                            best = (score, clip, tiles, got, word or spec['ipa_label'], why, scale)
+                        # Stop only for a take that is close to the ideal, not
+                        # for the first one that scrapes through: several of
+                        # these letters were mediocre-but-passing draws that
+                        # ended the search before a better one was reached.
+                        if not why and best[0][1] <= GOOD_ENOUGH and tiles <= 1.15:
+                            break
+                    if best and not best[5] and best[0][1] <= GOOD_ENOUGH:
                         break
-                if best and not best[5] and best[2] <= 1.15:
+                if best and not best[5] and best[0][1] <= GOOD_ENOUGH:
                     break
+
             if best is None:
                 failures.append('%s%s: nothing synthesised' % (key, label))
                 print('%-8s FAIL  nothing synthesised' % (key + label))
                 continue
-            _, clip, tiles, m, word, bad = best
+            _, clip, tiles, m, word, bad, scale = best
             mp3 = to_mp3(clip, sr, args.kbps)
             total += len(mp3)
             if not args.dry_run:
@@ -648,9 +729,10 @@ def main():
                     f.write(mp3)
             row['word'] = word if not label else row.get('word', word)
             row['ms' if not label else 'slowMs'] = round(m['ms'])
-            print('%-8s %-6s %-6s %4.0f ms  centroid %5.0f Hz  voicing %.2f  drift %.2f  %.1fx  %5d B  %s'
-                  % (key + label, word, spec['kind'], m['ms'], m['centroid'],
-                     m['voicing'], m['drift'], tiles, len(mp3), '; '.join(bad) if bad else 'ok'))
+            print('%-8s %-7s %-8s x%.1f %4.0f ms  <1k %3.0f%%  >3k %3.0f%%  voi %.2f  %s'
+                  % (key + label, word, spec['kind'], scale, m['ms'],
+                     100 * m['lo'], 100 * m['hi'], m['voicing'],
+                     '; '.join(bad) if bad else 'ok'))
             if bad:
                 failures.append('%s%s (%s): %s' % (key, label, spec['kind'], '; '.join(bad)))
         manifest[key] = row

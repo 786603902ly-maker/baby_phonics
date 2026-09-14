@@ -301,8 +301,20 @@
     var gc = document.getElementById('gamecard');
     if (gc) gc.onclick = screenGames;
 
-    var next = document.querySelector('.stop.is-next');
-    if (next) setTimeout(function () { next.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 80);
+    /* Back to where she was, if she has been somewhere; otherwise to whatever
+       comes next. Coming back is positioned straight away rather than
+       animated, so there is no scroll down from the top to watch. */
+    var back = lastStop && document.querySelector('.stop[data-id="' + lastStop + '"]');
+    if (back) {
+      back.scrollIntoView({ block: 'center' });
+      /* again once the pictures have laid out, or the first attempt aims at
+         the wrong place and she lands near the bottom of the screen */
+      requestAnimationFrame(function () { back.scrollIntoView({ block: 'center' }); });
+    }
+    else {
+      var next = document.querySelector('.stop.is-next');
+      if (next) setTimeout(function () { next.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 80);
+    }
   }
 
   /* ==================================================================
@@ -671,8 +683,16 @@
      ================================================================== */
   var run = null;
   var sessionStart = 0;
+  /* The stop the child last walked into. Coming out of a letter, the map
+     should put her back where she was standing, not at the top of the path
+     and not at whatever the app thinks she should do next. */
+  var lastStop = null;
 
   function startLesson(lesson, mix) {
+    if (lesson && lesson.id) {
+      lastStop = lesson.id;
+      if (lesson.level) openLevel = lesson.level;
+    }
     var rounds = [];
     lesson.activities.forEach(function (a) {
       if (GEN[a.type]) rounds = rounds.concat(GEN[a.type](a, lesson));

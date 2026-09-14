@@ -71,6 +71,36 @@
 > taken from the end of *banana* and held. Each clip is seeded from its own
 > text, so a change to one word does not reroll the rest.
 >
+> ### Revision 11 — measure where the power is, not where the centroid is
+>
+> Nine letters reported wrong: e wobbled, f/h/x/z sounded electrical, k/l/m/v
+> were "not standard". Two findings.
+>
+> First, the spectral centroid I had been gating on all along is magnitude
+> weighted, so a whisper of high-frequency noise drags it up and a clean nasal
+> reads as bright. Power in bands does not do that, and it immediately showed
+> two clips to be broken rather than merely mediocre: /f/ had 86% of its power
+> below 1 kHz and 11% above 3 (where /θ/, correct, is 0% and 99%) — a vowel
+> tail with a little hiss on it, which is the buzz that was heard. /v/ had 100%
+> below 1 kHz and no friction at all. /z/ had no voice bar, so it was /s/.
+>
+> Second, the search stopped at the first take that passed, and the bands were
+> wide, so quality drifted between builds for no reason anyone could hear
+> coming. It now scores every take against the class ideal and keeps the best.
+> That alone moved /m/'s voicing from 0.68 to 0.92 and /l/ from 82% to 99%.
+>
+> Stops turned out to have had no quality rule at all — they passed on length.
+> /t/ was shipping as 38% low at periodicity 0.18, the burst with the release
+> missing, against 98% and 0.88 for every stop that sounded right.
+>
+> /v/ and /z/ are a documented compromise. Asked for either between two vowels,
+> at six speeds, from ten carriers, this voice never once produced a take that
+> both buzzed and hissed. The gate is therefore on voicing, which is what
+> separates /z/ from /s/ and /v/ from /f/; friction stays a preference.
+>
+> Also: coming out of a letter, the map returns to that letter rather than to
+> the top or to whatever the app thinks should be done next.
+>
 > ### Revision 10 — synthesise the symbol, not the word
 >
 > The report: the single-letter sounds are stiff and several are plain wrong,

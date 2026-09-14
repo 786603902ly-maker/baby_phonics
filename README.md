@@ -69,6 +69,17 @@ of two ways, and the generator picks whichever passes its checks:
 
 **Grown-ups → Voice** says which route each letter took.
 
+The generator does not keep the first take that passes — it scores every take
+against what its phoneme class ideally measures and keeps the best. Keeping the
+first was why quality drifted between builds: /m/ shipped once at voicing 0.68
+and once at 0.92, both "passing".
+
+Two sounds are a compromise worth knowing about. Asked for /v/ or /z/ between
+two vowels, at six speeds, from ten carriers, this voice never produced a take
+that both buzzed and hissed. Those two are therefore gated on voicing, which is
+what separates /z/ from /s/ and /v/ from /f/, with friction only preferred. If
+they matter, record them in **Grown-ups → Voice**.
+
 ### Why not download the official IPA recordings?
 
 It is the obvious idea and it does not give what it sounds like it gives. The
@@ -93,7 +104,14 @@ boundary against the audio itself, and shapes what it finds:
   A stop with no release is a click, and a click is not a sound a child can
   repeat; 75 ms is enough to hear and too little to become "buh".
 
-Every clip is then measured and has to pass four things: length, loudness,
+The decisive measurement is **where the sound puts its power** — the fraction
+below 1 kHz and the fraction above 3 kHz. A spectral centroid is magnitude
+weighted, so a whisper of high-frequency noise drags it upwards and a clean
+nasal can read as bright; power in bands does not do that. It is what showed
+that the /f/ being shipped had 86% of its power below 1 kHz where /θ/ has 0% —
+a vowel tail with a little hiss on it rather than a fricative.
+
+Every clip is then measured and has to pass: length, loudness, band profile,
 spectral centroid in the band its phoneme class requires, and voicing — /f/
 must be aperiodic, /m/ must have a pitch, /z/ must buzz or a child cannot tell
 it from /s/. A clip that fails fails the build, and the model is asked for
