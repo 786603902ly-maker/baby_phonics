@@ -179,7 +179,8 @@
     return new Promise(function (resolve) {
       if (A.muted || !window.speechSynthesis || !text) return resolve();
       var done = false;
-      function finish() { if (!done) { done = true; resolve(); } }
+      var began = Date.now();
+      function finish() { if (!done) { done = true; lastMs = Date.now() - began; resolve(); } }
       try { speechSynthesis.cancel(); } catch (e) { /* ignore */ }
       var u = new SpeechSynthesisUtterance(text);
       if (A.voice) { u.voice = A.voice; u.lang = A.voice.lang; }
@@ -250,6 +251,7 @@
   }
 
   var live = null;      /* the clip playing right now, so stop() can cut it */
+  var lastMs = 0;       /* how long the last thing took, for A.gap() */
 
   function playBuffer(buf) {
     return new Promise(function (resolve) {
@@ -267,7 +269,13 @@
         src.playbackRate.value = Math.max(0.85, Math.min(1.15, A.rate / 0.85));
         src.connect(g); g.connect(ctx.destination);
         var done = false;
-        function fin() { if (!done) { done = true; resolve(); } }
+        var began = Date.now();
+        function fin() {
+          if (done) return;
+          done = true;
+          lastMs = Date.now() - began;      /* what A.gap() sizes itself against */
+          resolve();
+        }
         src.onended = fin;
         live = src;
         src.start(0);
@@ -460,6 +468,23 @@
     try { if (live) live.stop(0); } catch (e) { /* already finished */ }
     live = null;
     queue = Promise.resolve();
+  };
+
+  /* A pause after whatever was just said, as a fraction of how long it took.
+
+     Proportional rather than fixed because the things being spaced are not the
+     same size: /m/ is a quarter of a second and `alligator` is nearly a whole
+     one, and a gap that suits one crowds the other. The letter card used to
+     run its five sounds back to back with no gap at all, which a four-year-old
+     hears as one hurried stream — she needs the silence to have a go herself.
+
+     Read at the moment the queue reaches it, so it measures the clip in front
+     of it and not whatever was playing when it was scheduled. */
+  A.gap = function (fraction) {
+    return enqueue(function () {
+      var f = fraction == null ? 0.4 : fraction;
+      return wait(Math.max(90, Math.min(900, Math.round((lastMs || 350) * f))));
+    });
   };
 
   /* A ticket for the run of audio happening now. A sequence that plays over

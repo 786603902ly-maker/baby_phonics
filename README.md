@@ -170,7 +170,16 @@ without changing whether they pass their checks.
 ### What the letter card says
 
 Opening a letter card plays the sound **once**, slowly, and then the four
-words, each as its sound and then the word: /f/ — *fish*, /f/ — *fan*. It used
+words, each as its sound and then the word: /f/ — *fish*, /f/ — *fan*.
+
+**With a beat between every one.** The five sounds used to run back to back
+with no silence at all, which a four-year-old hears as one hurried stream —
+she has not finished the first before the second arrives, and there is nowhere
+to try it herself. Each is now followed by a pause of 40% of its own length:
+proportional, because /m/ is a quarter of a second and *alligator* is nearly a
+whole one, and a fixed gap that suits one crowds the other. The card takes
+about 5.4 s instead of 4.1 s. **Grown-ups → Settings** moves it — the same
+control as the pause between questions, at 28% / 40% / 60%. It used
 to open with the letter's name and then the sound twice, which is three things
 before the first word; and for f, l, m, n, r, s, v and z the name contains the
 sound (*ef*, *el*, *em*, *en*, *ar*, *es*, *vee*, *zed*), so leading with the

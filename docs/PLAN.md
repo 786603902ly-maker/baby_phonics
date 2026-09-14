@@ -71,6 +71,15 @@
 > taken from the end of *banana* and held. Each clip is seeded from its own
 > text, so a change to one word does not reroll the rest.
 >
+> ### Revision 9 — room to copy
+>
+> With the clips finally right, the remaining complaint was rhythm: the letter
+> card's five sounds ran with no silence between them at all, so the first was
+> still in the air when the second started. Each is now followed by a pause of
+> 40% of its own length. Proportional, not fixed: the things being spaced range
+> from a 250 ms /m/ to a 715 ms `alligator`. The card goes from 4.1 s to 5.4 s,
+> and the existing pace setting moves the fraction (28 / 40 / 60%).
+>
 > ### Revision 8 — the wobble, and the deploy that took three reloads
 >
 > A parent reported the /æ/ clip "抖动了三次" — wobbling three times. It was

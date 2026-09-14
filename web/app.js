@@ -730,6 +730,11 @@
   var PAUSE = [500, 800, 1300];        // brisk, steady, slow
   function pause() { return PAUSE[S.settings.pace] || PAUSE[1]; }
 
+  /* And how much silence to leave between the sounds inside one letter card,
+     as a fraction of the sound just played. The same three settings move it. */
+  var GAP = [0.28, 0.40, 0.60];
+  function gap() { return GAP[S.settings.pace] || GAP[1]; }
+
   /* Move to the next question — but never before the last one has finished
      speaking. Advancing on a fixed timer is what made the app talk over
      itself: the praise and the word were still queued, so the child saw
@@ -1038,10 +1043,16 @@
     function sayLetter() {
       if (L.team) return A.sayPhoneme(r.letter);
       return A.sayLetterName(r.letter)
+        .then(function () { return A.gap(gap()); })
         .then(function () { return A.sayPhoneme(r.letter); });
     }
+    /* The sound, a beat, then the word: /m/ … monkey. The beat is what lets a
+       four-year-old hear the sound as its own thing rather than as the first
+       scrap of the word. */
     function sayKeyword(k) {
-      return A.sayPhoneme(r.letter).then(function () { return A.sayWord(word(k).text); });
+      return A.sayPhoneme(r.letter)
+        .then(function () { return A.gap(gap()); })
+        .then(function () { return A.sayWord(word(k).text); });
     }
 
     var top = document.getElementById('cardtop');
@@ -1070,13 +1081,16 @@
     setTimeout(function () {
       if (A.epoch() !== tok) return;
       introduce().then(function () {
-        var seq = Promise.resolve();
+        var seq = A.gap(gap());
         L.words.forEach(function (k, i) {
           seq = seq.then(function () {
             if (A.epoch() !== tok) return;
             var el = document.querySelector('.kw[data-i="' + i + '"]');
             if (el) { bump(el); el.classList.add('seen'); }
             return sayKeyword(k);
+          }).then(function () {
+            if (A.epoch() !== tok) return;
+            return A.gap(gap());
           });
         });
         return seq;
@@ -1457,7 +1471,7 @@
           ['Short &mdash; 0.5s', 'Steady &mdash; 0.8s', 'Long &mdash; 1.3s'].map(function (n, i) {
             return '<option value="' + i + '"' + (S.settings.pace === i ? ' selected' : '') + '>' + n + '</option>';
           }).join('') + '</select></label>' +
-        '<p class="hint">The next question never starts until the last one has finished speaking. This is the extra quiet on top of that.</p>' +
+        '<p class="hint">The next question never starts until the last one has finished speaking &mdash; this is the extra quiet on top of that. It also sets the silence between the sounds on a letter card, so she has room to copy each one before the next arrives.</p>' +
       '</div>' +
       '<div class="panel"><h3>Backup</h3>' +
         '<p class="hint">Stars and progress live in this browser and nowhere else. Two ways to keep a copy &mdash; the photo and any voice recordings stay on the device either way, they are too large to copy.</p>' +
