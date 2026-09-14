@@ -71,6 +71,33 @@
 > taken from the end of *banana* and held. Each clip is seeded from its own
 > text, so a change to one word does not reroll the rest.
 >
+> ### Revision 10 — synthesise the symbol, not the word
+>
+> The report: the single-letter sounds are stiff and several are plain wrong,
+> and since the card already shows the IPA, why not download official audio for
+> each symbol? Both halves deserved an answer.
+>
+> The wrong ones were wrong for a specific reason. A stop cut from a word keeps
+> the vowel it released into: /b/ from `ball` is a burst plus /ɔː/, so it reads
+> as "bore"; /d/ from `dog` reads as "daw". The card says /b/ and the app said
+> "bore". So the generator now hands the model the IPA symbol itself, with a
+> neutral schwa for the stops to release into, and only falls back to cutting
+> from a word where the symbol alone will not measure right. 15 of 32 go the
+> direct route, every stop among them.
+>
+> Official IPA audio was measured, not assumed. Wikipedia's chart recordings
+> (CC BY-SA, mirrored on GitHub, which is one of the few hosts this sandbox can
+> reach) are demonstration syllables: `Bilabial_nasal_m` is two vowel-centred
+> chunks of 600 and 730 ms — [ma ma] — and the /d/ and /f/ files have vowels
+> around them too. As a letter sound they would teach "ma-ma", in a male
+> phonetician's voice against a female voice for the words.
+>
+> The checks did the deciding. Making them say what each phoneme class must be
+> — a liquid or glide has to be properly voiced (0.60), a voiceless fricative
+> has to be bright (3500 Hz), a voiced sibilant has to buzz AND hiss — sent the
+> search back to the word for /l/, /r/, /w/, /θ/, /ks/ and /z/, where those
+> measure far better, and left the direct route where it wins.
+>
 > ### Revision 9 — room to copy
 >
 > With the clips finally right, the remaining complaint was rhythm: the letter

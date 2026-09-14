@@ -22,7 +22,7 @@ So each clip is cut out of a real word, spoken by a neural voice:
 
 Requires: piper-tts, onnx, lameenc, numpy.  Run: python3 tools/make-letter-audio.py
 """
-import argparse, hashlib, io, json, math, os, sys, tarfile, urllib.request, wave
+import argparse, hashlib, io, itertools, json, math, os, sys, tarfile, urllib.request, wave
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -85,7 +85,8 @@ LETTERS = {
     # is why this used to come out as a second /s/ — a child cannot learn z from
     # a clip that measures like s.
     'z':  dict(word='zoo',   ph=['z'],        at='onset',   kind='sibilant', voiced='buzz',
-               alts=[('zebra', 'onset'), ('roses', 'onset'), ('lazy', 'onset')]),
+               alts=[('zebra', 'onset'), ('roses', 'onset'), ('lazy', 'onset'),
+                     ('jazz', 'coda'), ('buzz', 'coda'), ('fizz', 'coda')]),
     # ck only ever ends a word, and a word-final stop is a click with nothing
     # after it to release into. It says exactly /k/, so it is cut from an onset.
     'ck': dict(word='kite',  ph=['k'],        at='onset',   kind='stop'),
@@ -139,16 +140,35 @@ SLOW = 1.35
 
 # What each phoneme class must look like acoustically. Spectral centroid in Hz,
 # and whether the vocal folds should be running.
+# What each phoneme class must look like acoustically. Spectral centroid in Hz,
+# and how strongly the vocal folds must be running.
+#
+# The voicing floors are deliberately high for the sounds that are nothing
+# without voice. /l/, /r/ and /w/ ARE voice shaped by the mouth: a take that
+# measures 0.4 is a whisper of one, and letting it through is how the search
+# came back with a thin /w/ when a full one was available from `web`. The
+# floors are what make the search keep looking.
 CHECK = {
-    'vowel':    dict(centroid=(300, 2600),  voiced=True),
-    'nasal':    dict(centroid=(150, 2000),  voiced=True),
-    'liquid':   dict(centroid=(250, 2600),  voiced=True),
-    'glide':    dict(centroid=(250, 3000),  voiced=True),
+    'vowel':    dict(centroid=(300, 2600),  voiced=True,  voiced_min=0.60),
+    'nasal':    dict(centroid=(150, 1900),  voiced=True,  voiced_min=0.60),
+    'liquid':   dict(centroid=(250, 2200),  voiced=True,  voiced_min=0.60),
+    'glide':    dict(centroid=(250, 2100),  voiced=True,  voiced_min=0.60),
     'fric':     dict(centroid=(1200, 8000), voiced=None),
     'sibilant': dict(centroid=(2000, 9000), voiced=None),
     'breath':   dict(centroid=(400, 5000),  voiced=None),
     'stop':     dict(centroid=(400, 6500),  voiced=None),
 }
+# A voiced sibilant has to buzz AND hiss: /z/ with the hiss missing measures
+# like a hum and teaches nothing that /s/ does not.
+BUZZ_MIN_CENTROID = {'sibilant': 3000}
+
+# A VOICELESS fricative is turbulence and nothing else, so its energy sits high.
+# A dull one is a take that did not really make the sound: synthesised on its
+# own, /θ/ came out at 2876 Hz where the /θ/ of `thin` measures 6616, and /ks/
+# at 3131 against 6867 from `box`. This floor is what sends the search back to
+# the word for those two.
+HISS_MIN_CENTROID = 3500
+
 MIN_MS, MAX_MS = 90, 620
 TRIES = 8              # the model samples noise; a bad draw is retried, not shipped
 SR_REF = 22050          # every voice here is 22.05 kHz; used by periodicity()
@@ -206,6 +226,46 @@ def say(voice, text, length_scale):
             at += int(a.num_samples)
         return chunk.audio_float_array, spans
     raise SystemExit('nothing synthesised for %r' % text)
+
+
+def say_phonemes(voice, phonemes, length_scale):
+    """Synthesise straight from IPA symbols, with no word around the sound to
+    colour it, and return the same (audio, spans) shape as say().
+
+    This is what the card's symbol actually names. Cutting /b/ out of `ball`
+    gives the burst plus a slice of /ɔː/, so it comes out as "bore"; cutting
+    /d/ out of `dog` gives "daw". A stop has to release into something —
+    silence leaves a click — but that something should be a neutral schwa, not
+    whichever vowel the carrier word happened to have."""
+    from piper.config import SynthesisConfig
+    ids = voice.phonemes_to_ids(list(phonemes))
+    cfg = SynthesisConfig(length_scale=length_scale, noise_scale=0.4,
+                          noise_w_scale=0.4, normalize_audio=True)
+    out = voice.phoneme_ids_to_audio(ids, cfg, include_alignments=True)
+    if not isinstance(out, tuple):
+        return None, None                       # this model cannot report timing
+    audio, per_id = out
+    audio = (audio / (np.max(np.abs(audio)) + 1e-9)).astype(np.float32)
+    pad = voice.config.phoneme_id_map.get('_', [])
+    spans, at, k = [], 0, 0
+    for ph in itertools.chain(['^'], phonemes, ['$']):
+        mine = voice.config.phoneme_id_map.get(ph, [])
+        check = list(mine) + list(pad) if ph != '$' else list(mine)
+        start = at
+        for _ in check:
+            if k >= len(per_id):
+                return None, None
+            at += int(per_id[k])
+            k += 1
+        spans.append((ph, start, at))
+    return audio, spans
+
+
+def frame_for(spec):
+    """The phoneme sequence to synthesise for a letter. A stop is given a schwa
+    to release into; everything else stands on its own."""
+    syms = [ipa(p)[0] for p in spec['ph']]
+    return syms + ['ə'] if spec['kind'] == 'stop' else syms
 
 
 def locate(spans, want, at):
@@ -481,12 +541,21 @@ def check(key, kind, m, voiced=None, stretch=1.0, tiles=1.0):
     lo, hi = want['centroid']
     if not (lo <= m['centroid'] <= hi):
         bad.append('centroid %.0f Hz outside %d-%d' % (m['centroid'], lo, hi))
-    if want['voiced'] is True and m['voicing'] < 0.30:
-        bad.append('should be voiced, periodicity %.2f' % m['voicing'])
-    if want['voiced'] is False and m['voicing'] > 0.55:
-        bad.append('should be voiceless, periodicity %.2f' % m['voicing'])
-    if want['voiced'] == 'buzz' and m['voicing'] < 0.40:
-        bad.append('should buzz, periodicity %.2f' % m['voicing'])
+    floor = want.get('voiced_min', 0.30)
+    if want['voiced'] is True and m['voicing'] < floor:
+        bad.append('should be voiced, periodicity %.2f (needs %.2f)' % (m['voicing'], floor))
+    if want['voiced'] is False:
+        if m['voicing'] > 0.55:
+            bad.append('should be voiceless, periodicity %.2f' % m['voicing'])
+        if kind in ('fric', 'sibilant') and m['centroid'] < HISS_MIN_CENTROID:
+            bad.append('too dull for a voiceless fricative, centroid %.0f Hz (needs %d)'
+                       % (m['centroid'], HISS_MIN_CENTROID))
+    if want['voiced'] == 'buzz':
+        if m['voicing'] < 0.40:
+            bad.append('should buzz, periodicity %.2f' % m['voicing'])
+        lo2 = BUZZ_MIN_CENTROID.get(kind)
+        if lo2 and m['centroid'] < lo2:
+            bad.append('buzz without the hiss, centroid %.0f Hz (needs %d)' % (m['centroid'], lo2))
     if kind != 'stop' and m['drift'] > 0.50:
         bad.append('slides into the next sound, spectrum moves %.0f%%' % (100 * m['drift']))
     if m['rms'] < 0.04:
@@ -509,6 +578,10 @@ def to_mp3(a, sr, kbps):
     return bytes(enc.encode(pcm)) + bytes(enc.flush())
 
 
+def label_of(spec):
+    return '/' + ''.join(ipa(p)[0] for p in spec['ph']) + '/'
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--voice', default=DEFAULT_VOICE)
@@ -526,7 +599,10 @@ def main():
     manifest, failures, total = {}, [], 0
     for key in sorted(LETTERS):
         spec = LETTERS[key]
-        carriers = [(spec['word'], spec['at'])] + list(spec.get('alts', []))
+        spec['ipa_label'] = label_of(spec)
+        # The sound itself first; the words are the fallback for the few that
+        # the model will not produce cleanly on their own.
+        carriers = [(None, spec['at'])] + [(spec['word'], spec['at'])] + list(spec.get('alts', []))
         row = {}
         for label, stretch in (('', 1.0), ('-slow', SLOW)):
             # Search for a take that measures like the phoneme AND is mostly
@@ -538,8 +614,14 @@ def main():
             for word, at in carriers:
                 for scale in SCALES:
                     for attempt in range(TRIES):
-                        seed('%s%s|%s|%.2f' % (key, label, word, scale), attempt)
-                        audio, spans = say(voice, word, args.length_scale * scale * stretch)
+                        seed('%s%s|%s|%.2f' % (key, label, word or 'ipa', scale), attempt)
+                        if word is None:
+                            audio, spans = say_phonemes(
+                                voice, frame_for(spec), args.length_scale * scale * stretch)
+                            if audio is None:
+                                break
+                        else:
+                            audio, spans = say(voice, word, args.length_scale * scale * stretch)
                         clip, tiles, err = carve(audio, sr, spec, spans, stretch, word, at)
                         if clip is None:
                             continue
@@ -547,7 +629,7 @@ def main():
                         why = check(key, spec['kind'], got, spec.get('voiced'), stretch, tiles)
                         score = (len(why), round(tiles, 2))
                         if best is None or score < best[0]:
-                            best = (score, clip, tiles, got, word, why)
+                            best = (score, clip, tiles, got, word or spec['ipa_label'], why)
                         if not why and tiles <= 1.15:
                             break                      # all real audio; done
                     if best and not best[5] and best[2] <= 1.15:
@@ -582,15 +664,17 @@ def main():
     if not args.dry_run:
         with open(MANIFEST, 'w') as f:
             f.write('/* letter-clips.js — GENERATED by tools/make-letter-audio.py. Do not edit.\n'
-                    '   Which letter sounds ship as audio, and the word each one was cut out\n'
-                    '   of. The clips are audio/letters/<key>.mp3, with a slower take of the\n'
-                    '   same sound at <key>-slow.mp3 for the first, teaching reading.\n'
+                    '   Which letter sounds ship as audio, and where each came from: an IPA\n'
+                    '   symbol in slashes means the sound was synthesised from the symbol on\n'
+                    '   the card, a word means it was cut out of that word.\n'
+                    '   The clips are audio/letters/<key>.mp3, with a slower take of the same\n'
+                    '   sound at <key>-slow.mp3 for the first, teaching reading.\n'
                     '   Voice: %s (Piper), trained on public-domain LibriVox recordings. */\n'
                     % args.voice)
             f.write('window.LETTER_CLIPS = {\n')
             for k in sorted(manifest):
                 r = manifest[k]
-                f.write("  '%s': { word: '%s', ms: %d, slowMs: %d },\n"
+                f.write("  '%s': { from: '%s', ms: %d, slowMs: %d },\n"
                         % (k, r['word'], r.get('ms', 0), r.get('slowMs', 0)))
             f.write('};\n')
         print('wrote', MANIFEST)

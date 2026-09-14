@@ -53,10 +53,33 @@ Browser speech synthesis cannot say a bare letter sound — ask it for /k/ and
 it says "kuh", ask it for the vowel in *cat* and it gives you /ɑː/, the vowel
 in *car*. Both teach the wrong thing.
 
-So the letter sounds are **not** spoken by the browser, and they are not built
-out of phoneme symbols either. Each one is **cut out of a real word**: the
-clip for `b` is the /b/ of *ball*, the clip for `a` is the /æ/ of *cat*. That
-is the sound the child has to hear — the sound the letter makes inside a word.
+So the letter sounds are **not** spoken by the browser. Each clip is made one
+of two ways, and the generator picks whichever passes its checks:
+
+- **From the IPA symbol printed on the card.** Where a sound stands on its own
+  — /b/, /k/, /s/, /ɛ/ — the model is handed the symbol and nothing else. This
+  is the right route for the stops in particular: cutting /b/ out of *ball*
+  gives the burst plus a slice of /ɔː/, so it comes out as "bore", and /d/ out
+  of *dog* comes out as "daw". A stop must release into *something* — silence
+  leaves a click — but that something should be a neutral schwa, not whichever
+  vowel the carrier word happened to have. 15 of the 32 go this way.
+- **Cut out of a real word**, for the 17 that the model will not produce
+  cleanly on their own: the `a` is the /æ/ of *cat*, the `w` is the /w/ of
+  *web*, the `f` is the /f/ of *wolf*.
+
+**Grown-ups → Voice** says which route each letter took.
+
+### Why not download the official IPA recordings?
+
+It is the obvious idea and it does not give what it sounds like it gives. The
+recordings on the IPA charts and on Wikipedia are demonstrations of a symbol,
+not isolated sounds. Decoded and measured, Wikipedia's `Bilabial_nasal_m` is
+two vowel-centred syllables of ~600 and ~730 ms — [ma ma], not /m/;
+`Voiced_alveolar_plosive_d` is three chunks, a vowel either side of the stop;
+`Voiceless_labio-dental_fricative_f` is four. Played to a child as "the sound
+m makes", they say *ma-ma*. They are also an adult male phonetician in a dry
+studio, which next to the British voice saying *monkey* is the two-voices
+problem this app already had once.
 
 `tools/make-letter-audio.py` synthesises the carrier word with a British
 neural voice (Piper, `en_GB-cori-medium`, trained on public-domain LibriVox

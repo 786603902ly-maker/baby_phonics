@@ -1398,7 +1398,7 @@
     document.getElementById('ptab').innerHTML =
       '<div class="panel">' +
         '<h3>Do I need to record anything?</h3>' +
-        '<p class="hint"><b>No.</b> Every letter sound plays from a clip that was cut out of a real word: the <b>b</b> below is the <b>b</b> of <i>ball</i>, the <b>a</b> is the <b>a</b> of <i>cat</i>. They are spoken by a British neural voice, not assembled from phoneme symbols, so they sound like a person saying the sound rather than a machine spelling it out.</p>' +
+        '<p class="hint"><b>No.</b> Every letter sound ships as a clip, spoken by one British voice. Where the sound stands on its own &mdash; /b/, /k/, /s/ &mdash; it is made from the symbol printed on the card. Where it does not, it is cut out of a real word: the <b>a</b> below is the <b>a</b> of <i>cat</i>, the <b>w</b> is the <b>w</b> of <i>web</i>. Each row says which.</p>' +
         '<p class="hint">Tap <b>&#9654;</b> on any row to hear it. Recording over one in your own voice is optional &mdash; worth doing only for a sound she keeps mishearing.</p>' +
         '<p class="hint">The words, the sentences and the stories are the same voice: every one of them ships with the app as a recording, so nothing depends on which voices this device happens to have. Only a line with her name in it is spoken by the device.</p>' +
         '<p class="stat"><b>' + A.recordingCount() + '</b> clips recorded' + (can ? '' : ' &middot; <span class="warn">this browser will not give the page a microphone</span>') + '</p>' +
@@ -1413,8 +1413,10 @@
         ' replaced by your voice &mdash; optional</small></h3>' +
         '<div class="vlist">' + keys.map(function (l) {
           var clip = (window.LETTER_CLIPS || {})[l];
-          return row('p:' + l, glyph(l) + '  ' + C.sound(l).ipa,
-            clip ? 'the sound in ' + clip.word : 'device voice');
+          var src = !clip ? 'device voice'
+            : clip.from.charAt(0) === '/' ? 'the sound on its own'
+            : 'the sound in ' + clip.from;
+          return row('p:' + l, glyph(l) + '  ' + C.sound(l).ipa, src);
         }).join('') + '</div>' +
       '</div>';
 
