@@ -74,6 +74,33 @@ export const SERVABLE = ['index.html', ...SCRIPTS, ...STATIC, ...AUDIO, 'sw.js']
   }
 }
 
+/* ----------------------------- the clip says what the card says it says
+   Grown-ups -> Voice prints each letter's clip next to the IPA on its card,
+   and the letter card prints that IPA as the thing to copy. If the two drift
+   apart the app is showing one sound and playing another, which is the whole
+   failure this project keeps coming back to — silently, because both halves
+   look fine on their own. */
+{
+  const win = {};
+  new Function('window', readFileSync(join(web, 'letter-clips.js'), 'utf8'))(win);
+  new Function('window', readFileSync(join(web, 'content.js'), 'utf8'))(win);
+  const C = win.CONTENT;
+  const wrong = [];
+  for (const [key, clip] of Object.entries(win.LETTER_CLIPS || {})) {
+    const card = C && C.sound(key);
+    if (!card) continue;                       // a clip for something not on a card
+    if (clip.from.charAt(0) === '/' && clip.from !== card.ipa) {
+      wrong.push(key + ': card says ' + card.ipa + ', clip is labelled ' + clip.from);
+    }
+  }
+  if (wrong.length) {
+    console.error('\n' + wrong.length + ' letter clip(s) disagree with their card:');
+    wrong.forEach((w) => console.error('  ' + w));
+    console.error('\nRun: python3 tools/make-letter-audio.py\n');
+    process.exit(1);
+  }
+}
+
 /* --------------------------------------------------------------- version
    A hash of everything shipped. It names the service worker's cache, and it
    is stamped onto every script and audio URL.

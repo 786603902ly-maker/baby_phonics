@@ -5,10 +5,25 @@ Why this exists
 ---------------
 A letter's phonic sound is not its name. `b` is not "bee" and not "buh"; it is
 the sound that starts `ball`. Browser speech synthesis cannot say a bare
-phoneme at all, and the espeak-ng clips this tool replaces were worse than
-nothing for the stops: /b/ was a 50 ms click, /d/ 80 ms, /k/ mostly silence.
+phoneme at all, and the espeak-ng clips this tool first replaced were worse
+than nothing for the stops: /b/ was a 50 ms click, /d/ 80 ms, /k/ mostly
+silence.
 
-So each clip is cut out of a real word, spoken by a neural voice:
+Where the sounds come from now
+------------------------------
+Two routes, and the first one is the one that matters.
+
+**Recorded.** The 26 single-letter sounds are recordings of a reading teacher
+saying each phoneme on its own — no carrier word, no synthesis, no cutting.
+They live in audio-src/letters/ and this tool only trims, levels and shapes
+them (see build_recorded). Everything a synthesiser had to be argued into
+doing, a person does without being asked: /z/ arrives with a voice bar AND
+frication (86% of its power below 1 kHz at periodicity 0.75), which is the
+combination this project spent three rounds failing to get out of a model.
+
+**Synthesised.** Only the four digraphs with no recording — sh, ch, th, ng —
+are still built the old way, by cutting the phoneme out of a carrier word
+spoken by a Piper VITS voice:
 
   1. synthesise the carrier word (`ball`) with a Piper VITS voice, asking the
      model for its own phoneme/audio alignment — these are the durations the
@@ -20,9 +35,16 @@ So each clip is cut out of a real word, spoken by a neural voice:
   4. check it: every clip is measured against the acoustic signature its
      phoneme class must have (see check()), and the build fails if one is off.
 
-Requires: piper-tts, onnx, lameenc, numpy.  Run: python3 tools/make-letter-audio.py
+ck and wh have no recording of their own and need none: ck is exactly /k/ and
+wh, in this accent, is exactly /w/, so both reuse the recording of the letter
+they sound like.
+
+Requires: lameenc, numpy, imageio-ffmpeg for the recorded route; piper-tts and
+onnx as well if the four synthesised digraphs are being rebuilt.
+Run: python3 tools/make-letter-audio.py
 """
-import argparse, hashlib, io, itertools, json, math, os, sys, tarfile, urllib.request, wave
+import argparse, hashlib, io, itertools, json, math, os, subprocess, sys, tarfile, \
+       urllib.request, wave
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -109,8 +131,11 @@ LETTERS = {
 # Some symbols differ between voices, because each was trained against its own
 # espeak variant: cori's TRAP vowel comes out as 'a', alba's as 'æ'. Where that
 # happens both spellings are listed and either will match.
-IPA = {'a': ('a', 'æ'), 'E': ('ɛ', 'e'), 'I': ('ɪ',), '0': ('ɒ', 'ɔ'), 'V': ('ʌ', 'ɐ'),
-       'g': ('ɡ', 'g'), 'Z': ('ʒ',), 'S': ('ʃ',), 'T': ('θ',), 'N': ('ŋ',), 'r': ('ɹ', 'r')}
+# The first spelling is the one printed on the letter card, because it is also
+# what the manifest labels the clip with and the two must agree; the rest are
+# the other spellings espeak may hand back for the same sound.
+IPA = {'a': ('æ', 'a'), 'E': ('e', 'ɛ'), 'I': ('ɪ',), '0': ('ɒ', 'ɔ'), 'V': ('ʌ', 'ɐ'),
+       'g': ('ɡ', 'g'), 'Z': ('ʒ',), 'S': ('ʃ',), 'T': ('θ',), 'N': ('ŋ',), 'r': ('r', 'ɹ')}
 def ipa(sym):
     return IPA.get(sym, (sym,))
 
@@ -213,6 +238,78 @@ FRICATION = {
 MIN_MS, MAX_MS = 90, 620
 TRIES = 5              # the model samples noise; a bad draw is retried, not shipped
 GOOD_ENOUGH = 0.05     # a take this close to the class ideal ends the search
+
+
+# ------------------------------------------------------- the recorded sounds
+# audio-src/letters/<key>.mp3, one file per sound, each a person saying that
+# phoneme on its own. Two keys have no file and need none:
+#   ck  is /k/ — the digraph never says anything else, so it reuses k
+#   wh  is /w/ in this accent, so it reuses w
+RECORDED_DIR = os.path.join(ROOT, 'audio-src', 'letters')
+# The sources are 44.1 kHz stereo; the app ships 22.05 kHz mono, which is what
+# every other clip in it already is and is above twice the top of the band any
+# of these sounds occupies.
+RECORDED_SR = 22050
+RECORDED = dict((k, k) for k in 'abcdefghijklmnopqrstuvwxyz')
+RECORDED['ck'] = 'k'
+RECORDED['wh'] = 'w'
+
+# A recording is left as it was made except for its length. A teacher
+# demonstrating /w/ holds it for 1.19 s, which is right in front of a class and
+# wrong in a sequence where the sound is followed straight away by four words.
+# Anything longer than this is brought down to it, and the unhurried take is
+# 1.35x longer again, up to a ceiling of its own.
+#
+# Both go through the time stretcher rather than through a splice. Cutting a
+# slice out of the middle of a held sound and crossfading the join is free in
+# principle and expensive in fact: the two sides meet at whatever phase they
+# happen to be at, and the cancellation at the seam is measurable — spliced
+# this way /l/ fell from 0.86 periodicity to 0.65 and /w/ from 0.86 to 0.78.
+# The whole point of these clips is that they are not damaged.
+#
+# Only single steady sounds are stretched. /kw/, /ks/ and /dʒ/ are two sounds
+# in a row, and a stop is a burst with nothing in it to hold.
+# 0.70 is not a taste: below it the stretch needed to reach the ceiling is
+# large enough that the guard in to_length rejects it for /v/, /y/ and /z/,
+# and the set comes out at 500 ms for most sounds and 950 for three.
+RECORDED_MAX = 0.70
+RECORDED_SLOW_MAX = 0.95
+# Below this much change there is nothing to gain, so the clip is reused as it
+# is rather than run through the stretcher for a difference nobody can hear.
+RECORDED_MIN_FACTOR = 1.05
+# How much a stretch may move the sound before the length stops being worth it.
+# Total movement of the two power bands, and how much voicing it may cost.
+STRETCH_DRIFT = 0.08
+STRETCH_DEVOICE = 0.12
+STEADY = ('vowel', 'nasal', 'liquid', 'glide', 'fric', 'sibilant')
+
+# What a recording has to look like to be the sound it claims to be. These are
+# deliberately loose: the point is to catch a file that is missing, truncated,
+# or simply not the sound its name says — not to re-judge a human being.
+RECORDED_CHECK = {
+    'voiced':    ('voicing', 0.55, None),    # vocal folds running
+    'voiceless': ('voicing', None, 0.45),    # and not
+    'sibilant':  ('hi', 0.70, None),         # power above 3 kHz
+    # Nasals, liquids and glides are almost all below 1 kHz. Vowels are not:
+    # the second formant of /ae/ sits near 1.8 kHz, so 63% below 1 kHz is what
+    # a correct /ae/ looks like and a "vowels are low" rule fails it.
+    'low':       ('lo', 0.85, None),
+}
+RECORDED_WANT = {
+    'a': ('voiced',), 'b': ('voiced',), 'c': ('voiceless',), 'd': ('voiced',),
+    'e': ('voiced',), 'f': ('voiceless',), 'g': ('voiced',), 'h': ('voiceless',),
+    'i': ('voiced',), 'j': ('voiced',), 'k': ('voiceless',), 'l': ('voiced', 'low'),
+    'm': ('voiced', 'low'), 'n': ('voiced', 'low'), 'o': ('voiced',), 'p': ('voiceless',),
+    'q': ('voiced',), 'r': ('voiced', 'low'), 's': ('voiceless', 'sibilant'),
+    't': ('voiceless',), 'u': ('voiced',), 'v': ('voiced',), 'w': ('voiced', 'low'),
+    'x': ('voiceless', 'sibilant'), 'y': ('voiced', 'low'), 'z': ('voiced',),
+    'ck': ('voiceless',), 'wh': ('voiced', 'low'),
+}
+# The five voiced/voiceless pairs, which is the test that actually proves the
+# files are not shuffled: /f/ and /v/ are the same mouth, and the only thing
+# telling them apart is whether the voice is on.
+CONTRAST = (('f', 'v'), ('s', 'z'), ('t', 'd'), ('p', 'b'), ('k', 'g'))
+CONTRAST_MIN = 0.25
 SR_REF = 22050          # every voice here is 22.05 kHz; used by periodicity()
 
 
@@ -640,6 +737,100 @@ def check(key, kind, m, voiced=None, stretch=1.0, tiles=1.0):
     return bad
 
 
+# ------------------------------------------------------- the recorded route
+def ffmpeg_exe():
+    import imageio_ffmpeg
+    return imageio_ffmpeg.get_ffmpeg_exe()
+
+
+def decode(path, sr):
+    """Read any audio file as mono float at `sr`, with the DC offset removed."""
+    out = subprocess.run(
+        [ffmpeg_exe(), '-v', 'error', '-i', path, '-f', 's16le', '-ac', '1',
+         '-ar', str(sr), '-'], capture_output=True)
+    if out.returncode or not out.stdout:
+        raise RuntimeError('cannot decode %s: %s' % (path, out.stderr.decode()[-200:]))
+    a = np.frombuffer(out.stdout, '<i2').astype(np.float32) / 32768.0
+    return a - a.mean()
+
+
+def time_stretch(a, sr, factor, transients='smooth'):
+    """Change the sound's length by `factor` without moving its pitch.
+
+    Which transient setting matters more than it looks. `crisp` resets the
+    phase at every detected attack, which is what keeps a burst a burst: on
+    /t/ and /k/ the smooth setting smears the one event the sound consists of.
+    On a held vowel there is no attack to protect and those phase resets are
+    damage — /æ/ stretched with `crisp` came out with 34% of its power below
+    1 kHz where the recording has 63%, i.e. a different vowel."""
+    raw = (np.clip(a, -1, 1) * 32767).astype('<i2').tobytes()
+    out = subprocess.run(
+        [ffmpeg_exe(), '-v', 'error', '-f', 's16le', '-ac', '1', '-ar', str(sr),
+         '-i', '-', '-af', 'rubberband=tempo=%.4f:transients=%s:pitchq=quality'
+         % (1.0 / factor, transients),
+         '-f', 's16le', '-ac', '1', '-ar', str(sr), '-'],
+        input=raw, capture_output=True)
+    if out.returncode or not out.stdout:
+        return a
+    return np.frombuffer(out.stdout, '<i2').astype(np.float32) / 32768.0
+
+
+def check_recorded(key, m):
+    """Is this recording the sound it says it is? See RECORDED_CHECK."""
+    bad = []
+    for want in RECORDED_WANT.get(key, ()):
+        field, floor, ceil = RECORDED_CHECK[want]
+        got = m[field]
+        if floor is not None and got < floor:
+            bad.append('not %s enough: %s %.2f (needs %.2f+)' % (want, field, got, floor))
+        if ceil is not None and got > ceil:
+            bad.append('too voiced for %s: %s %.2f (needs %.2f-)' % (want, field, got, ceil))
+    if not (0.10 <= m['ms'] / 1000.0 <= 1.30):
+        bad.append('%.0f ms is not a phoneme' % m['ms'])
+    if m['rms'] < 0.04:
+        bad.append('too quiet, rms %.3f' % m['rms'])
+    return bad
+
+
+def build_recorded(key, spec, sr):
+    """Turn one recording into the two clips the app plays.
+
+    Trim the silence either side, take the slack out of a very long hold, level
+    it, and fade the edges so there is no click. Then the unhurried take: a
+    steady sound is simply held longer, a stop is time-stretched because there
+    is nothing in it to hold."""
+    a = decode(os.path.join(RECORDED_DIR, RECORDED[key] + '.mp3'), sr)
+    a = trim(a, sr, floor=0.008)
+    steady = spec['kind'] in STEADY and len(spec['ph']) == 1
+
+    mode = 'smooth' if steady else 'crisp'
+
+    def to_length(x, seconds):
+        """Stretch to `seconds` — but only if it leaves the sound alone.
+
+        A time stretcher is not free on every sound. Stretched, /æ/ moved from
+        63% of its power below 1 kHz to 51%, which is a different vowel, and
+        /z/ lost a third of its voicing, which is what separates it from /s/.
+        Where that happens the length is not worth having and the recording is
+        kept as it was made."""
+        factor = seconds / (len(x) / float(sr))
+        if abs(factor - 1.0) < RECORDED_MIN_FACTOR - 1.0:
+            return x
+        out = time_stretch(x, sr, factor, mode)
+        was, now = measure(x, sr), measure(out, sr)
+        moved = abs(now['lo'] - was['lo']) + abs(now['hi'] - was['hi'])
+        if moved > STRETCH_DRIFT or was['voicing'] - now['voicing'] > STRETCH_DEVOICE:
+            return x
+        return out
+
+    if steady:
+        a = to_length(a, min(RECORDED_MAX, len(a) / float(sr)))
+    fast = envelope(a, sr)
+    slow = to_length(a, min(RECORDED_SLOW_MAX, SLOW * len(a) / float(sr))) if steady \
+        else time_stretch(a, sr, SLOW, mode)
+    return fast, envelope(slow, sr)
+
+
 # ---------------------------------------------------------------- output
 def to_mp3(a, sr, kbps):
     import lameenc
@@ -666,20 +857,54 @@ def main():
     ap.add_argument('--dry-run', action='store_true', help='measure only, write nothing')
     args = ap.parse_args()
 
-    voice = get_voice(args.voice)
-    sr = voice.config.sample_rate
+    # The voice model is a 67 MB download and only the four synthesised
+    # digraphs need it, so it is not loaded until one of them comes round.
+    voice = sr = None
+
     if not args.dry_run:
         os.makedirs(OUT, exist_ok=True)
 
-    manifest, failures, total = {}, [], 0
+    manifest, failures, total, measured = {}, [], 0, {}
     for key in sorted(LETTERS):
         spec = LETTERS[key]
         spec['key'] = key
         spec['ipa_label'] = label_of(spec)
+
+        if key in RECORDED:
+            try:
+                fast, slow = build_recorded(key, spec, RECORDED_SR)
+            except Exception as exc:                       # a missing or unreadable file
+                failures.append('%s: %s' % (key, exc))
+                print('%-8s FAIL  %s' % (key, exc))
+                continue
+            row = {'word': spec['ipa_label'], 'rec': True}
+            for label, clip in (('', fast), ('-slow', slow)):
+                m = measure(clip, RECORDED_SR)
+                bad = check_recorded(key, m) if not label else []
+                if not label:
+                    measured[key] = m
+                mp3 = to_mp3(clip, RECORDED_SR, args.kbps)
+                total += len(mp3)
+                if not args.dry_run:
+                    with open(os.path.join(OUT, key + label + '.mp3'), 'wb') as f:
+                        f.write(mp3)
+                row['ms' if not label else 'slowMs'] = round(m['ms'])
+                print('%-8s %-7s %-8s rec  %4.0f ms  <1k %3.0f%%  >3k %3.0f%%  voi %.2f  %s'
+                      % (key + label, RECORDED[key], spec['kind'], m['ms'],
+                         100 * m['lo'], 100 * m['hi'], m['voicing'],
+                         '; '.join(bad) if bad else 'ok'))
+                if bad:
+                    failures.append('%s%s: %s' % (key, label, '; '.join(bad)))
+            manifest[key] = row
+            continue
+
+        if voice is None:
+            voice = get_voice(args.voice)
+            sr = voice.config.sample_rate
         # The sound itself first; the words are the fallback for the few that
         # the model will not produce cleanly on their own.
         carriers = [(None, spec['at'])] + [(spec['word'], spec['at'])] + list(spec.get('alts', []))
-        row = {}
+        row, quick = {}, None
         for label, stretch in (('', 1.0), ('-slow', SLOW)):
             # Search for a take that measures like the phoneme AND is mostly
             # real audio. A phoneme is only as long as the model makes it, so
@@ -722,6 +947,17 @@ def main():
                 print('%-8s FAIL  nothing synthesised' % (key + label))
                 continue
             _, clip, tiles, m, word, bad, scale = best
+            # The unhurried take has to be the longer of the two. The search
+            # picks each independently, and it can land on a slow draw that is
+            # shorter than the everyday one — /tʃ/ came back 389 ms fast and
+            # 299 ms "slow". Where that happens the everyday clip is stretched
+            # instead, which is at least honestly slower.
+            if label and quick is not None and len(clip) <= len(quick):
+                clip = time_stretch(quick, sr, SLOW, 'smooth')
+                m = measure(clip, sr)
+                bad = check(key, spec['kind'], m, spec.get('voiced'), SLOW, 1.0)
+            if not label:
+                quick = clip
             mp3 = to_mp3(clip, sr, args.kbps)
             total += len(mp3)
             if not args.dry_run:
@@ -737,6 +973,19 @@ def main():
                 failures.append('%s%s (%s): %s' % (key, label, spec['kind'], '; '.join(bad)))
         manifest[key] = row
 
+    # Five pairs made with the same mouth, told apart only by whether the voice
+    # is running. If a recording had been filed under the wrong letter this is
+    # what would catch it; nothing else here would.
+    print()
+    for quiet, loud in CONTRAST:
+        if quiet in measured and loud in measured:
+            gap = measured[loud]['voicing'] - measured[quiet]['voicing']
+            print('%s/%s  voicing %.2f vs %.2f  %s'
+                  % (quiet, loud, measured[quiet]['voicing'], measured[loud]['voicing'],
+                     'ok' if gap >= CONTRAST_MIN else 'TOO CLOSE'))
+            if gap < CONTRAST_MIN:
+                failures.append('/%s/ and /%s/ measure alike (voicing gap %.2f)' % (quiet, loud, gap))
+
     print('\n%d clips, %.0f KB total' % (len(manifest), total / 1024))
     if failures:
         print('\nFAILED %d:' % len(failures))
@@ -751,13 +1000,16 @@ def main():
                     '   the card, a word means it was cut out of that word.\n'
                     '   The clips are audio/letters/<key>.mp3, with a slower take of the same\n'
                     '   sound at <key>-slow.mp3 for the first, teaching reading.\n'
-                    '   Voice: %s (Piper), trained on public-domain LibriVox recordings. */\n'
+                    '   rec: true means a recording of a person saying that sound on its own\n'
+                    '   (audio-src/letters/, Sound City Reading, Kathryn Davis). The rest are\n'
+                    '   synthesised: %s (Piper), trained on public-domain LibriVox recordings. */\n'
                     % args.voice)
             f.write('window.LETTER_CLIPS = {\n')
             for k in sorted(manifest):
                 r = manifest[k]
-                f.write("  '%s': { from: '%s', ms: %d, slowMs: %d },\n"
-                        % (k, r['word'], r.get('ms', 0), r.get('slowMs', 0)))
+                f.write("  '%s': { from: '%s', ms: %d, slowMs: %d%s },\n"
+                        % (k, r['word'], r.get('ms', 0), r.get('slowMs', 0),
+                           ', rec: true' if r.get('rec') else ''))
             f.write('};\n')
         print('wrote', MANIFEST)
     return 0

@@ -53,106 +53,109 @@ Browser speech synthesis cannot say a bare letter sound — ask it for /k/ and
 it says "kuh", ask it for the vowel in *cat* and it gives you /ɑː/, the vowel
 in *car*. Both teach the wrong thing.
 
-So the letter sounds are **not** spoken by the browser. Each clip is made one
-of two ways, and the generator picks whichever passes its checks:
+So the letter sounds are **not** spoken by the browser. 28 of the 32 are
+**recordings of a reading teacher saying each sound on its own** — no carrier
+word, no synthesiser, nothing cut out of anything. They are in
+`audio-src/letters/`, and `tools/make-letter-audio.py` only trims, levels and
+lengths them. The other four — **sh ch th ng** — have no recording and are
+still synthesised, the long way described below.
 
-- **From the IPA symbol printed on the card.** Where a sound stands on its own
-  — /b/, /k/, /s/, /ɛ/ — the model is handed the symbol and nothing else. This
-  is the right route for the stops in particular: cutting /b/ out of *ball*
-  gives the burst plus a slice of /ɔː/, so it comes out as "bore", and /d/ out
-  of *dog* comes out as "daw". A stop must release into *something* — silence
-  leaves a click — but that something should be a neutral schwa, not whichever
-  vowel the carrier word happened to have. 15 of the 32 go this way.
-- **Cut out of a real word**, for the 17 that the model will not produce
-  cleanly on their own: the `a` is the /æ/ of *cat*, the `w` is the /w/ of
-  *web*, the `f` is the /f/ of *wolf*.
+A recording does in one take what three rounds of work could not argue out of
+a model. /z/ is the clearest case: it has to be frication *and* a pitch at the
+same time, and the neural voice never produced both together at any speed from
+any carrier, so what shipped was gated on voicing alone. The recorded /z/ is
+86% below 1 kHz at periodicity 0.75 **and** carries frication above 3 kHz. The
+same for /v/, /f/, /l/ and /m/, each of which had to be argued for.
 
-**Grown-ups → Voice** says which route each letter took.
+What is done to a recording, and why each step is small:
 
-The generator does not keep the first take that passes — it scores every take
-against what its phoneme class ideally measures and keeps the best. Keeping the
-first was why quality drifted between builds: /m/ shipped once at voicing 0.68
-and once at 0.92, both "passing".
+- **Trim** the silence either side, level it to the same peak as every other
+  clip, and fade 8 ms in and 35 ms out so there is no click.
+- **Length.** A teacher demonstrating /w/ holds it for 1.19 s, which is right
+  in front of a class and wrong on a card that then says four words. Anything
+  over 700 ms comes down to 700; the unhurried first reading is 1.35× longer
+  again, up to 950 ms.
+- **Nothing else.** In particular no splicing. Taking a slice out of the middle
+  of a held sound and crossfading the join is free in principle and expensive
+  in fact — the two sides meet at whatever phase they are at, and the
+  cancellation is measurable: spliced that way /l/ fell from 0.86 periodicity
+  to 0.65 and /w/ from 0.86 to 0.78. Length goes through a pitch-preserving
+  time stretcher instead, and **the stretch is thrown away if it moves the
+  sound**: more than 0.08 of total movement between the two power bands, or
+  more than 0.12 of voicing lost, and the recording ships at its own length.
+  That guard fires on /æ/ (the stretch pulled it from 63% below 1 kHz to 51%,
+  which is a different vowel), on /f/, and on /z/'s slow take.
 
-Two sounds are a compromise worth knowing about. Asked for /v/ or /z/ between
-two vowels, at six speeds, from ten carriers, this voice never produced a take
-that both buzzed and hissed. Those two are therefore gated on voicing, which is
-what separates /z/ from /s/ and /v/ from /f/, with friction only preferred. If
-they matter, record them in **Grown-ups → Voice**.
+Two keys have no recording and need none: **ck** is /k/ and never anything
+else, and **wh** is /w/ in this accent, so each reuses the letter it sounds
+like.
 
-### Why not download the official IPA recordings?
+Every recording is still measured, and the build fails if one is wrong:
+length, loudness, where its power sits, and voicing. The test that would
+actually catch a shuffled file is the **five voiced/voiceless pairs** — f/v,
+s/z, t/d, p/b, k/g are the same mouth, and the only thing telling each pair
+apart is whether the voice is running. Measured: 0.14/0.85, 0.15/0.67,
+0.13/0.81, 0.37/0.67, 0.26/0.80.
 
-It is the obvious idea and it does not give what it sounds like it gives. The
-recordings on the IPA charts and on Wikipedia are demonstrations of a symbol,
-not isolated sounds. Decoded and measured, Wikipedia's `Bilabial_nasal_m` is
-two vowel-centred syllables of ~600 and ~730 ms — [ma ma], not /m/;
-`Voiced_alveolar_plosive_d` is three chunks, a vowel either side of the stop;
-`Voiceless_labio-dental_fricative_f` is four. Played to a child as "the sound
-m makes", they say *ma-ma*. They are also an adult male phonetician in a dry
-studio, which next to the British voice saying *monkey* is the two-voices
-problem this app already had once.
+**Grown-ups → Voice** says which route each letter took, and the build refuses
+to ship a clip whose label disagrees with the IPA printed on its card.
 
-`tools/make-letter-audio.py` synthesises the carrier word with a British
-neural voice (Piper, `en_GB-cori-medium`, trained on public-domain LibriVox
-recordings), asks the model for its own phoneme/audio alignment, refines the
-boundary against the audio itself, and shapes what it finds:
+#### The four that are still synthesised
 
-- **continuants and vowels** — /f/, /m/, /s/, /æ/ — are held for about a
-  quarter of a second so there is something to copy. Noise is tiled with every
-  other copy reversed, which lengthens a hiss without laying a pulse over it.
-- **stops** — /b/, /d/, /k/ — keep the burst and 75 ms of the vowel after it.
-  A stop with no release is a click, and a click is not a sound a child can
-  repeat; 75 ms is enough to hear and too little to become "buh".
+sh, ch, th and ng are cut out of a carrier word spoken by a Piper VITS voice
+(`en_GB-cori-medium`, trained on public-domain LibriVox recordings). The tool
+asks the model for its own phoneme/audio alignment, refines the boundary
+against the audio, and shapes what it finds: continuants are held for about a
+quarter of a second, stops keep the burst and 75 ms of the vowel after it.
 
 The decisive measurement is **where the sound puts its power** — the fraction
 below 1 kHz and the fraction above 3 kHz. A spectral centroid is magnitude
 weighted, so a whisper of high-frequency noise drags it upwards and a clean
-nasal can read as bright; power in bands does not do that. It is what showed
-that the /f/ being shipped had 86% of its power below 1 kHz where /θ/ has 0% —
-a vowel tail with a little hiss on it rather than a fricative.
+nasal can read as bright; power in bands does not do that.
 
-Every clip is then measured and has to pass: length, loudness, band profile,
-spectral centroid in the band its phoneme class requires, and voicing — /f/
-must be aperiodic, /m/ must have a pitch, /z/ must buzz or a child cannot tell
-it from /s/. A clip that fails fails the build, and the model is asked for
-another take rather than shipping a poor one.
+Two other checks matter here and are worth keeping written down, because both
+were found by a four-year-old before they were found by a measurement:
 
-The fifth is **repeats**: how much of the clip is real audio. A phoneme is
-only as long as the model makes it, and where a word starts, this voice gives
-/f/ forty milliseconds and /æ/ a hundred and fifty. The first version reached
-the target length by laying that fragment end to end — /θ/ was 7.4 copies of
-40 ms, /æ/ two copies of 150 ms — and a child hears that as a wobble, not as a
-sound. Length now comes from the model instead: the generator searches over how
-slowly to speak the carrier (up to five times slower), and for the sounds that
-are simply short at the start of a word, over where in the word to take them
-from. A fricative at the *end* of a word runs several times longer and is the
-same sound, so /f/ comes out of *wolf* and /ŋ/ out of *song*; /l/ and /r/ may
-not move, because English coda /l/ is dark and coda /r/ is not said at all.
-Every clip is now at least 95% real audio, and more than 1.55 copies fails the
-build.
+- **Repeats.** A phoneme is only as long as the model makes it, and where a
+  word starts this voice gives /f/ forty milliseconds. The first version
+  reached the target length by laying that fragment end to end — /θ/ was 7.4
+  copies of 40 ms — and a child hears that as a wobble. Length now comes from
+  the model, by searching over how slowly to speak the carrier; more than 1.55
+  copies fails the build.
+- **Drift.** How far the spectrum moves between the start of the clip and its
+  end. A held phoneme should stay where it is. The /m/ of *mat* slid into the
+  /æ/ after it and finished three times brighter than it started, which is why
+  f, l, m, n, r, s, v and z once sounded like the letters' names.
 
-The fourth check is **drift**: how far the spectrum moves between the start of
-the clip and its end. A held phoneme should stay where it is. The first version
-of these clips grew the cut until the sound stopped resembling itself, which
-was too loose a rule for a nasal — the /m/ of *mat* slid into the /æ/ after it
-and finished three times brighter than it started, and tiling that to length
-gave something closer to "muh" than to a hum. That is what made f, l, m, n, r,
-s, v and z sound like the letters' names rather than their sounds. The clip now
-stops where the phoneme does.
+### Why not download the official IPA recordings?
 
-Each letter also ships a **slower take**, cut from a slower reading of the same
-word, which is what the letter card plays the first time it introduces the
-sound. It is a real slow recording, not the fast one played back at a lower
-speed, which would drop the pitch with it.
+This was argued the wrong way round here once, so both halves are worth
+keeping.
 
-64 clips, 185 KB, shipped as `web/audio/letters/<key>.mp3` and `<key>-slow.mp3`
-and precached by the service worker, so the app still works with no network.
+**The IPA charts are not it.** The recordings on the IPA charts and on
+Wikipedia are demonstrations of a *symbol*, not isolated sounds. Decoded and
+measured, Wikipedia's `Bilabial_nasal_m` is two vowel-centred syllables of
+~600 and ~730 ms — [ma ma], not /m/; `Voiced_alveolar_plosive_d` is three
+chunks, a vowel either side of the stop. Played to a child as "the sound m
+makes", they say *ma-ma*.
+
+**A phonics teaching set is.** Recordings made to teach the sounds are a
+different object: one sound per file, nothing around it. Measured, each of the
+26 used here is a single burst of energy between silences — 140 ms for /p/,
+1187 ms for a held /w/ — and every one lands on the right side of its
+voiced/voiceless pair. Deciding against the first kind was right; carrying
+that decision over to the second kind was not, and it cost three rounds.
+
+64 clips, 284 KB, shipped as `web/audio/letters/<key>.mp3` and
+`<key>-slow.mp3` and precached by the service worker, so the app still works
+with no network.
 
 Regenerate with:
 
 ```sh
-pip install piper-tts onnx lameenc numpy
-python3 tools/make-letter-audio.py           # add --dry-run to measure only
+pip install lameenc numpy imageio-ffmpeg      # the recorded route
+pip install piper-tts onnx                    # only for sh, ch, th, ng
+python3 tools/make-letter-audio.py            # add --dry-run to measure only
 ```
 
 The voice model (67 MB) downloads into `build/` on first run and is not
@@ -165,7 +168,8 @@ in whatever voices the device happened to have. "apple" in one voice and "Well
 done!" in another, in the same breath, and a different pair on every phone —
 and a phone with no British English voice reads *ax* and *durian* accordingly.
 
-So all of it is recorded too, in the same voice the letter clips were cut from:
+So all of it is recorded too, in one British neural voice (the same one the
+four synthesised letter clips come from):
 **272 clips, 148 seconds, 970 KB** — every keyword and sight word, every letter
 name, every sentence and story page, and every line of instruction and praise.
 `tools/make-speech-audio.py` generates them; the text comes from
@@ -331,9 +335,12 @@ internet at all** — every sound, picture and lesson ships with the page.
 | `tools/build.mjs` | Generates `web/index.html` from `web/page.html`, and generates `web/sw.js` with the real asset list and a cache name hashed from every shipped file — so a new deploy is a new cache and never serves yesterday's build |
 | `tools/dist.mjs` | Copies exactly the servable files into `dist/`. `web/page.html` stays behind: it is the artifact body fragment, not a page |
 | `tools/make-icons.mjs` | Renders the PNG app icons. Dev-only, needs playwright; the PNGs are committed so a deploy never runs it |
-| `tools/make-letter-audio.py` | Cuts the 32 letter sounds out of real words and checks each one acoustically. Dev-only, needs a 67 MB voice model; the mp3s are committed so a deploy never runs it |
+| `tools/make-letter-audio.py` | Builds the 32 letter sounds — 28 from the recordings in `audio-src/letters/`, four by cutting them out of a synthesised word — and checks each one acoustically. Dev-only; the mp3s are committed so a deploy never runs it |
 | `tools/make-speech-audio.py` | Records every word, sentence and line of praise in the same voice. Dev-only, same model; the mp3s are committed |
 | `tools/speech-texts.mjs` | Lists what there is to record, read out of `content.js` and the `A.say()` literals in `app.js` |
+| `audio-src/letters/` | The 26 recorded letter sounds as supplied, before anything is done to them. Not shipped; see the README in that folder for where they came from |
+| `tools/check-config.mjs` | Refuses a `vercel.json` Vercel would reject, which is a failure mode with no logs |
+| `tools/serve.mjs` | Serves `dist/` with `vercel.json`'s real headers, which is the only way to test whether a deploy actually reaches an installed app |
 | `robots.txt` | Keeps the page out of search results |
 
 ### Why a deploy can silently not happen
