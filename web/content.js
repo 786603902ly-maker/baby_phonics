@@ -250,6 +250,83 @@
   });
 
   /* ------------------------------------------------------------------
+     THE 44 SOUNDS — the whole of spoken English, for the grown-up, not
+     for the child. Nothing in the app teaches from this list; it is the
+     map that says where the 31 cards sit on it and what is still missing.
+
+     Why 44 and not 26: a phonics sound is a phoneme, the smallest unit
+     of sound in spoken English, and English has about 44 of them to
+     spell with 26 letters. That mismatch is the whole difficulty — in
+     Hindi or Spanish a letter almost always makes one sound, where in
+     English `a` is four different sounds in cat, cake, car and was.
+
+     `key` is the card in this app that teaches the sound, where there is
+     one. Where there is not, the sound is real English the app does not
+     cover yet.
+
+     Source: the 24 + 20 split and the six short vowels are as the
+     zigzu.co phonics-sounds page lists them. That page names only the
+     count of the remaining 14 ("long vowels and diphthongs"), so those
+     are spelled out here from the standard British English inventory —
+     five long vowels, eight diphthongs and the schwa, which is 14.
+     ------------------------------------------------------------------ */
+  var PHONEMES = {
+    consonant: [
+      { ipa: '/b/', as: 'b', word: 'bat',   key: 'b' },
+      { ipa: '/d/', as: 'd', word: 'dog',   key: 'd' },
+      { ipa: '/f/', as: 'f', word: 'fish',  key: 'f' },
+      { ipa: '/ɡ/', as: 'g', word: 'goat',  key: 'g' },
+      { ipa: '/h/', as: 'h', word: 'hat',   key: 'h' },
+      { ipa: '/dʒ/', as: 'j', word: 'jam',  key: 'j' },
+      { ipa: '/k/', as: 'c k ck', word: 'cat', key: 'c' },
+      { ipa: '/l/', as: 'l', word: 'lamp',  key: 'l' },
+      { ipa: '/m/', as: 'm', word: 'mat',   key: 'm' },
+      { ipa: '/n/', as: 'n', word: 'nut',   key: 'n' },
+      { ipa: '/p/', as: 'p', word: 'pen',   key: 'p' },
+      { ipa: '/r/', as: 'r', word: 'rat',   key: 'r' },
+      { ipa: '/s/', as: 's', word: 'sun',   key: 's' },
+      { ipa: '/t/', as: 't', word: 'tent',  key: 't' },
+      { ipa: '/v/', as: 'v', word: 'van',   key: 'v' },
+      { ipa: '/w/', as: 'w', word: 'web',   key: 'w' },
+      { ipa: '/j/', as: 'y', word: 'yak',   key: 'y' },
+      { ipa: '/z/', as: 'z', word: 'zoo',   key: 'z' },
+      { ipa: '/ʃ/', as: 'sh', word: 'ship', key: 'sh' },
+      { ipa: '/tʃ/', as: 'ch', word: 'chip', key: 'ch' },
+      { ipa: '/θ/', as: 'th', word: 'thin', key: 'th', note: 'the quiet one' },
+      { ipa: '/ð/', as: 'th', word: 'this', note: 'the buzzing one — same letters, different sound' },
+      { ipa: '/ŋ/', as: 'ng', word: 'ring', key: 'ng' },
+      { ipa: '/ʒ/', as: 's', word: 'treasure', note: 'rare; no single letter of its own' }
+    ],
+    'short vowel': [
+      { ipa: '/æ/', as: 'a', word: 'cat', key: 'a' },
+      { ipa: '/e/', as: 'e', word: 'bed', key: 'e' },
+      { ipa: '/ɪ/', as: 'i', word: 'sit', key: 'i' },
+      { ipa: '/ɒ/', as: 'o', word: 'hot', key: 'o' },
+      { ipa: '/ʌ/', as: 'u', word: 'cup', key: 'u' },
+      { ipa: '/ʊ/', as: 'oo', word: 'book' }
+    ],
+    'long vowel': [
+      { ipa: '/iː/', as: 'ee', word: 'see' },
+      { ipa: '/ɑː/', as: 'ar', word: 'car' },
+      { ipa: '/ɔː/', as: 'or', word: 'door' },
+      { ipa: '/uː/', as: 'oo', word: 'blue' },
+      { ipa: '/ɜː/', as: 'er', word: 'her' }
+    ],
+    diphthong: [
+      { ipa: '/eɪ/', as: 'a_e', word: 'day' },
+      { ipa: '/aɪ/', as: 'i_e', word: 'my' },
+      { ipa: '/ɔɪ/', as: 'oi oy', word: 'boy' },
+      { ipa: '/aʊ/', as: 'ou ow', word: 'now' },
+      { ipa: '/əʊ/', as: 'o_e', word: 'go' },
+      { ipa: '/ɪə/', as: 'ear', word: 'near' },
+      { ipa: '/eə/', as: 'air', word: 'hair' },
+      { ipa: '/ʊə/', as: 'our', word: 'tour' },
+      { ipa: '/ə/', as: 'a', word: 'about', note: 'the schwa — the most common vowel in English' }
+    ]
+  };
+  var PHONEME_GROUPS = ['consonant', 'short vowel', 'long vowel', 'diphthong'];
+
+  /* ------------------------------------------------------------------
      LEVEL 1 · Look and Listen — picture vocabulary, no letters at all.
      Eight themes drawn from the same picture set as the alphabet.
      ------------------------------------------------------------------ */
@@ -519,6 +596,8 @@
     WORDS: WORDS,
     ALPHABET: ALPHABET,
     TEAMS: TEAMS,
+    PHONEMES: PHONEMES,
+    PHONEME_GROUPS: PHONEME_GROUPS,
     SIGHT: SIGHT,
     SENTENCES: SENTENCES,
     STORIES: STORIES,

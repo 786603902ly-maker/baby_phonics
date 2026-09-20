@@ -1281,7 +1281,7 @@
           '<button class="iconbtn" id="pback" aria-label="Back">' + icon('back') + '</button>' +
           '<h2>Grown-ups</h2><span class="iconbtn iconbtn--ghost"></span>' +
         '</div>' +
-        '<nav class="tabs">' + ['progress', 'pictures', 'voice', 'settings'].map(function (t) {
+        '<nav class="tabs">' + ['progress', 'pictures', 'voice', 'sounds', 'settings'].map(function (t) {
           return '<button class="tab ' + (tab === t ? 'is-on' : '') + '" data-t="' + t + '">' + t + '</button>';
         }).join('') + '</nav>' +
         '<div id="ptab"></div>' +
@@ -1291,7 +1291,8 @@
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
       b.onclick = function () { tab = b.dataset.t; screenParent(); };
     });
-    ({ progress: tabProgress, pictures: tabPictures, voice: tabVoice, settings: tabSettings })[tab]();
+    ({ progress: tabProgress, pictures: tabPictures, voice: tabVoice,
+       sounds: tabSounds, settings: tabSettings })[tab]();
   }
 
   function tabProgress() {
@@ -1466,6 +1467,52 @@
       };
       var d = rw.querySelector('.vdel');
       if (d) d.onclick = function () { A.deleteRecording(key).then(screenParent); };
+    });
+  }
+
+  /* The 44 sounds — a reference for the grown-up, not a lesson. It exists
+     because the obvious question after a few weeks of letter cards is "is
+     that all of them?", and the answer is no: English has about 44 sounds
+     and 26 letters to write them with, and 31 cards cover 27 of the 44.
+     Being able to see which 17 are missing is the point of the page. */
+  function tabSounds() {
+    var groups = C.PHONEME_GROUPS;
+    var all = groups.reduce(function (n, g) { return n + C.PHONEMES[g].length; }, 0);
+    var taught = groups.reduce(function (n, g) {
+      return n + C.PHONEMES[g].filter(function (x) { return !!x.key; }).length;
+    }, 0);
+
+    function list(group) {
+      return '<div class="slist">' + C.PHONEMES[group].map(function (x) {
+        var sub = 'as in <b>' + esc(x.word) + '</b>' + (x.note ? ' &middot; ' + esc(x.note) : '');
+        return '<div class="srow ' + (x.key ? '' : 'off') + '"' + (x.key ? ' data-k="' + x.key + '"' : '') + '>' +
+          '<span class="sipa">' + esc(x.ipa) + '</span>' +
+          '<span class="slabel">' + esc(x.as) + '<em>' + sub + '</em></span>' +
+          (x.key ? '<button class="vbtn vplay" aria-label="Play ' + esc(x.ipa) + '">' + icon('play') + '</button>'
+                 : '<span class="sgap"></span>') +
+          '</div>';
+      }).join('') + '</div>';
+    }
+
+    document.getElementById('ptab').innerHTML =
+      '<div class="panel"><h3>Why 44 sounds and only 26 letters</h3>' +
+        '<p class="hint">A phonics sound is a <b>phoneme</b> &mdash; the smallest unit of sound in spoken English. English has about <b>44</b> of them and <b>26</b> letters to spell them with.</p>' +
+        '<p class="hint">That mismatch is why reading English is harder than reading Hindi or Spanish, where a letter almost always makes one sound. The letter <b>a</b> on its own is four different sounds in <i>cat</i>, <i>cake</i>, <i>car</i> and <i>was</i>. Knowing which sound goes with which letters is the whole of phonics.</p>' +
+        '<p class="hint">Children learn single-letter consonants and short vowels first, then the two-letter teams (<b>sh ch th ng</b>), then the vowel teams. This app is at the first two steps.</p>' +
+        '<p class="stat"><b>' + taught + '</b> of the ' + all + ' have a sound in this app</p>' +
+      '</div>' +
+      groups.map(function (g) {
+        var n = C.PHONEMES[g].filter(function (x) { return !!x.key; }).length;
+        return '<div class="panel"><h3>' + esc(g.charAt(0).toUpperCase() + g.slice(1)) +
+          ' sounds <small>' + n + '/' + C.PHONEMES[g].length + ' taught here</small></h3>' +
+          list(g) + '</div>';
+      }).join('') +
+      '<div class="panel"><h3>The greyed-out ones</h3>' +
+        '<p class="hint">Real English this app does not cover yet. They are not missing by accident &mdash; long vowels and vowel teams come after single letters, and the app stops where the child is. Tapping one does nothing; there is no clip behind it.</p>' +
+      '</div>';
+
+    Array.prototype.forEach.call(document.querySelectorAll('.srow[data-k] .vplay'), function (b) {
+      b.onclick = function () { A.unlock(); A.sayPhoneme(b.parentNode.dataset.k); };
     });
   }
 

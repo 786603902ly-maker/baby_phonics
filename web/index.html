@@ -12,7 +12,7 @@
 <meta name="description" content="Phonics for a four-year-old: one letter a day, with its real sound, its mouth shape, and the four words it lives in.">
 <meta name="robots" content="noindex">
 <meta name="build" content="dev">
-<script>window.ASSET_V = '7f00adc1b1'; window.BUILD = 'dev';</script>
+<script>window.ASSET_V = 'eab55711d3'; window.BUILD = 'dev';</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -539,7 +539,10 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap
 .phead { display: flex; align-items: center; gap: 12px; }
 .phead h2 { flex: 1; text-align: center; font-size: 19px; }
 .tabs { display: flex; gap: 6px; margin-top: 18px; border-bottom: 2px solid var(--line); }
-.tab { padding: 9px 16px; font-weight: 800; font-size: 13px; color: var(--ink2); text-transform: capitalize; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+/* Five tabs do not fit a 380px phone at the old padding, and the fifth was
+   simply off the edge. They shrink to fit and share the row equally. */
+.tab { flex: 1 1 0; min-width: 0; padding: 9px 4px; font-weight: 800; font-size: 13px; color: var(--ink2); text-transform: capitalize; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+@media (max-width: 400px) { .tab { font-size: 12px; } }
 .tab.is-on { color: var(--ink); border-bottom-color: var(--river); }
 
 .panel { margin-top: 16px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
@@ -640,6 +643,17 @@ input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--river); }
 .vrow.recording .vrec { background: var(--coral); color: #fff; border-color: var(--coral); animation: blink 1s infinite; }
 @keyframes blink { 50% { opacity: .5; } }
 
+/* the 44-sounds reference: same list shape, but read-only and with a row
+   for every sound in English rather than only the ones this app teaches */
+.slist { margin-top: 10px; border-top: 1px solid var(--line); }
+.srow { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.sipa { flex: none; min-width: 58px; font-family: var(--letter); font-size: 16px; font-weight: 800; }
+.slabel { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 700; }
+.slabel em { display: block; font-style: normal; font-size: 11.5px; font-weight: 600; color: var(--ink2); }
+.srow.off { opacity: .6; }
+.srow.off .sipa { color: var(--ink2); }
+.sgap { width: 38px; height: 38px; flex: none; }
+
 /* ===================== TOAST ===================== */
 .toast {
   position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 14px);
@@ -677,14 +691,14 @@ input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--river); }
 <body>
 <div id="app"></div>
 
-<script src="icons.js?v=7f00adc1b1"></script>
-<script src="icons-words.js?v=7f00adc1b1"></script>
-<script src="mouths.js?v=7f00adc1b1"></script>
-<script src="content.js?v=7f00adc1b1"></script>
-<script src="letter-clips.js?v=7f00adc1b1"></script>
-<script src="speech-clips.js?v=7f00adc1b1"></script>
-<script src="audio.js?v=7f00adc1b1"></script>
-<script src="app.js?v=7f00adc1b1"></script>
+<script src="icons.js?v=eab55711d3"></script>
+<script src="icons-words.js?v=eab55711d3"></script>
+<script src="mouths.js?v=eab55711d3"></script>
+<script src="content.js?v=eab55711d3"></script>
+<script src="letter-clips.js?v=eab55711d3"></script>
+<script src="speech-clips.js?v=eab55711d3"></script>
+<script src="audio.js?v=eab55711d3"></script>
+<script src="app.js?v=eab55711d3"></script>
 
 <script>
   var secure = location.protocol === 'https:' || ['localhost', '127.0.0.1'].indexOf(location.hostname) >= 0;

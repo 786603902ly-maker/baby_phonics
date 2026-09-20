@@ -441,10 +441,20 @@ Press and hold the gear on the welcome screen for two seconds.
 - **Pictures** — replace any drawing with a real photo from the phone. A
   photo of the actual cup in your kitchen beats any drawing. Stored on the
   device, never uploaded.
-- **Voice** — every letter and letter team, with the word its clip was cut
-  out of. Tap ▶ to hear any of them. Recording over one in your own voice is
-  optional and only worth doing for a sound she keeps mishearing. The words,
-  sentences and stories are the same voice and also ship with the app.
+- **Voice** — every letter and letter team, and where its clip came from:
+  *recorded* for the 28 that are a teacher saying the sound on its own,
+  *synthesised* for sh, ch, th and ng. Tap ▶ to hear any of them. Recording
+  over one in your own voice is optional and only worth doing for a sound she
+  keeps mishearing. The words, sentences and stories are the same voice and
+  also ship with the app.
+- **Sounds** — all 44 phonemes of English, which is the answer to "is that
+  all of them?" after a few weeks of letter cards. It is not: English has
+  about 44 sounds and 26 letters to spell them with, which is why reading it
+  is harder than reading Hindi or Spanish — `a` alone is four different
+  sounds in *cat*, *cake*, *car* and *was*. The page lists all 44 with an
+  example word, plays the 27 the app teaches, and greys out the 17 it does
+  not (the long vowels, the diphthongs, /ʊ/, /ð/ and /ʒ/). Those come after
+  single letters and two-letter teams, which is where the app stops.
 - **Settings** — her name, her photo (stored on the device only, never
   uploaded), session cap, speaking speed, the pause between questions,
   backup, reset.
