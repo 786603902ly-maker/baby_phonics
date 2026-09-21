@@ -36,7 +36,7 @@ const BUILD = (process.env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 7) || 'dev';
 
 /* Order matters: the page loads these in sequence. */
 export const SCRIPTS = [
-  'icons.js', 'icons-words.js', 'mouths.js', 'content.js',
+  'icons.js', 'icons-words.js', 'icons-more.js', 'mouths.js', 'content.js',
   'letter-clips.js', 'speech-clips.js', 'audio.js', 'app.js'
 ];
 
@@ -89,7 +89,15 @@ export const SERVABLE = ['index.html', ...SCRIPTS, ...STATIC, ...AUDIO, 'sw.js']
   for (const [key, clip] of Object.entries(win.LETTER_CLIPS || {})) {
     const card = C && C.sound(key);
     if (!card) continue;                       // a clip for something not on a card
-    if (clip.from.charAt(0) === '/' && clip.from !== card.ipa) {
+    /* `ipa` is what the generator believes it produced, whichever route it
+       took — that is the claim to check. `from` says where it came from, and
+       for a clip cut out of a word it is a word, not a sound, so it can only
+       be checked when it happens to be IPA. Before `ipa` existed, the 13
+       vowel-team clips were checked by nothing at all: every one of them is
+       cut from a word. */
+    if (clip.ipa && clip.ipa !== card.ipa) {
+      wrong.push(key + ': card says ' + card.ipa + ', clip is labelled ' + clip.ipa);
+    } else if (!clip.ipa && clip.from.charAt(0) === '/' && clip.from !== card.ipa) {
       wrong.push(key + ': card says ' + card.ipa + ', clip is labelled ' + clip.from);
     }
   }

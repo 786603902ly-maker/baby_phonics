@@ -1,5 +1,57 @@
 # Phonics Tool — Product & Curriculum Plan (Age 4 → 7, Singapore)
 
+> ### Revision 12 — the whole road is built, and it says when to walk it
+>
+> **Levels 5, 6 and 7 are real.** 92 stops, age 3 to age 7. The app no longer
+> stops at "reads a short story"; it ends where phonics ends, at a child
+> reading a book to herself and writing words down from hearing them.
+>
+> - **Level 5 · Same Sound, New Look** — thirteen vowel teams, each with every
+>   spelling English uses for it (`ai` / `ay` / `a_e`, `ee` / `ea`, `oa` /
+>   `ow` / `o_e`, `igh` / `ie` / `y` / `i_e`, and so on). New game: **Which
+>   look?** — a written word, the spelling boxes, tap the one it uses. That
+>   game IS the level.
+> - **Level 6 · Longer Words** — syllables, compounds, `-s` `-ing` `-ed`
+>   `-er`, soft c and soft g. New games: clap the beats, two words in one,
+>   add the ending, sort by sound.
+> - **Level 7 · Real Books** — four eight-page decodable books with three
+>   comprehension questions each, **dictation** (hear the word, build it from
+>   letters, no picture — the half of phonics a reading app usually leaves
+>   out), and the 46 sight words.
+>
+> **Thirteen new phoneme clips**, and a class of sound the generator had never
+> had to make. A diphthong is a movement between two vowel positions, so both
+> shaping steps the tool relied on are unavailable: tiling repeats the middle
+> of the glide, and centre-cropping throws away the two ends that name it. A
+> diphthong is therefore never tiled and never cropped in the middle, the
+> search has to find a take that is already long enough, and drift — a fault
+> everywhere else — is in the *ideal*, because without that the search
+> returns whichever take moves least, which is the one that is not a
+> diphthong. See the README for the measurements.
+>
+> **The app now says what to open at what age.** This is the change a parent
+> feels. `LEVELS` carries an age band, a session length, and — more useful
+> than either — the sentence that opens a level and the sentence that closes
+> it. **Grown-ups → Plan** shows those against the child's own age (from a
+> birth month, so it does not go stale) and her own progress. Two rules, in
+> this order: what she can already do decides where she is; her age decides
+> only where to START, and only on a device with no progress on it.
+>
+> **And the welcome screen keeps going.** "Today" used to be the next
+> unfinished *letter*, which worked until there were no letters left — the
+> day she finished Z the app stopped suggesting anything, on a level that was
+> not the end of anything. It now walks the whole journey.
+>
+> Two defects found on the way, both invisible to every check that existed:
+> `ax` is a keyword for both **a** and **x**, so "which one starts with a"
+> could offer `ax` itself as a wrong answer; and `shell` was broken down as
+> `sh-e-ll`, and there is no phoneme `ll`, so one of its three sounds was
+> silently handed to the device's speech synthesiser. `tools/check-lessons.mjs`
+> now deals every stop 25 times in CI and checks every round against what its
+> renderer will do with it.
+>
+> ---
+>
 > ### Revision 4 — Levels 3 and 4 built
 >
 > **Reading Words** (14 stops) and **Reading Books** (7 stops) are now real,

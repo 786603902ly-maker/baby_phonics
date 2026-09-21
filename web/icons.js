@@ -65,7 +65,13 @@
   I.rabbit = '<ellipse cx="50" cy="64" rx="22" ry="20" fill="#FFF9F0" stroke="#E9DFD1" stroke-width="2"/><ellipse cx="40" cy="28" rx="7" ry="20" fill="#FFF9F0" stroke="#E9DFD1" stroke-width="2"/><ellipse cx="60" cy="28" rx="7" ry="20" fill="#FFF9F0" stroke="#E9DFD1" stroke-width="2"/><ellipse cx="40" cy="28" rx="3" ry="13" fill="#F0A8BC"/><ellipse cx="60" cy="28" rx="3" ry="13" fill="#F0A8BC"/><circle cx="42" cy="60" r="3.5" fill="#2E2A3B"/><circle cx="58" cy="60" r="3.5" fill="#2E2A3B"/><ellipse cx="50" cy="68" rx="4" ry="3" fill="#F0A8BC"/>';
   I.star = '<path d="M50 8l12 26 28 3-21 19 6 28-25-14-25 14 6-28-21-19 28-3z" fill="#F5C518"/>';
   I.tree = '<rect x="44" y="56" width="12" height="32" fill="#8B5A2B"/><circle cx="50" cy="38" r="24" fill="#5AA469"/><circle cx="31" cy="52" r="16" fill="#3F7F51"/><circle cx="69" cy="52" r="16" fill="#3F7F51"/>';
-  I.moon = '<path d="M64 12A38 38 0 1 0 64 88 32 32 0 0 1 64 12z" fill="#F5C518"/>';
+  /* A crescent is the outer circle with an offset inner one taken out of it,
+     which is what fill-rule evenodd does. It used to be two arcs of the same
+     path — and because the second one's radius was too small for the distance
+     it had to cover, the renderer scaled it back up to the first one's, so the
+     two halves traced the same circle in opposite directions and enclosed
+     nothing. The icon has been blank wherever it appears. */
+  I.moon = '<path fill-rule="evenodd" fill="#F5C518" d="M50 12a38 38 0 1 0 0 76a38 38 0 1 0 0-76zM66 22a28 28 0 1 0 0 56a28 28 0 1 0 0-56z"/>';
   I.ball = '<circle cx="50" cy="50" r="32" fill="#FFF9F0" stroke="#2E2A3B" stroke-width="3"/><path d="M50 26l17 12-6 21H39l-6-21z" fill="#2E2A3B"/>';
   I.car = '<path d="M14 56l11-19h50l11 19v17H14z" fill="#E8624A"/><path d="M32 41h36l7 14H25z" fill="#CFE3F7"/><circle cx="31" cy="75" r="9" fill="#2E2A3B"/><circle cx="69" cy="75" r="9" fill="#2E2A3B"/>';
   I.train = '<rect x="16" y="20" width="68" height="52" rx="13" fill="#2D8FA8"/><rect x="25" y="30" width="21" height="18" rx="3" fill="#CFE3F7"/><rect x="54" y="30" width="21" height="18" rx="3" fill="#CFE3F7"/><rect x="25" y="56" width="50" height="7" rx="3.5" fill="#F5C518"/><circle cx="33" cy="80" r="7" fill="#2E2A3B"/><circle cx="67" cy="80" r="7" fill="#2E2A3B"/>';

@@ -12,7 +12,7 @@
 <meta name="description" content="Phonics for a four-year-old: one letter a day, with its real sound, its mouth shape, and the four words it lives in.">
 <meta name="robots" content="noindex">
 <meta name="build" content="dev">
-<script>window.ASSET_V = 'eab55711d3'; window.BUILD = 'dev';</script>
+<script>window.ASSET_V = '79d15e2a58'; window.BUILD = 'dev';</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -182,7 +182,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap
   background: var(--surface2); border: 2px solid transparent; border-radius: var(--r);
 }
 .lvtab.is-on { background: var(--surface); border-color: var(--ink); box-shadow: var(--shadow); }
-.lvtab.is-soon { opacity: .55; }
 .lvtab-n {
   width: 34px; height: 34px; flex: none; border-radius: 11px; padding: 0;
   display: grid; place-items: center; color: #FFF9F0;
@@ -235,11 +234,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap
 .stop.is-next { border-color: var(--otter); box-shadow: var(--lift); }
 .stop.is-next .stop-pic { box-shadow: 0 0 0 3px var(--otter); }
 
-.soon { text-align: center; padding: 46px 20px; }
-.soon-badge { width: 56px; height: 56px; margin: 0 auto 14px; padding: 14px; color: var(--ink2); background: var(--surface2); border-radius: 50%; }
-.soon h2 { font-size: 23px; }
-.soon p { margin: 8px 0 0; color: var(--ink2); font-size: 14.5px; }
-.soon-age { font-weight: 800; letter-spacing: .1em; text-transform: uppercase; font-size: 11.5px !important; }
 
 /* ===================== MY BOOK ===================== */
 .bigstars { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 22px 0 6px; }
@@ -538,11 +532,16 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap
 .screen-parent { font-size: 14.5px; }
 .phead { display: flex; align-items: center; gap: 12px; }
 .phead h2 { flex: 1; text-align: center; font-size: 19px; }
-.tabs { display: flex; gap: 6px; margin-top: 18px; border-bottom: 2px solid var(--line); }
-/* Five tabs do not fit a 380px phone at the old padding, and the fifth was
-   simply off the edge. They shrink to fit and share the row equally. */
-.tab { flex: 1 1 0; min-width: 0; padding: 9px 4px; font-weight: 800; font-size: 13px; color: var(--ink2); text-transform: capitalize; border-bottom: 3px solid transparent; margin-bottom: -2px; }
-@media (max-width: 400px) { .tab { font-size: 12px; } }
+.tabs {
+  display: flex; gap: 6px; margin-top: 18px; border-bottom: 2px solid var(--line);
+  /* Six tabs will not share a 380px row without the words touching, so the
+     row scrolls sideways instead of squeezing. They shrink first, to the
+     point where the shortest still has air around it, and only then scroll. */
+  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex: 1 0 auto; padding: 9px 9px; font-weight: 800; font-size: 13px; color: var(--ink2); text-transform: capitalize; border-bottom: 3px solid transparent; margin-bottom: -2px; white-space: nowrap; }
+@media (max-width: 440px) { .tab { font-size: 12px; padding: 9px 7px; } }
 .tab.is-on { color: var(--ink); border-bottom-color: var(--river); }
 
 .panel { margin-top: 16px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
@@ -682,6 +681,207 @@ input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--river); }
   .bletters { grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); }
 }
 
+
+/* ================================================================
+   LEVELS 5-7 and the age guidance
+   ================================================================ */
+
+/* ---- the map: which level, and where she is ---- */
+.lvtab { position: relative; }
+.lvtab.is-here { border-color: var(--otter); }
+.lvtab.is-full .lvtab-n { background: var(--leaf); }
+.lvtab-now {
+  position: absolute; top: -8px; right: 8px;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+  background: var(--otter); color: #FFF9F0; padding: 2px 8px; border-radius: 999px;
+}
+.lvnote {
+  margin: 0 auto 4px; max-width: 54ch; text-align: center;
+  font-size: 12.5px; font-weight: 700; color: var(--ink2);
+}
+.lvnote-now, .lvnote-back, .lvnote-next {
+  font-weight: 800; letter-spacing: .08em; text-transform: uppercase; font-size: 10.5px;
+  padding: 2px 9px; border-radius: 999px; margin-right: 2px;
+}
+.lvnote-now  { background: color-mix(in srgb, var(--otter) 18%, var(--surface)); color: var(--otter); }
+.lvnote-back { background: color-mix(in srgb, var(--leaf) 18%, var(--surface)); color: var(--leaf); }
+.lvnote-next { background: var(--surface2); color: var(--ink2); }
+
+/* ---- the vowel-team card: a moving mouth and the spellings ---- */
+.card-mouth--glide { flex-direction: row; flex-wrap: wrap; justify-content: center; width: 218px; }
+.card-mouth--glide svg { width: 62px; height: 62px; }
+.card-mouth--glide .mouth-arrow { align-self: center; font-size: 22px; color: var(--ink2); font-weight: 800; }
+.card-mouth--glide .card-tip { flex-basis: 100%; }
+.spells { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.spell {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 6px 15px; background: var(--surface); border: 3px solid var(--river);
+  border-radius: 14px; box-shadow: var(--shadow);
+}
+.spell b { font-family: var(--letter); font-size: 22px; font-weight: 700; line-height: 1; }
+.spell small { font-size: 10px; font-weight: 700; color: var(--ink2); }
+
+/* ---- sort it into a box (which spelling / which sound) ---- */
+.sorter { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.sortword {
+  font-family: var(--letter); font-size: clamp(38px, 12vw, 58px); font-weight: 700; line-height: 1;
+  padding: 14px 34px; background: var(--surface); border: 3px solid var(--line);
+  border-radius: var(--r2); box-shadow: var(--shadow);
+}
+.sortword:active { transform: scale(.97); }
+.boxes { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.sbox {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 108px; padding: 16px 18px;
+  background: var(--surface); border: 3px solid var(--line);
+  border-radius: var(--r2); box-shadow: var(--shadow);
+}
+.sbox b { font-family: var(--letter); font-size: 30px; font-weight: 700; line-height: 1; }
+.sbox small { font-size: 11px; font-weight: 700; color: var(--ink2); }
+.sbox:active { transform: scale(.96); }
+.sbox.is-right { border-color: var(--leaf); background: color-mix(in srgb, var(--leaf) 15%, var(--surface)); animation: pop .45s ease; }
+.sbox.is-wrong { border-color: var(--coral); animation: wob .4s ease; }
+
+/* ---- clap the beats ---- */
+.beats { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+.beatword {
+  font-family: var(--letter); font-size: clamp(34px, 11vw, 52px); font-weight: 700; line-height: 1;
+  padding: 14px 30px; background: var(--surface); border: 3px solid var(--line);
+  border-radius: var(--r2); box-shadow: var(--shadow);
+}
+.claps { display: flex; gap: 14px; }
+.clap {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  width: 92px; padding: 16px 10px;
+  background: var(--surface); border: 3px solid var(--line);
+  border-radius: var(--r2); box-shadow: var(--shadow);
+}
+.clap-dots { display: flex; gap: 5px; height: 16px; align-items: center; }
+.clap-dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--river); display: block; }
+.clap b { font-family: var(--display); font-size: 28px; }
+.clap:active { transform: scale(.95); }
+.clap.is-right { border-color: var(--leaf); background: color-mix(in srgb, var(--leaf) 15%, var(--surface)); animation: pop .45s ease; }
+.clap.is-wrong { border-color: var(--coral); animation: wob .4s ease; }
+
+/* ---- two words make one ---- */
+.joiner { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.joiner-pic { width: 100%; max-width: 150px; }
+.joiner-pic .pic { width: 100%; aspect-ratio: 1; }
+.jslots { display: flex; align-items: center; gap: 10px; transition: gap .5s ease; }
+.jslots.joined { gap: 0; }
+.jslots.joined .jplus { opacity: 0; width: 0; margin: 0; transition: opacity .3s ease; }
+.jslot {
+  min-width: 96px; height: 58px; display: grid; place-items: center;
+  font-family: var(--letter); font-size: 23px; font-weight: 700;
+  border: 3px dashed var(--line); border-radius: 14px; background: var(--surface2);
+}
+.jslot.filled { border-style: solid; border-color: var(--leaf); background: var(--surface); animation: pop .35s ease; }
+.jplus { font-size: 22px; font-weight: 800; color: var(--ink2); transition: opacity .3s ease, width .5s ease; }
+.jbank { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+
+/* ---- endings ---- */
+.card-head--one { justify-content: center; }
+.endrows { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 420px; }
+.endrow {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px;
+  padding: 10px 16px; background: var(--surface); border: 3px solid var(--line);
+  border-radius: 16px; box-shadow: var(--shadow);
+  font-family: var(--letter); font-size: 20px; font-weight: 700;
+}
+.endrow-base { text-align: right; color: var(--ink2); }
+.endrow-arrow { color: var(--ink2); font-size: 16px; }
+.endrow-made { text-align: left; }
+.endrow-made b { color: var(--coral); }
+.endrow.seen { border-color: var(--leaf); }
+.adder { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.adder-row { display: flex; align-items: center; gap: 12px; transition: gap .5s ease; }
+.adder-row.squeeze { gap: 0; }
+.adder-row.squeeze .adder-plus { opacity: 0; width: 0; }
+.adder-base, .adder-end {
+  font-family: var(--letter); font-size: clamp(28px, 9vw, 42px); font-weight: 700; line-height: 1;
+  padding: 12px 22px; background: var(--surface); border: 3px solid var(--line);
+  border-radius: 18px; box-shadow: var(--shadow);
+}
+.adder-end { border-color: var(--coral); color: var(--coral); }
+.adder-plus { font-size: 26px; font-weight: 800; color: var(--ink2); transition: opacity .3s ease, width .5s ease; }
+.adder-made {
+  font-family: var(--letter); font-size: clamp(32px, 10vw, 50px); font-weight: 700;
+  animation: pop .45s ease;
+}
+.adder-made b { color: var(--coral); }
+
+/* ---- soft c and soft g ---- */
+.softcols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 460px; }
+.softcol { padding: 12px 10px; background: var(--surface); border: 3px solid var(--line); border-radius: var(--r2); box-shadow: var(--shadow); }
+.softcol h4 { margin: 0 0 8px; text-align: center; font-size: 12.5px; font-weight: 800; color: var(--ink2); }
+.softcol.is-soft { border-color: var(--river); }
+.softcol.is-hard { border-color: var(--otter); }
+.softw {
+  display: block; width: 100%; margin-top: 6px; padding: 7px 8px;
+  font-family: var(--letter); font-size: 19px; font-weight: 700;
+  background: var(--surface2); border-radius: 12px;
+}
+.softw.seen { background: color-mix(in srgb, var(--leaf) 18%, var(--surface2)); }
+
+/* ---- dictation ---- */
+.speller { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.spellear {
+  display: flex; align-items: center; gap: 10px; padding: 12px 22px;
+  background: var(--surface); border: 3px solid var(--river); border-radius: 999px;
+  box-shadow: var(--shadow); font-size: 14px; font-weight: 800; color: var(--ink2);
+}
+.spellear svg { width: 24px; height: 24px; flex: none; color: var(--river); }
+.speller .slots { flex-wrap: wrap; justify-content: center; }
+
+/* ---- Grown-ups: the plan ---- */
+.plevels { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.plevel { padding: 12px 14px; background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; }
+.plevel.is-now { border-color: var(--otter); background: color-mix(in srgb, var(--otter) 9%, var(--surface)); }
+.plevel.is-done { opacity: .72; }
+.plevel.is-later { opacity: .82; }
+.plevel-head { display: flex; align-items: center; gap: 10px; }
+.plevel-n {
+  width: 30px; height: 30px; flex: none; display: grid; place-items: center;
+  border-radius: 9px; color: #FFF9F0; font-family: var(--display); font-size: 16px;
+}
+.plevel-t { flex: 1 1 auto; min-width: 0; }
+.plevel-t b { display: block; font-size: 14px; line-height: 1.2; }
+.plevel-t small { font-size: 11.5px; color: var(--ink2); font-weight: 700; }
+.plevel-tag {
+  flex: none; font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 999px; background: var(--surface); color: var(--ink2);
+  border: 1px solid var(--line);
+}
+.plevel.is-now .plevel-tag { background: var(--otter); color: #FFF9F0; border-color: var(--otter); }
+.plevel-blurb { margin: 8px 0 0; font-size: 12.5px; color: var(--ink2); }
+.plevel-when { margin: 8px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; }
+.plevel-when dt { font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink2); padding-top: 2px; }
+.plevel-when dd { margin: 0; font-size: 12.5px; }
+.plist { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: var(--ink2); }
+.plist li { margin-top: 7px; }
+.plist b { color: var(--ink); }
+
+@media (max-width: 420px) {
+  .softcols { grid-template-columns: 1fr; }
+  .claps { gap: 9px; }
+  .clap { width: 78px; }
+  .jslot { min-width: 78px; }
+}
+
+/* ---- My Book: teams, and the road so far ---- */
+.bletters--teams { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); }
+.bletters--teams .bl b { font-size: 20px; line-height: 1.1; }
+.bl-ipa { display: block; font-style: normal; font-size: 10px; font-weight: 800; color: var(--ink2); font-family: var(--ui); }
+.broads { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.broad { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.broad.got { border-color: var(--leaf); }
+.broad-n { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 8px; color: #FFF9F0; font-family: var(--display); font-size: 14px; }
+.broad-t { flex: 1 1 auto; min-width: 0; }
+.broad-t b { display: block; font-size: 13px; }
+.broad-bar { display: block; height: 6px; margin-top: 4px; border-radius: 999px; background: var(--surface2); overflow: hidden; }
+.broad-bar i { display: block; height: 100%; border-radius: 999px; background: var(--leaf); }
+.broad-c { flex: none; font-size: 11.5px; font-weight: 800; color: var(--ink2); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
@@ -691,14 +891,15 @@ input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--river); }
 <body>
 <div id="app"></div>
 
-<script src="icons.js?v=eab55711d3"></script>
-<script src="icons-words.js?v=eab55711d3"></script>
-<script src="mouths.js?v=eab55711d3"></script>
-<script src="content.js?v=eab55711d3"></script>
-<script src="letter-clips.js?v=eab55711d3"></script>
-<script src="speech-clips.js?v=eab55711d3"></script>
-<script src="audio.js?v=eab55711d3"></script>
-<script src="app.js?v=eab55711d3"></script>
+<script src="icons.js?v=79d15e2a58"></script>
+<script src="icons-words.js?v=79d15e2a58"></script>
+<script src="icons-more.js?v=79d15e2a58"></script>
+<script src="mouths.js?v=79d15e2a58"></script>
+<script src="content.js?v=79d15e2a58"></script>
+<script src="letter-clips.js?v=79d15e2a58"></script>
+<script src="speech-clips.js?v=79d15e2a58"></script>
+<script src="audio.js?v=79d15e2a58"></script>
+<script src="app.js?v=79d15e2a58"></script>
 
 <script>
   var secure = location.protocol === 'https:' || ['localhost', '127.0.0.1'].indexOf(location.hostname) >= 0;

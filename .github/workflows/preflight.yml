@@ -24,6 +24,12 @@ jobs:
       # vercel.json must be something Vercel will accept
       - run: node tools/check-config.mjs
 
+      # every stop, dealt 25 times, must produce rounds the app can draw —
+      # a picture option for a word with no picture, or a sound in a word
+      # breakdown with no clip behind it, is a blank square or a silence in
+      # front of a child and neither throws
+      - run: node tools/check-lessons.mjs --runs=25
+
       # every spoken line must have a clip, and dist/ must assemble —
       # this is the exact command Vercel runs
       - run: node tools/dist.mjs

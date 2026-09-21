@@ -1,26 +1,40 @@
 # baby_phonics — Phonics Trail
 
-A phonics tool for a four-year-old in Singapore, built around the book she
-already uses: **Oxford Phonics World Level 1**.
+A phonics tool that starts at three and finishes at seven, built around the
+book she starts with: **Oxford Phonics World Level 1**.
 
 The loop is the one that holds her attention: **hear a word → look at
-pictures → tap → hear how it went.** No written navigation, because she
-cannot read yet.
+pictures → tap → hear how it went.** No written navigation at the start,
+because she cannot read yet; by Level 7 the written word *is* the navigation,
+which is the point of the whole journey.
+
+**Which level to open at which age** is [in the table below](#what-is-built)
+and on screen in **Grown-ups → Plan**, worked out against her birth month and
+what she has actually finished.
 
 - **Plan:** [docs/PLAN.md](docs/PLAN.md) — read the Revision 2 note at the top first
 - **App source:** [`web/`](web/)
 
 ## What is built
 
-| Level | Age | Stops | What it is |
-|---|---|---|---|
-| 1 · Look and Listen | from 3 | 8 | Vocabulary only. Hear a word, find the picture. Memory pairs. No letters. |
-| 2 · The Alphabet | from 4 | 26 + 4 reviews | A–Z. Each stop is her OPW card, made interactive. |
-| 3 · Reading Words | from 5 | 14 | Blending. One short vowel at a time, then ck / sh / ch / th / ng, then blends, then magic e. |
-| 4 · Reading Books | from 6 | 7 | Decodable sentences to build, and three short stories with comprehension questions. |
-| 5 · Same Sound, New Look | from 6 | — | ai / ay / a-e, ee / ea, oa / ow. Scheme only. |
-| 6 · Longer Words | from 6 | — | Two syllables, -ing / -ed / -er, soft c and g. Scheme only. |
-| 7 · Real Books | from 7 | — | Whole books, and spelling from dictation. Scheme only. |
+All seven levels are built. **92 stops, age 3 to age 7**, from "point at the
+cat" to reading a book and writing words down from hearing them.
+
+| Level | Age | Stops | Open it when | What it is |
+|---|---|---|---|---|
+| 1 · Look and Listen | 3–4 | 8 | She can point at a picture when you name it | Vocabulary only. Hear a word, find the picture. Memory pairs. No letters. |
+| 2 · The Alphabet | 4–5 | 30 | She can sit through one card and copy a sound back | A–Z + 4 reviews. Each stop is her OPW card, made interactive. |
+| 3 · Reading Words | 5–6 | 14 | She knows most single-letter sounds | Blending. One short vowel at a time, then ck / sh / ch / th / ng, then blends, then magic e. |
+| 4 · Reading Books | 5½–6½ | 7 | She reads short words without spelling out every letter | Decodable sentences to build, and three short stories with questions. |
+| 5 · Same Sound, New Look | 6–7 | 14 | She reads short words easily and has met sh, ch, th and magic e | The thirteen vowel teams, each with every way English spells it. |
+| 6 · Longer Words | 6½–7 | 10 | She reads one-syllable words with vowel teams in them | Syllables, compounds, -s / -ing / -ed / -er, soft c and soft g. |
+| 7 · Real Books | 7+ | 9 | She reads most words without stopping | Four eight-page books, spelling from dictation, and the tricky words. |
+
+**The ages are what to expect, not what to enforce**, and nothing in the app
+is locked. A five-year-old reading `cat` belongs in Level 3 whatever the table
+says; a six-year-old still learning letters belongs in Level 2. The order is
+what matters, because every level needs the one before it. **Grown-ups → Plan**
+says all of this on screen, against the child's own age and her own progress.
 
 ### Level 3 games
 
@@ -41,11 +55,90 @@ cannot read yet.
 - **Stories** — five pages each, one sentence and one picture per page, every
   word tappable to hear it, then two comprehension questions.
 
+### Level 5 games
+
+- **Meet the team** — the sound, a *moving* mouth (a diphthong is a
+  movement between two positions, so the card shows both and an arrow), and
+  every spelling of that sound side by side: `ai` in the middle, `ay` at the
+  end, `a_e` with magic e.
+- **Which look?** — a written word and the spelling boxes. Same sound, which
+  spelling does this one use. This is the whole level in one game.
+- **Sound it out**, **Read the word**, **Which word says it** — as Level 3,
+  now with the vowel teams as single tiles, because they are single sounds.
+
+### Level 6 games
+
+- **Clap the beats** — hear the word, tap 1, 2 or 3. A long word is not one
+  lump, and hearing that is what stops a child guessing `basket` from its
+  first letter.
+- **Two words in one** — `cupcake` is `cup` and `cake`, both of which she
+  already reads.
+- **Add the ending** — the base word, the ending, pushed together; then
+  *which word did you hear*, where `jump`, `jumping` and `jumped` differ only
+  in the ending.
+- **Soft c / soft g** — the card shows both jobs side by side, then sorts
+  words into them.
+
+### Level 7 games
+
+- **Books** — four of them, eight pages each, every word tappable, three
+  comprehension questions at the end instead of two.
+- **Write it down** — dictation. She hears the word and builds it out of
+  letters with **no picture on the screen**. That is the whole difference
+  between this and Build the Word, and it is the difference between matching
+  and spelling.
+- **Tricky words** — the 46 words that cannot be sounded out, heard and
+  picked from three written words. No pictures; a sight word has none.
+
 ### Free play
 
-**Games** on the welcome screen opens a hub of ten games, each playable on its
-own with whatever content she has met. Nothing in the app is locked or has to
-be done in order — the daily letter is a suggestion, not a gate.
+**Games** on the welcome screen opens a hub of **eighteen** games, each
+playable on its own with whatever content she has met, and labelled with the
+level it belongs to. Nothing in the app is locked or has to be done in order —
+what the welcome screen offers today is a suggestion, not a gate.
+
+### What to open, and when
+
+The question a parent actually has is not "what is in this app" but "which of
+these do I open today, and how do I know when to move her on". Three things
+answer it, and none of them locks anything.
+
+**1. The welcome screen already knows.** The big card is the next unfinished
+stop on the level she is on — tap it and go. It used to be the next unfinished
+*letter*, which worked for exactly as long as there were letters left: the day
+she finished Z the card said "All 26 letters done" and then had nothing to
+offer, on a level that was not the end of anything. The app stopped suggesting
+on the day it should have started suggesting harder work. It now walks the
+whole journey, so the day after Z is the first blending stop, and the day
+after the last book is nothing, because that really is the end.
+
+**2. Her age decides where to start, once.** Put her birth month in
+**Settings** (the month, not the day; it stays on the device like everything
+else) and the app opens a fresh install at the level for her age instead of at
+picture-matching for three-year-olds. After that, age decides nothing:
+
+> **What she can already do decides where she is.** The first level she has
+> not finished is the level she is on, whatever her birthday says.
+
+A seven-year-old who has never done phonics still starts at Level 2, and
+should. A five-year-old reading `cat` belongs in Level 3.
+
+**3. Grown-ups → Plan says it in words.** Her age against her progress, and
+for each of the seven levels the two sentences that matter more than the age:
+
+| | |
+|---|---|
+| **Open it when** | what she can already do, so this level will not defeat her |
+| **Move on when** | what she can do by the end, so the next one will not either |
+
+The map marks the level she is on with **here**, and every level tab carries
+its age band. Tapping a level she is not on is not a mistake and is not
+blocked — a level below is a good easy day, and a level above tells you what
+is coming.
+
+**One turn a day beats three at the weekend.** Five minutes at Level 1, up to
+fifteen at Level 7 — the per-level figure is in the Plan page and drives the
+soft session cap. Stop while she still wants more.
 
 ### How each letter sounds
 
@@ -53,12 +146,13 @@ Browser speech synthesis cannot say a bare letter sound — ask it for /k/ and
 it says "kuh", ask it for the vowel in *cat* and it gives you /ɑː/, the vowel
 in *car*. Both teach the wrong thing.
 
-So the letter sounds are **not** spoken by the browser. 28 of the 32 are
+So the letter sounds are **not** spoken by the browser. 28 of the 45 are
 **recordings of a reading teacher saying each sound on its own** — no carrier
 word, no synthesiser, nothing cut out of anything. They are in
 `audio-src/letters/`, and `tools/make-letter-audio.py` only trims, levels and
-lengths them. The other four — **sh ch th ng** — have no recording and are
-still synthesised, the long way described below.
+lengths them. The other seventeen — **sh ch th ng** and the thirteen vowel
+teams — have no recording, because the recorded set is single letters, so each
+is cut out of a word the long way described below.
 
 A recording does in one take what three rounds of work could not argue out of
 a model. /z/ is the clearest case: it has to be frication *and* a pitch at the
@@ -100,9 +194,9 @@ apart is whether the voice is running. Measured: 0.14/0.85, 0.15/0.67,
 **Grown-ups → Voice** says which route each letter took, and the build refuses
 to ship a clip whose label disagrees with the IPA printed on its card.
 
-#### The four that are still synthesised
+#### The seventeen that are still synthesised
 
-sh, ch, th and ng are cut out of a carrier word spoken by a Piper VITS voice
+sh, ch, th, ng and the thirteen vowel teams are cut out of a carrier word spoken by a Piper VITS voice
 (`en_GB-cori-medium`, trained on public-domain LibriVox recordings). The tool
 asks the model for its own phoneme/audio alignment, refines the boundary
 against the audio, and shapes what it finds: continuants are held for about a
@@ -127,6 +221,38 @@ were found by a four-year-old before they were found by a measurement:
   /æ/ after it and finished three times brighter than it started, which is why
   f, l, m, n, r, s, v and z once sounded like the letters' names.
 
+**A diphthong inverts both of those, which is why it needed a class of its
+own.** /eɪ/, /aɪ/, /ɔɪ/, /aʊ/, /əʊ/, /ɪə/ and /eə/ are not held positions —
+each is a *movement* from one vowel to another, and the movement is the sound.
+So neither of the two shaping steps above is available:
+
+- Tiling repeats the middle of the clip, and the middle of a glide is the one
+  place it is supposed to be moving. A tiled diphthong wobbles exactly where
+  it should be sliding.
+- Centre-cropping to a target length throws away the start and the end, which
+  are the two positions that name it. /eɪ/ without its ends is neither /e/ nor
+  /ɪ/; it is a smear.
+
+So a diphthong is never tiled and never cropped in the middle: the search has
+to find a take of the carrier word that is already long enough, and it ships
+at that length, trimmed from the front only if it runs past 460 ms. And drift
+is inverted — it is in the *ideal* rather than only in the bounds, because
+without that the search returns the take that moves least, which is precisely
+the one that is not a diphthong. Measured, the thirteen teams ship at 200–420 ms,
+88–99% of their power below 1 kHz, periodicity 0.86–0.92, no repeats.
+
+Two things follow from this that are worth writing down. The long vowels —
+/iː/ /uː/ /ɑː/ /ɔː/ /ɜː/ and short /ʊ/ — are *not* diphthongs: they are one
+steady position held, so they behave exactly like the short vowels and go the
+ordinary route. And the card for a diphthong shows **two mouth pictures and an
+arrow**, not one, because one static shape would be a picture of neither end.
+
+Every clip now also carries the IPA it claims to be, and `tools/build.mjs`
+refuses to build if that disagrees with what the card prints. Before that
+field existed the check could only run on clips synthesised straight from an
+IPA symbol — and every one of the thirteen vowel teams is cut from a word, so
+not one of them was checked by anything.
+
 ### Why not download the official IPA recordings?
 
 This was argued the wrong way round here once, so both halves are worth
@@ -146,7 +272,7 @@ different object: one sound per file, nothing around it. Measured, each of the
 voiced/voiceless pair. Deciding against the first kind was right; carrying
 that decision over to the second kind was not, and it cost three rounds.
 
-64 clips, 284 KB, shipped as `web/audio/letters/<key>.mp3` and
+90 clips, 376 KB, shipped as `web/audio/letters/<key>.mp3` and
 `<key>-slow.mp3` and precached by the service worker, so the app still works
 with no network.
 
@@ -170,7 +296,7 @@ and a phone with no British English voice reads *ax* and *durian* accordingly.
 
 So all of it is recorded too, in one British neural voice (the same one the
 four synthesised letter clips come from):
-**272 clips, 148 seconds, 970 KB** — every keyword and sight word, every letter
+**500 clips, 280 seconds, 1.8 MB** — every keyword and sight word, every letter
 name, every sentence and story page, and every line of instruction and praise.
 `tools/make-speech-audio.py` generates them; the text comes from
 `tools/speech-texts.mjs`, which reads `content.js` and the `A.say()` literals in
@@ -204,7 +330,7 @@ about seventy milliseconds, too short to cut out and hand to a child as a word,
 so it is taken from somewhere the same sound is unhurried — the end of *banana*
 — and held to a fifth of a second.
 
-The build is reproducible: the same command produces the same 272 files. That
+The build is reproducible: the same command produces the same 500 files. That
 comes from seeding the model before its session is created; each take is then
 reseeded from its own text and attempt number, which is what makes a retry draw
 something different rather than repeating itself. Reseeding does not isolate a
@@ -271,6 +397,35 @@ Each alphabet stop runs four games:
 `x` is handled correctly: its words end with the sound, so its round asks
 "which one *ends* with x".
 
+### Every stop, dealt and checked
+
+The whole curriculum is data, and data goes wrong quietly. A picture option
+naming a word with no drawing behind it is a blank square in front of a child
+at the moment she is asked to choose. A sound in a word breakdown with no clip
+behind it is a silence where a sound should be. Neither throws, neither shows
+up in a syntax check, and neither is visible until a four-year-old finds it.
+
+`node tools/check-lessons.mjs --runs=25` deals every stop and every free game
+twenty-five times — the generators shuffle and sample, so one pass does not
+see every path — and checks each round against what its renderer will actually
+do with it: exactly one right answer, **three options and never two**, a
+picture option only for a word that has a picture, a sound-out word that has a
+breakdown with a clip behind every sound in it, build tiles that contain the
+answer, a sort answer inside the range of its boxes. Then it calls each
+round's `play()` against a stub that fails on any phoneme with no audio. CI
+runs it on every push.
+
+Writing it turned up two defects that had been shipping:
+
+- **`ax` is a keyword for both `a` and `x`.** Wrong answers were drawn from
+  every other letter's word list, so "which one starts with **a**" could offer
+  `ax` itself as one of the two wrong pictures. The child taps the right one
+  and is told to try again. Fixed by excluding by *word* rather than by
+  letter.
+- **`shell` was broken down as `sh-e-ll`.** There is no phoneme `ll`, so one
+  of its three tiles fell through to the device's speech synthesiser and said
+  the letter name. It is `sh-e-l`.
+
 ## Game mode
 
 **Mix it up** — on the welcome screen and at the top of the alphabet map.
@@ -281,9 +436,14 @@ round types interleave so it never feels like a drill.
 ## Rewards
 
 - Score chip counts up during a stop.
-- End of stop: 1–3 stars by accuracy, plus the running total.
+- End of stop: 1–3 stars by accuracy, plus the running total. **Next** at the
+  end of the last stop of a level steps into the level above rather than
+  offering nothing, which used to make the end of a level feel like the end
+  of the app.
 - The map shows stars on every stop.
-- **My Book** shows all 26 letters and 8 themes with the stars earned.
+- **My Book** shows all 26 letters, all 18 teams, the 8 picture themes, and
+  **how far she has come** — a bar per level, so a seven-year-old can see the
+  road behind her and not only the stop in front of her.
 
 ## Running it
 
@@ -340,6 +500,8 @@ internet at all** — every sound, picture and lesson ships with the page.
 | `tools/speech-texts.mjs` | Lists what there is to record, read out of `content.js` and the `A.say()` literals in `app.js` |
 | `audio-src/letters/` | The 26 recorded letter sounds as supplied, before anything is done to them. Not shipped; see the README in that folder for where they came from |
 | `tools/check-config.mjs` | Refuses a `vercel.json` Vercel would reject, which is a failure mode with no logs |
+| `tools/check-lessons.mjs` | Deals every stop in the app 25 times and checks every round against what its renderer will do with it: exactly one right answer, a picture option only for a word that HAS a picture, every sound in a word breakdown backed by a clip. All of that is data, and data goes wrong silently |
+| `web/icons-more.js` | The Level 5–7 pictures — 68 more inline SVGs, merged into `window.ICONS` after `icons-words.js` |
 | `tools/serve.mjs` | Serves `dist/` with `vercel.json`'s real headers, which is the only way to test whether a deploy actually reaches an installed app |
 | `robots.txt` | Keeps the page out of search results |
 
@@ -391,11 +553,22 @@ what you pushed, the deploy did not land.
 
 ### A note on privacy
 
-**No child's name is in the source.** The welcome screen says just "Hi!"
-until a name is typed in **Grown-ups → Settings**, and that lives in the
-browser's local storage on that one device — never in the repo, never on the
-server. The photo and any voice recordings are the same: stored on the
-device, never uploaded.
+**Nothing the app knows about the child leaves her device.** The welcome
+screen says just "Hi!" until a name is typed in **Grown-ups → Settings**, and
+that lives in the browser's local storage on that one device. The photo, the
+birth month, the stars and any voice recordings are the same: stored on the
+device, never uploaded, never on the server.
+
+That guarantee was not true until now, and this section said it was:
+`DEFAULTS.name` in `web/app.js` shipped with the child's real name as its
+value, so a fresh install anywhere greeted whoever opened it with that name.
+It is now the empty string this section always described. A documented
+guarantee the code does not keep is worse than no guarantee, because nobody
+goes looking.
+
+(Her name is still written in this README and in `docs/PLAN.md`, deliberately
+— those are notes to the people building it, not something the app ships and
+shows.)
 
 A Vercel Hobby URL is public to anyone who has it, though `noindex` and
 `robots.txt` keep it out of search. If you want it behind a password, that
@@ -420,8 +593,8 @@ node tools/dist.mjs       # assemble dist/ exactly as Vercel will
 ## Editing content
 
 `web/content.js` is the whole curriculum — keyword sets, themes, lessons.
-`web/icons.js` and `web/icons-words.js` hold all 155 pictures as inline
-SVG: no image files, nothing to break offline.
+`web/icons.js`, `web/icons-words.js` and `web/icons-more.js` hold all 240
+pictures as inline SVG: no image files, nothing to break offline.
 
 After editing `web/page.html`, regenerate the standalone page:
 
@@ -436,28 +609,38 @@ Artifact); `web/index.html` is generated — do not edit it by hand.
 
 Press and hold the gear on the welcome screen for two seconds.
 
-- **Progress** — mastery map per letter, the five weakest items with what
-  to practise off-screen, and every turn played.
+- **Plan** — *which level to open, and when to move her on.* Her age
+  (from the birth month in Settings) against what she has actually finished,
+  the seven levels with the one sentence that opens each and the one that
+  closes it, how to run a week, and what the app does not do. This is the
+  page to read first.
+- **Progress** — mastery map per letter, team and vowel team, the five
+  weakest items with what to practise off-screen, and every turn played.
 - **Pictures** — replace any drawing with a real photo from the phone. A
   photo of the actual cup in your kitchen beats any drawing. Stored on the
   device, never uploaded.
-- **Voice** — every letter and letter team, and where its clip came from:
-  *recorded* for the 28 that are a teacher saying the sound on its own,
-  *synthesised* for sh, ch, th and ng. Tap ▶ to hear any of them. Recording
-  over one in your own voice is optional and only worth doing for a sound she
-  keeps mishearing. The words, sentences and stories are the same voice and
-  also ship with the app.
+- **Voice** — every letter, consonant team and vowel team, and where its clip
+  came from: *recorded* for the 28 that are a teacher saying the sound on its
+  own, *synthesised from a word* for sh, ch, th, ng and the thirteen vowel
+  teams. Tap ▶ to hear any of them. Recording over one in your own voice is
+  optional and only worth doing for a sound she keeps mishearing. The words,
+  sentences and stories are the same voice and also ship with the app.
 - **Sounds** — all 44 phonemes of English, which is the answer to "is that
   all of them?" after a few weeks of letter cards. It is not: English has
   about 44 sounds and 26 letters to spell them with, which is why reading it
   is harder than reading Hindi or Spanish — `a` alone is four different
   sounds in *cat*, *cake*, *car* and *was*. The page lists all 44 with an
-  example word, plays the 27 the app teaches, and greys out the 17 it does
-  not (the long vowels, the diphthongs, /ʊ/, /ð/ and /ʒ/). Those come after
-  single letters and two-letter teams, which is where the app stops.
-- **Settings** — her name, her photo (stored on the device only, never
-  uploaded), session cap, speaking speed, the pause between questions,
-  backup, reset.
+  example word and **plays 40 of them** — everything Levels 2, 3 and 5 teach.
+  Four are greyed out, each for its own reason: **/ð/** (*this*) shares its
+  letters with /θ/ (*thin*) and is learned word by word rather than from a
+  rule; **/ʒ/** (*treasure*) has no spelling of its own and turns up in a
+  handful of words; **/ʊə/** (*tour*) has merged with /ɔː/ for most speakers;
+  and **/ə/**, the schwa, is the commonest sound in English but is what every
+  unstressed vowel collapses to — a consequence of rhythm, not a spelling to
+  learn.
+- **Settings** — her name, **her birth month** (which is what the Plan page
+  reads; the month, not the day, and it stays on the device), her photo,
+  session cap, speaking speed, the pause between questions, backup, reset.
 
 ## Where the word lists come from
 

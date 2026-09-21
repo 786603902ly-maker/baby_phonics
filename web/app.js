@@ -14,7 +14,11 @@
      ================================================================== */
   var DEFAULTS = {
     v: 2,
-    name: 'Rourou',
+    /* No child's name ships in the source. It is typed in once, in
+       Grown-ups -> Settings, and lives in this browser's local storage on
+       this one device — never in the repository, never on the server. */
+    name: '',
+    born: '',        // 'YYYY-MM', so her age keeps itself up to date
     stars: {},       // lessonId -> 1..3
     best: {},        // lessonId -> {correct, total}
     boxes: {},       // srs
@@ -106,6 +110,89 @@
   }
   function maxStars() { return C.LESSONS.filter(function (l) { return true; }).length * 3; }
 
+  /* ==================================================================
+     AGE, AND WHICH LEVEL IT POINTS AT
+
+     The question this answers is the one a parent actually asks: which of
+     these do I open today, and when do I move her on. Two rules, and they
+     are in this order on purpose:
+
+       1. What she can already do decides where she is. The first level she
+          has not finished is the level she is on, whatever her birthday says.
+       2. Her age decides only where to START, and only on a device with no
+          progress on it at all — because otherwise a seven-year-old opening
+          this for the first time is handed picture matching for three-
+          year-olds, and a four-year-old is handed a chapter book.
+
+     Nothing is locked either way. Every stop on every level is one tap away,
+     and a level that is too hard is a tap back, not a wall.
+     ================================================================== */
+
+  /* Worked out from the birth month rather than stored as a number: a number
+     typed in once is wrong within a year, and wrong silently. */
+  function ageYears() {
+    var m = /^(\d{4})-(\d{2})$/.exec(S.born || '');
+    if (!m) return null;
+    var born = new Date(+m[1], +m[2] - 1, 15);
+    var years = (Date.now() - born.getTime()) / (365.2425 * 24 * 3600 * 1000);
+    return years > 0 && years < 20 ? years : null;
+  }
+
+  function ageText() {
+    var a = ageYears();
+    if (a == null) return null;
+    var y = Math.floor(a), m = Math.round((a - y) * 12);
+    if (m === 12) { y++; m = 0; }
+    return y + (m ? ' years ' + m + ' months' : ' years');
+  }
+
+  /* The highest level her age has reached. */
+  function levelForAge() {
+    var a = ageYears();
+    if (a == null) return null;
+    var id = C.LEVELS[0].id;
+    C.LEVELS.forEach(function (lv) { if (a >= lv.ageFrom) id = lv.id; });
+    return id;
+  }
+
+  /* Where the app starts on a device with no progress on it at all.
+
+     Not the level her age points at, which is the obvious answer and a bad
+     one: a seven-year-old who has never done phonics would be handed an
+     eight-page book she cannot read, and the app has no way to find out
+     whether she can read it — it does not listen to her. The two failures are
+     not symmetric. Starting too high fails hard and she stops; starting too
+     low fails gently, she clears the stops in one sitting, and the app moves
+     her up by itself.
+
+     So age chooses between the only two honest entry points. Under four there
+     are no letters yet, which is Level 1. From four it is the alphabet, which
+     is where every phonics programme starts at every age and where a child's
+     actual letter knowledge shows in about four minutes. Anything beyond that
+     is the grown-up's call, which is what the map and Grown-ups -> Plan are
+     for. */
+  function startLevel() {
+    var a = ageYears();
+    return a != null && a < 4 ? 1 : 2;
+  }
+
+  /* The level she is on: the first one she has not finished. */
+  function levelNow() {
+    var first = null;
+    C.LEVELS.forEach(function (lv) {
+      if (first != null) return;
+      var ls = C.levelLessons(lv.id);
+      if (!ls.every(function (l) { return done(l.id); })) first = lv.id;
+    });
+    if (first == null) first = C.LEVELS[C.LEVELS.length - 1].id;
+    var started = C.LESSONS.some(function (l) { return done(l.id); });
+    return started ? first : startLevel();
+  }
+
+  function levelOf(id) {
+    return C.LEVELS.filter(function (x) { return x.id === id; })[0];
+  }
+
   /* A lesson is open if it is the first unfinished one in its level, or
      already finished, or the one right after a finished one. Nothing is
      ever hard-locked — she can replay anything. */
@@ -127,11 +214,22 @@
   }
   function playedToday() { return (S.played[dayKey()] || 0) > 0; }
 
-  function todaysLetter() {
-    for (var i = 0; i < C.LETTERS.length; i++) {
-      if (!done('a-' + C.LETTERS[i])) return C.LETTERS[i];
-    }
-    return null;
+  /* What to do today: the next unfinished stop on the level she is on.
+
+     This used to be the next unfinished LETTER, which worked for exactly as
+     long as there were letters left. The day she finished Z the card said
+     "All 26 letters done" and then had nothing to offer, on a level that was
+     not the end of anything — the app stopped suggesting on the day it
+     should have started suggesting harder work. It now walks the whole
+     journey, so the day after Z is the first blending stop and the day after
+     the last book is nothing, because that really is the end. */
+  function todaysStop() {
+    var lv = levelNow();
+    var ls = C.levelLessons(lv);
+    for (var i = 0; i < ls.length; i++) if (!done(ls[i].id)) return ls[i];
+    /* that level is finished — take the first thing left anywhere after it */
+    var all = C.LESSONS.filter(function (l) { return l.level >= lv && !done(l.id); });
+    return all[0] || null;
   }
 
   /* last seven days, oldest first */
@@ -159,21 +257,35 @@
      ================================================================== */
   function screenWelcome() {
     var ts = totalStars();
-    var tl = todaysLetter();
-    var L = tl ? C.ALPHABET[tl] : null;
+    var stop = todaysStop();
     var doneToday = playedToday();
+    var lv = stop ? levelOf(stop.level) : null;
 
-    var today = tl
-      ? '<button class="today' + (doneToday ? ' is-done' : '') + '" id="today">' +
-          '<span class="today-eyebrow">' + (doneToday ? 'Tomorrow&rsquo;s letter &mdash; or carry on now' : 'Today&rsquo;s letter') + '</span>' +
+    /* A letter stop still shows its letter and its first picture, because
+       that is what she recognises on the shelf. Everything else shows the
+       stop's own picture and name — the card has to work for `Team ai` and
+       `The Snail and the Rain` as well as for `Bb`. */
+    var today;
+    if (!stop) {
+      today = '<div class="today is-done"><span class="today-eyebrow">Every stop is done</span>' +
+        '<span class="today-row"><span class="today-letter">A&ndash;Z</span>' +
+        '<span class="today-word">and all seven levels</span></span></div>';
+    } else {
+      var eyebrow = doneToday ? 'Next time &mdash; or carry on now' : 'Today';
+      var big = stop.letter ? esc(stop.letter.toUpperCase()) + esc(stop.letter)
+        : (stop.team ? esc(stop.team) : String(stop.level));
+      var label = stop.letter ? word(C.ALPHABET[stop.letter].words[0]).text
+        : (stop.shortName || stop.name);
+      today =
+        '<button class="today' + (doneToday ? ' is-done' : '') + '" id="today">' +
+          '<span class="today-eyebrow">' + eyebrow + ' &middot; ' + esc(lv.name) + '</span>' +
           '<span class="today-row">' +
-            '<span class="today-letter">' + esc(tl.toUpperCase()) + esc(tl) + '</span>' +
-            '<span class="today-pic">' + icon(word(L.words[0]).icon) + '</span>' +
-            '<span class="today-word">' + esc(word(L.words[0]).text) + '</span>' +
+            '<span class="today-letter">' + big + '</span>' +
+            '<span class="today-pic">' + icon(stop.icon) + '</span>' +
+            '<span class="today-word">' + esc(label) + '</span>' +
           '</span>' +
-        '</button>'
-      : '<div class="today is-done"><span class="today-eyebrow">All 26 letters done</span>' +
-        '<span class="today-row"><span class="today-letter">A&ndash;Z</span></span></div>';
+        '</button>';
+    }
 
     var week = '<div class="week">' + weekStrip().map(function (d) {
       return '<span class="wk' + (d.on ? ' on' : '') + (d.today ? ' now' : '') + '">' +
@@ -207,9 +319,11 @@
     var tb = document.getElementById('today');
     if (tb) tb.onclick = function () {
       ensureSound();
-      startLesson(C.lesson('a-' + tl));
-      A.say(doneToday ? 'Let us do ' + tl.toUpperCase() + '.'
-                      : 'Hello' + (S.name ? ' ' + S.name : '') + '! Today we learn ' + tl.toUpperCase() + '.');
+      startLesson(stop);
+      if (stop.letter) {
+        A.say(doneToday ? 'Let us do ' + stop.letter.toUpperCase() + '.'
+                        : 'Hello' + (S.name ? ' ' + S.name : '') + '! Today we learn ' + stop.letter.toUpperCase() + '.');
+      }
     };
     document.getElementById('go').onclick = function () { ensureSound(); screenMap(); };
     document.getElementById('toBook').onclick = function () { ensureSound(); screenBook(); };
@@ -234,47 +348,64 @@
   var openLevel = null;
 
   function screenMap() {
-    if (openLevel == null) {
-      var l2 = C.levelLessons(2).filter(function (l) { return done(l.id); }).length;
-      openLevel = l2 > 0 ? 2 : (C.levelLessons(1).every(function (l) { return done(l.id); }) ? 2 : 1);
-    }
+    var here = levelNow();
+    if (openLevel == null) openLevel = here;
 
     var levelTabs = C.LEVELS.map(function (lv) {
       var ls = C.levelLessons(lv.id);
       var d = ls.filter(function (l) { return done(l.id); }).length;
-      return '<button class="lvtab ' + (openLevel === lv.id ? 'is-on' : '') + (lv.built ? '' : ' is-soon') + '" data-lv="' + lv.id + '">' +
-        '<span class="lvtab-n tint-' + lv.tint + '">' + (lv.built ? lv.id : icon('lockClosed')) + '</span>' +
-        '<span class="lvtab-t"><b>' + esc(lv.name) + '</b><small>' + (lv.built ? d + ' / ' + ls.length + ' done' : 'later') + '</small></span>' +
+      var state = d === ls.length ? 'is-full' : (lv.id === here ? 'is-here' : '');
+      return '<button class="lvtab ' + (openLevel === lv.id ? 'is-on ' : '') + state + '" data-lv="' + lv.id + '">' +
+        '<span class="lvtab-n tint-' + lv.tint + '">' + lv.id + '</span>' +
+        '<span class="lvtab-t"><b>' + esc(lv.name) + '</b>' +
+          '<small>' + esc(lv.age) + ' &middot; ' + d + ' / ' + ls.length + '</small></span>' +
+        (lv.id === here ? '<span class="lvtab-now">here</span>' : '') +
         '</button>';
     }).join('');
 
-    var lv = C.LEVELS.filter(function (x) { return x.id === openLevel; })[0];
-    var body;
-
-    if (!lv.built) {
-      body = '<div class="soon"><div class="soon-badge">' + icon('lockClosed') + '</div>' +
-        '<h2>' + esc(lv.name) + '</h2><p>' + esc(lv.blurb) + '</p><p class="soon-age">' + esc(lv.age) + '</p></div>';
-    } else {
-      var ls = C.levelLessons(openLevel);
-      var nxt = nextLesson(openLevel);
-      var gameCard = 
-        '<button class="gamecard" id="gamecard">' +
-          '<span class="gamecard-icon">' + icon('trophy') + '</span>' +
-          '<span class="gamecard-text"><b>Games</b><small>' +
-            'Mix it up, or pick one game on its own</small></span>' +
-          '<span class="gamecard-stars">' + stars(starsFor('game')) + '</span>' +
+    var lv = levelOf(openLevel);
+    var ls = C.levelLessons(openLevel);
+    var nxt = nextLesson(openLevel);
+    var gameCard =
+      '<button class="gamecard" id="gamecard">' +
+        '<span class="gamecard-icon">' + icon('trophy') + '</span>' +
+        '<span class="gamecard-text"><b>Games</b><small>' +
+          'Mix it up, or pick one game on its own</small></span>' +
+        '<span class="gamecard-stars">' + stars(starsFor('game')) + '</span>' +
+      '</button>';
+    var body = gameCard + '<div class="path">' + ls.map(function (l, i) {
+      var n = starsFor(l.id);
+      var isNext = l.id === nxt.id;
+      return '<button class="stop ' + (i % 2 ? 'right' : 'left') + (n ? ' is-done' : '') + (isNext ? ' is-next' : '') + '" data-id="' + l.id + '">' +
+        '<span class="stop-pic">' + icon(l.icon) + '</span>' +
+        '<span class="stop-body">' +
+          '<b>' + esc(l.shortName || l.name) + '</b>' +
+          '<span class="stop-stars">' + stars(n) + '</span>' +
+        '</span>' +
         '</button>';
-      body = gameCard + '<div class="path">' + ls.map(function (l, i) {
-        var n = starsFor(l.id);
-        var isNext = l.id === nxt.id;
-        return '<button class="stop ' + (i % 2 ? 'right' : 'left') + (n ? ' is-done' : '') + (isNext ? ' is-next' : '') + '" data-id="' + l.id + '">' +
-          '<span class="stop-pic">' + icon(l.icon) + '</span>' +
-          '<span class="stop-body">' +
-            '<b>' + esc(l.shortName || l.name) + '</b>' +
-            '<span class="stop-stars">' + stars(n) + '</span>' +
-          '</span>' +
-          '</button>';
-      }).join('') + '</div>';
+    }).join('') + '</div>';
+
+    /* The one line a grown-up standing behind her actually needs: is this
+       level the right one to be in today, and if not, which is. */
+    var ageLv = levelForAge();
+    var fresh = !C.LESSONS.some(function (x) { return done(x.id); });
+    var note;
+    if (fresh && ageLv && ageLv > here && openLevel === here) {
+      /* Nothing done yet, and she is older than this level. The app cannot
+         tell what she already knows — it does not listen to her — so it
+         starts where that shows fastest and says so, rather than guessing
+         from her birthday and dropping her into a book. */
+      note = '<span class="lvnote-now">Starting here</span> &middot; the app cannot tell what she knows yet. ' +
+        'One turn here will. Tap a level above if it is too easy.';
+    } else if (openLevel === here) {
+      note = '<span class="lvnote-now">Where she is</span> &middot; about ' + lv.minutes + ' minutes a go';
+    } else if (openLevel < here) {
+      note = '<span class="lvnote-back">Already done</span> &middot; good for an easy day';
+    } else {
+      note = '<span class="lvnote-next">Later</span> &middot; open it when she can: ' + esc(lv.opens);
+    }
+    if (ageLv && openLevel > ageLv + 1) {
+      note = '<span class="lvnote-next">Later</span> &middot; usually ' + esc(lv.age) + ' years old';
     }
 
     nav(
@@ -286,6 +417,7 @@
         '</header>' +
         '<nav class="lvtabs">' + levelTabs + '</nav>' +
         '<p class="lvblurb">' + esc(lv.blurb) + '</p>' +
+        '<p class="lvnote">' + note + '</p>' +
         body +
       '</div>'
     );
@@ -333,6 +465,36 @@
         '<span>' + esc(t.name) + '</span>' + stars(n) + '</div>';
     }).join('');
 
+    /* Every team she has met, letters-that-make-one-sound and vowel teams
+       together, because to her they are the same kind of thing. */
+    var teams = Object.keys(C.TEAMS).map(function (t) {
+      return { k: t, id: 't-' + t, label: t, sub: '' };
+    }).concat(C.VOWELKEYS.map(function (t) {
+      /* `oo` spells two different sounds — moon and book — so two tiles would
+         read the same and mean different things. The IPA underneath is what
+         tells them apart, and it is what the card itself prints. */
+      return { k: t, id: 'vt-' + t, label: C.VOWELTEAMS[t].spells[0].as,
+        sub: C.VOWELTEAMS[t].ipa };
+    })).map(function (o) {
+      var n = starsFor(o.id);
+      return '<div class="bl ' + (n ? 'got' : '') + '"><b>' + esc(o.label) + '</b>' +
+        (o.sub ? '<i class="bl-ipa">' + esc(o.sub) + '</i>' : '') +
+        '<span>' + (n ? stars(n) : '') + '</span></div>';
+    }).join('');
+
+    /* And the journey itself, so a seven-year-old can see how far she has
+       come rather than only what is next. */
+    var road = C.LEVELS.map(function (lv) {
+      var ls = C.levelLessons(lv.id);
+      var d = ls.filter(function (l) { return done(l.id); }).length;
+      return '<div class="broad ' + (d === ls.length ? 'got' : d ? 'part' : '') + '">' +
+        '<span class="broad-n tint-' + lv.tint + '">' + lv.id + '</span>' +
+        '<span class="broad-t"><b>' + esc(lv.name) + '</b>' +
+          '<span class="broad-bar"><i style="width:' + Math.round((d / ls.length) * 100) + '%"></i></span></span>' +
+        '<span class="broad-c">' + d + '/' + ls.length + '</span>' +
+        '</div>';
+    }).join('');
+
     nav(
       '<div class="screen screen-book">' +
         '<header class="mhead">' +
@@ -343,8 +505,12 @@
         '<div class="bigstars"><span class="bigstar">' + icon('starOn') + '</span><b>' + totalStars() + '</b><small>stars so far</small></div>' +
         '<h3 class="bsec">My Letters</h3>' +
         '<div class="bletters">' + letters + '</div>' +
+        '<h3 class="bsec">My Teams</h3>' +
+        '<div class="bletters bletters--teams">' + teams + '</div>' +
         '<h3 class="bsec">My Words</h3>' +
         '<div class="bthemes">' + themes + '</div>' +
+        '<h3 class="bsec">How Far I Have Come</h3>' +
+        '<div class="broads">' + road + '</div>' +
       '</div>'
     );
     document.getElementById('back').onclick = screenMap;
@@ -491,10 +657,25 @@
     });
   };
 
+  /* Two wrong answers, from this stop's own words where there are enough of
+     them and from the wider picture set where there are not. A stop with two
+     pictures in it — the `ear` team has `ear` and `deer` and English does not
+     offer many more — was handing out two-choice rounds, which is a coin
+     flip, not reading. */
+  function distractors(k, from, n) {
+    var out = sample(from.filter(function (x) { return x !== k; }), n);
+    if (out.length < n) {
+      out = out.concat(sample(C.readable().filter(function (x) {
+        return x !== k && from.indexOf(x) < 0 && out.indexOf(x) < 0;
+      }), n - out.length));
+    }
+    return out;
+  }
+
   /* written word -> which picture is it */
   GEN.readPick = function (cfg) {
     return sample(cfg.words, cfg.rounds || 4).map(function (k) {
-      var others = sample(cfg.words.filter(function (x) { return x !== k; }), 2);
+      var others = distractors(k, cfg.words, 2);
       return { kind: 'pick', track: 'S:read', bigword: word(k).text,
         text: 'Read it. Which one is it?',
         play: function () { return A.say('Read the word. Which one is it?'); },
@@ -507,7 +688,7 @@
   /* picture -> which written word says it */
   GEN.wordPick = function (cfg) {
     return sample(cfg.words, cfg.rounds || 3).map(function (k) {
-      var others = sample(cfg.words.filter(function (x) { return x !== k; }), 2);
+      var others = distractors(k, cfg.words, 2);
       return { kind: 'pick', track: 'S:read', anchor: k,
         text: 'Which word says it?',
         play: (function (t) { return function () { return A.sayWord(t); }; })(word(k).text),
@@ -526,8 +707,14 @@
   };
 
   GEN.meetTeam = function (cfg) {
-    return [{ kind: 'meet', letter: cfg.team, track: 'L:' + cfg.team,
-      text: 'Two letters, one sound' }];
+    var t = C.sound(cfg.team);
+    /* `igh` is three letters, and a vowel team's whole point is that the same
+       sound has more than one look, so neither can use the one line the five
+       consonant teams share. */
+    var line = t.spells && t.spells.length > 1
+      ? 'One sound, more than one way to write it'
+      : (cfg.team.length > 2 ? 'Letters that make one sound' : 'Two letters, one sound');
+    return [{ kind: 'meet', letter: cfg.team, track: 'L:' + cfg.team, text: line }];
   };
 
   /* ------------------------------------------------------------------
@@ -569,6 +756,206 @@
     return out;
   };
 
+  /* ------------------------------------------------------------------
+     LEVEL 5 · Same Sound, New Look
+     ------------------------------------------------------------------ */
+
+  /* Which look? The sound is the constant; the spelling is the question.
+     The word is written, never pictured — the whole point is what it looks
+     like on the page. */
+  GEN.spellSort = function (cfg) {
+    var keys = cfg.teams || [cfg.team];
+    var out = [];
+    for (var i = 0; i < (cfg.rounds || 4); i++) {
+      var t = keys[i % keys.length];
+      var vt = C.VOWELTEAMS[t];
+      var box = Math.floor(Math.random() * vt.spells.length);
+      var w2 = pick(vt.spells[box].words);
+      out.push({
+        kind: 'sort', track: 'L:' + t, team: t, word: w2, correct: box,
+        text: 'Which look does it use?',
+        boxes: vt.spells.map(function (x) { return { as: x.as, note: x.where }; }),
+        /* the word first, then the sound inside it: this is the word, and
+           THIS is the sound you are looking for a spelling of */
+        play: (function (k, x) {
+          return function () {
+            return A.sayWord(word(x).text)
+              .then(function () { return A.gap(gap()); })
+              .then(function () { return A.sayPhoneme(k); });
+          };
+        })(t, w2)
+      });
+    }
+    return out;
+  };
+
+  /* ------------------------------------------------------------------
+     LEVEL 6 · Longer Words
+     ------------------------------------------------------------------ */
+
+  /* Clap the beats. A long word is not one lump — it is two or three short
+     ones, and hearing that is what stops a child guessing at `basket` from
+     its first letter. */
+  GEN.beats = function (cfg) {
+    var pool = C.BEATS.filter(function (b) { return b.n <= (cfg.max || 3); });
+    /* every round is a different word, and the counts stay mixed so the
+       answer cannot be guessed from the last one */
+    return sample(pool, Math.min(cfg.rounds || 6, pool.length)).map(function (b) {
+      return { kind: 'beats', track: 'S:beats', word: b.word, n: b.n,
+        text: 'How many beats?',
+        play: (function (t) { return function () { return A.sayWord(t); }; })(word(b.word).text) };
+    });
+  };
+
+  /* Two words she can already read, stuck together. */
+  GEN.joinWords = function (cfg) {
+    return sample(C.COMPOUNDS, Math.min(cfg.rounds || 6, C.COMPOUNDS.length)).map(function (c) {
+      var others = [];
+      C.COMPOUNDS.forEach(function (x) {
+        if (x.word !== c.word) others = others.concat(x.parts);
+      });
+      return { kind: 'join', track: 'S:long', word: c.word, parts: c.parts,
+        bank: shuffle(c.parts.concat(sample(others, 2))),
+        text: 'Two words make one',
+        play: (function (t) { return function () { return A.sayWord(t); }; })(c.word) };
+    });
+  };
+
+  GEN.meetEnding = function (cfg) {
+    return [{ kind: 'meetend', ending: cfg.ending, track: 'S:long',
+      text: 'Tap each one to hear it' }];
+  };
+
+  /* The base word and the ending, side by side, pushed together. */
+  GEN.addEnding = function (cfg) {
+    var e = C.ending(cfg.ending);
+    return sample(e.items, Math.min(cfg.rounds || 5, e.items.length)).map(function (it) {
+      return { kind: 'addend', track: 'S:long', base: it.base, made: it.made,
+        ending: it.note || e.ending,
+        text: 'Add the ending',
+        play: (function (t) { return function () { return A.sayWord(t); }; })(it.made) };
+    });
+  };
+
+  /* And the test of it: hear the whole word, pick which of the three it was.
+     jump, jumping, jumped differ only in the ending, so this is the ending
+     and nothing else. */
+  GEN.endingPick = function (cfg) {
+    var e = C.ending(cfg.ending);
+    var pool = e.items.filter(function (it) { return C.WORDS[it.base] && C.WORDS[it.made]; });
+    return sample(pool, Math.min(cfg.rounds || 4, pool.length)).map(function (it) {
+      /* The best wrong answers are the SAME word with a different ending —
+         jump, jumping, jumped differ in nothing else, so choosing between
+         them is the ending and nothing else. Not every base has three forms,
+         so the rest are made up from other bases with this same ending, which
+         at least keeps the question about endings. */
+      var kin = C.ENDINGS.reduce(function (a, x) {
+        return a.concat(x.items.filter(function (y) {
+          return y.base === it.base && y.made !== it.made && C.WORDS[y.made];
+        }).map(function (y) { return y.made; }));
+      }, []).concat([it.base]);
+      var others = sample(kin, 2);
+      if (others.length < 2) {
+        others = others.concat(sample(pool.filter(function (y) {
+          return y.made !== it.made && others.indexOf(y.made) < 0;
+        }).map(function (y) { return y.made; }), 2 - others.length));
+      }
+      return { kind: 'pick', track: 'S:long',
+        text: 'Which word did you hear?',
+        play: (function (t) { return function () { return A.sayWord(t); }; })(it.made),
+        options: shuffle([it.made].concat(others)).map(function (x) {
+          return { kind: 'word', word: x, correct: x === it.made };
+        }) };
+    });
+  };
+
+  GEN.meetSoft = function (cfg) {
+    return [{ kind: 'meetsoft', soft: cfg.soft, track: 'S:long',
+      text: 'The same letter, two jobs' }];
+  };
+
+  /* Hard or soft: the letter is the same, the sound is not, and the vowel
+     after it is the whole tell. */
+  GEN.softSort = function (cfg) {
+    var sf = C.softOf(cfg.soft);
+    var out = [];
+    var pool = shuffle(sf.softWords.map(function (k) { return { k: k, i: 0 }; })
+      .concat(sf.hardWords.map(function (k) { return { k: k, i: 1 }; })));
+    pool.slice(0, cfg.rounds || 6).forEach(function (o) {
+      out.push({ kind: 'sort', track: 'S:long', word: o.k, correct: o.i,
+        text: 'What does <b class="gl">' + esc(sf.letter) + '</b> say here?',
+        boxes: [{ as: sf.soft, note: 'the soft one' }, { as: sf.hard, note: 'the hard one' }],
+        play: (function (t) { return function () { return A.sayWord(t); }; })(word(o.k).text) });
+    });
+    return out;
+  };
+
+  /* ------------------------------------------------------------------
+     LEVEL 7 · Real Books
+     ------------------------------------------------------------------ */
+
+  /* A book is a story with eight pages instead of five and three questions
+     instead of two, so it runs on the story engine unchanged. */
+  GEN.book = function (cfg) {
+    var bk = C.book(cfg.book);
+    var out = bk.pages.map(function (pg, i) {
+      return { kind: 'page', track: 'S:read', page: pg, n: i + 1, of: bk.pages.length,
+        title: bk.title, text: 'Tap any word to hear it',
+        play: (function (t) { return function () { return A.say(t); }; })(pg.text) };
+    });
+    bk.questions.forEach(function (q) {
+      out.push({ kind: 'pick', track: 'S:read', text: esc(q.q),
+        play: (function (t) { return function () { return A.say(t); }; })(q.q),
+        options: shuffle([q.pic].concat(q.not)).map(function (x) {
+          return { kind: 'pic', word: x, correct: x === q.pic };
+        }) });
+    });
+    return out;
+  };
+
+  GEN.bookQuestions = function (cfg) {
+    var all = [];
+    C.BOOKS.forEach(function (bk) { all = all.concat(bk.questions); });
+    return sample(all, Math.min(cfg.rounds || 6, all.length)).map(function (q) {
+      return { kind: 'pick', track: 'S:read', text: esc(q.q),
+        play: (function (t) { return function () { return A.say(t); }; })(q.q),
+        options: shuffle([q.pic].concat(q.not)).map(function (x) {
+          return { kind: 'pic', word: x, correct: x === q.pic };
+        }) };
+    });
+  };
+
+  /* Dictation. No picture: she hears the word and writes it, which is the
+     other half of phonics and the half a reading app usually leaves out.
+     The tiles are LETTERS, not sounds — `ship` is four letters and three
+     sounds, and spelling is about the letters. */
+  GEN.spellIt = function (cfg) {
+    var set = C.spellingSet(cfg.set);
+    return sample(set.words, Math.min(cfg.rounds || 5, set.words.length)).map(function (k) {
+      var letters = word(k).text.split('');
+      var spare = sample(C.LETTERS.filter(function (x) { return letters.indexOf(x) < 0; }), 3);
+      return { kind: 'spell', track: 'S:spell', word: k,
+        tiles: shuffle(letters.concat(spare)),
+        text: 'Listen, then write it',
+        play: (function (t) { return function () { return A.sayWord(t); }; })(word(k).text) };
+    });
+  };
+
+  /* The words that cannot be sounded out and have to be known by sight.
+     Written options only — a sight word has no picture, that is the point. */
+  GEN.sightRead = function (cfg) {
+    var pool = C.SIGHT.concat(C.SIGHT2);
+    return sample(pool, cfg.rounds || 8).map(function (t) {
+      var others = sample(pool.filter(function (x) { return x !== t; }), 2);
+      return { kind: 'pick', track: 'S:sight',
+        text: 'Which word did you hear?',
+        play: (function (x) { return function () { return A.sayWord(x); }; })(t),
+        options: shuffle([t].concat(others)).map(function (x) {
+          return { kind: 'text', text: x, correct: x === t };
+        }) };
+    });
+  };
+
   /* ==================================================================
      GAME MODE — every letter she has met, all mixed together
      ================================================================== */
@@ -578,19 +965,42 @@
   }
   function screenGamesEntry() { ensureSound(); screenGames(); }
 
+  /* Mix it up grows with her. At four it is letters; once she is reading it
+     is letters AND words AND, later, the vowel teams and the endings — old
+     work mixed back in, which is the only thing that stops the early levels
+     fading while she is busy with the late ones. It takes the level she is on
+     as the ceiling, so it never asks for something she has not met. */
   function gameLesson() {
     var set = learnedLetters();
     var pool = [];
     set.forEach(function (l) { pool = pool.concat(C.ALPHABET[l].words); });
+    var reach = levelNow();
+    var acts = [
+      { type: 'findLetter', letters: set, rounds: reach >= 3 ? 3 : 4 },
+      { type: 'startsWith', letters: set, rounds: reach >= 3 ? 3 : 4 },
+      { type: 'missingLetter', letters: set, rounds: 3 }
+    ];
+    if (reach >= 3) {
+      acts.push({ type: 'soundOut', words: C.readable(), rounds: 2 });
+      acts.push({ type: 'readPick', words: C.readable(), rounds: 3 });
+    }
+    if (reach >= 5) {
+      acts.push({ type: 'spellSort',
+        teams: C.VOWELKEYS.filter(function (t) { return C.VOWELTEAMS[t].spells.length > 1; }),
+        rounds: 3 });
+    }
+    if (reach >= 6) {
+      acts.push({ type: 'beats', max: 3, rounds: 3 });
+      acts.push({ type: 'addEnding', ending: pick(C.ENDINGS).id, rounds: 2 });
+    }
+    if (reach >= 7) acts.push({ type: 'sightRead', rounds: 3 });
+    /* the memory round goes last, because it is the long one and it is the
+       one to be in the middle of when the session cap arrives */
+    if (reach < 5) acts.push({ type: 'memoryMatch', words: sample(pool, 6), pairs: 3 });
     return {
-      id: 'game', level: 2, game: true, name: 'Mix it up', shortName: 'Mix it up',
+      id: 'game', level: Math.min(reach, 7), game: true, name: 'Mix it up', shortName: 'Mix it up',
       icon: 'trophy', letters: set,
-      activities: [
-        { type: 'findLetter', letters: set, rounds: 4 },
-        { type: 'startsWith', letters: set, rounds: 4 },
-        { type: 'missingLetter', letters: set, rounds: 3 },
-        { type: 'memoryMatch', words: sample(pool, 6), pairs: 3 }
-      ]
+      activities: acts
     };
   }
 
@@ -625,13 +1035,36 @@
       make: function () { return [{ type: 'soundOut', words: C.readable(), rounds: 6 }]; } },
     { id: 'build', name: 'Build the Word', icon: 'robot', level: 3,
       make: function () { return [{ type: 'buildWord', words: C.readable(), rounds: 6 }]; } },
+    { id: 'magice', name: 'Magic e', icon: 'cake', level: 3,
+      make: function () { return [{ type: 'magicE', words: C.MAGICE, rounds: 5 },
+                                  { type: 'readPick', words: C.MAGICE, rounds: 4 }]; } },
     { id: 'read', name: 'Read the Word', icon: 'quilt', level: 3,
       make: function () { return [{ type: 'readPick', words: C.readable(), rounds: 5 },
                                   { type: 'wordPick', words: C.readable(), rounds: 4 }]; } },
     { id: 'sentence', name: 'Make a Sentence', icon: 'envelope', level: 4,
       make: function () { return [{ type: 'buildSentence', from: 0, rounds: 4 }]; } },
     { id: 'choose', name: 'Read and Choose', icon: 'book', level: 4,
-      make: function () { return [{ type: 'sentencePick', from: 0, rounds: 6 }]; } }
+      make: function () { return [{ type: 'sentencePick', from: 0, rounds: 6 }]; } },
+    { id: 'sort', name: 'Which Look?', icon: 'pair', level: 5,
+      make: function () {
+        return [{ type: 'spellSort',
+          teams: C.VOWELKEYS.filter(function (t) { return C.VOWELTEAMS[t].spells.length > 1; }),
+          rounds: 8 }];
+      } },
+    { id: 'beats', name: 'Clap the Beats', icon: 'hand', level: 6,
+      make: function () { return [{ type: 'beats', max: 3, rounds: 8 }]; } },
+    { id: 'join', name: 'Two Words in One', icon: 'cupcake', level: 6,
+      make: function () { return [{ type: 'joinWords', rounds: 6 }]; } },
+    { id: 'endings', name: 'Add the Ending', icon: 'jumping', level: 6,
+      make: function () {
+        return C.ENDINGS.map(function (e) { return { type: 'addEnding', ending: e.id, rounds: 2 }; });
+      } },
+    { id: 'spell', name: 'Write It Down', icon: 'pencil', level: 7,
+      make: function () {
+        return C.SPELLINGS.map(function (x) { return { type: 'spellIt', set: x.id, rounds: 3 }; });
+      } },
+    { id: 'sight', name: 'Tricky Words', icon: 'question', level: 7,
+      make: function () { return [{ type: 'sightRead', rounds: 8 }]; } }
   ];
 
   function startFreeGame(g) {
@@ -805,7 +1238,9 @@
     var r = run.rounds[run.i];
     ({ pick: rPick, memory: rMemory, meet: rMeet, missing: rMissing,
        soundout: rSoundOut, build: rBuild, magice: rMagicE,
-       sentence: rSentence, page: rPage })[r.kind](r);
+       sentence: rSentence, page: rPage, sort: rSort, beats: rBeats,
+       join: rJoin, meetend: rMeetEnding, addend: rAddEnding,
+       meetsoft: rMeetSoft, spell: rSpell })[r.kind](r);
   }
 
   /* ---- tap each sound, then push them together ---- */
@@ -982,11 +1417,270 @@
     };
   }
 
+  /* ---- sort it into a box: which spelling, or which sound ----
+     One renderer for two games that are the same shape. Level 5 asks which
+     of ai / ay / a_e this word uses; Level 6 asks whether c is saying /s/ or
+     /k/ here. Both are: here is a written word, here are the boxes, which
+     box is it. */
+  function rSort(r) {
+    shell(
+      '<div class="sorter">' +
+        '<button class="sortword" id="sw">' + esc(word(r.word).text) + '</button>' +
+        '<div class="boxes">' + r.boxes.map(function (b, i) {
+          return '<button class="sbox" data-i="' + i + '">' +
+            '<b>' + esc(b.as) + '</b>' +
+            (b.note ? '<small>' + esc(b.note) + '</small>' : '') +
+            '</button>';
+        }).join('') + '</div>' +
+      '</div>'
+    );
+    document.getElementById('sw').onclick = function () { A.sayWord(word(r.word).text); };
+    Array.prototype.forEach.call(document.querySelectorAll('.sbox'), function (b) {
+      b.onclick = function () {
+        if (b.dataset.spent === '1') return;
+        if (+b.dataset.i === r.correct) {
+          Array.prototype.forEach.call(document.querySelectorAll('.sbox'), function (x) { x.dataset.spent = '1'; });
+          b.classList.add('is-right');
+          A.sayWord(word(r.word).text);
+          right(r.track);
+          advance();
+        } else {
+          b.dataset.spent = '1';
+          b.classList.add('is-wrong');
+          setTimeout(function () { b.classList.remove('is-wrong'); b.dataset.spent = '0'; }, 750);
+          wrong(r.track);
+        }
+      };
+    });
+  }
+
+  /* ---- clap the beats ----
+     The answer is tapped as a number, but the point is the clapping, so the
+     word splits apart on screen as she gets it right. */
+  function rBeats(r) {
+    var t = word(r.word).text;
+    shell(
+      '<div class="beats">' +
+        '<button class="beatword" id="bw">' + esc(t) + '</button>' +
+        '<div class="claps">' + [1, 2, 3].map(function (n) {
+          return '<button class="clap" data-n="' + n + '">' +
+            '<span class="clap-dots">' + new Array(n + 1).join('<i></i>') + '</span>' +
+            '<b>' + n + '</b></button>';
+        }).join('') + '</div>' +
+      '</div>'
+    );
+    document.getElementById('bw').onclick = function () { A.sayWord(t); };
+    Array.prototype.forEach.call(document.querySelectorAll('.clap'), function (b) {
+      b.onclick = function () {
+        if (b.dataset.spent === '1') return;
+        if (+b.dataset.n === r.n) {
+          Array.prototype.forEach.call(document.querySelectorAll('.clap'), function (x) { x.dataset.spent = '1'; });
+          b.classList.add('is-right');
+          if (S.settings.sfx) A.sfx('pop');
+          A.sayWord(t);
+          right(r.track);
+          advance();
+        } else {
+          b.dataset.spent = '1';
+          b.classList.add('is-wrong');
+          setTimeout(function () { b.classList.remove('is-wrong'); b.dataset.spent = '0'; }, 750);
+          wrong(r.track);
+        }
+      };
+    });
+  }
+
+  /* ---- two words make one ---- */
+  function rJoin(r) {
+    shell(
+      '<div class="joiner">' +
+        '<div class="joiner-pic">' + picture(r.word, true) + '</div>' +
+        '<div class="jslots">' + r.parts.map(function (_, i) {
+          return '<div class="jslot" data-i="' + i + '"></div>';
+        }).join('<span class="jplus">+</span>') + '</div>' +
+        '<div class="jbank">' + r.bank.map(function (w2) {
+          return '<button class="wcard" data-w="' + esc(w2) + '">' + esc(w2) + '</button>';
+        }).join('') + '</div>' +
+      '</div>'
+    );
+    var next = 0;
+    Array.prototype.forEach.call(document.querySelectorAll('.jbank .wcard'), function (el) {
+      el.onclick = function () {
+        if (el.dataset.used === '1') return;
+        if (el.dataset.w === r.parts[next]) {
+          el.dataset.used = '1';
+          el.classList.add('used');
+          var slot = document.querySelector('.jslot[data-i="' + next + '"]');
+          slot.textContent = r.parts[next];
+          slot.classList.add('filled');
+          A.sayWord(r.parts[next]);
+          if (S.settings.sfx) A.sfx('pop');
+          next++;
+          if (next === r.parts.length) {
+            var line = document.querySelector('.jslots');
+            line.classList.add('joined');
+            A.idle()
+              .then(function () { return A.sayWord(word(r.word).text); })
+              .then(function () { right(r.track); advance(900); });
+          }
+        } else {
+          el.classList.add('is-wrong');
+          setTimeout(function () { el.classList.remove('is-wrong'); }, 650);
+          wrong(r.track);
+        }
+      };
+    });
+  }
+
+  /* ---- meet an ending ---- */
+  function rMeetEnding(r) {
+    var e = C.ending(r.ending);
+    shell(
+      '<div class="card card--ending">' +
+        '<div class="card-head card-head--one">' +
+          '<button class="card-top" id="cardtop">' +
+            '<span class="card-letter">-' + esc(e.ending) + '</span>' +
+            '<span class="card-friend">' + esc(e.blurb) + '</span>' +
+          '</button>' +
+        '</div>' +
+        (e.also ? '<p class="card-also">' + esc(e.also) + '</p>' : '') +
+        '<div class="endrows">' + e.items.map(function (it, i) {
+          return '<button class="endrow" data-i="' + i + '">' +
+            '<span class="endrow-base">' + esc(it.base) + '</span>' +
+            '<span class="endrow-arrow">&rarr;</span>' +
+            '<span class="endrow-made">' + esc(it.base) +
+              '<b>' + esc(it.made.slice(it.base.length) || '-' + e.ending) + '</b></span>' +
+            '</button>';
+        }).join('') + '</div>' +
+        '<button class="nextbtn ready" id="cardnext">' + icon('play') + '</button>' +
+      '</div>',
+      { silent: true }
+    );
+    document.getElementById('cardtop').onclick = function () { A.sayWord(e.items[0].made); };
+    Array.prototype.forEach.call(document.querySelectorAll('.endrow'), function (b) {
+      b.onclick = function () {
+        bump(b); b.classList.add('seen');
+        var it = e.items[+b.dataset.i];
+        A.sayWord(it.base).then(function () { return A.gap(gap()); })
+          .then(function () { return A.sayWord(it.made); });
+      };
+    });
+    document.getElementById('cardnext').onclick = function () {
+      A.stop(); credit(r.track); advance(0);
+    };
+  }
+
+  /* ---- add the ending ---- */
+  function rAddEnding(r) {
+    var tail = r.made.slice(r.base.length) || r.ending;
+    shell(
+      '<div class="adder">' +
+        '<div class="adder-row">' +
+          '<span class="adder-base" id="ab">' + esc(r.base) + '</span>' +
+          '<span class="adder-plus">+</span>' +
+          '<button class="adder-end" id="ae">' + esc(tail) + '</button>' +
+        '</div>' +
+        '<button class="pushbtn" id="push">push them together' +
+          '<svg viewBox="0 0 60 24" aria-hidden="true"><path d="M4 12h44M40 5l9 7-9 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '</button>' +
+        '<div class="adder-made" id="am" hidden>' + esc(r.base) + '<b>' + esc(tail) + '</b></div>' +
+      '</div>'
+    );
+    document.getElementById('ab').onclick = function () { A.sayWord(r.base); };
+    document.getElementById('ae').onclick = function () { A.sayWord(r.made); };
+    document.getElementById('push').onclick = function () {
+      var p2 = document.getElementById('push');
+      p2.disabled = true;
+      document.querySelector('.adder-row').classList.add('squeeze');
+      document.getElementById('am').hidden = false;
+      A.sayWord(r.made).then(function () { right(r.track); advance(900); });
+    };
+  }
+
+  /* ---- meet soft c / soft g ---- */
+  function rMeetSoft(r) {
+    var sf = C.softOf(r.soft);
+    function row(title, words, cls) {
+      return '<div class="softcol ' + cls + '"><h4>' + esc(title) + '</h4>' +
+        words.map(function (k) {
+          return '<button class="softw" data-k="' + k + '">' + esc(word(k).text) + '</button>';
+        }).join('') + '</div>';
+    }
+    shell(
+      '<div class="card card--soft">' +
+        '<div class="card-head card-head--one">' +
+          '<button class="card-top" id="cardtop">' +
+            '<span class="card-letter">' + esc(sf.letter) + '</span>' +
+            '<span class="card-ipa">' + esc(sf.soft) + ' &nbsp;or&nbsp; ' + esc(sf.hard) + '</span>' +
+          '</button>' +
+        '</div>' +
+        '<p class="card-also">' + esc(sf.rule) + (sf.also ? ' ' + esc(sf.also) : '') + '</p>' +
+        '<div class="softcols">' +
+          row('says ' + sf.soft, sf.softWords, 'is-soft') +
+          row('says ' + sf.hard, sf.hardWords, 'is-hard') +
+        '</div>' +
+        '<button class="nextbtn ready" id="cardnext">' + icon('play') + '</button>' +
+      '</div>',
+      { silent: true }
+    );
+    document.getElementById('cardtop').onclick = function () { A.sayPhoneme(sf.letter); };
+    Array.prototype.forEach.call(document.querySelectorAll('.softw'), function (b) {
+      b.onclick = function () { bump(b); b.classList.add('seen'); A.sayWord(word(b.dataset.k).text); };
+    });
+    document.getElementById('cardnext').onclick = function () {
+      A.stop(); credit(r.track); advance(0);
+    };
+  }
+
+  /* ---- dictation: hear it, write it ----
+     No picture on screen. That is the whole difference between this and
+     Build the Word, and it is the difference between matching and spelling. */
+  function rSpell(r) {
+    var t = word(r.word).text;
+    shell(
+      '<div class="speller">' +
+        '<button class="spellear" id="se">' + icon('ear') + '<span>say it again</span></button>' +
+        '<div class="slots">' + t.split('').map(function (_, i) {
+          return '<div class="slot" data-i="' + i + '"></div>';
+        }).join('') + '</div>' +
+        '<div class="ltiles">' + r.tiles.map(function (c, i) {
+          return '<button class="ltile" data-c="' + esc(c) + '" data-i="' + i + '">' + esc(c) + '</button>';
+        }).join('') + '</div>' +
+      '</div>'
+    );
+    document.getElementById('se').onclick = function () { A.stop(); A.sayWord(t); };
+    var next = 0;
+    Array.prototype.forEach.call(document.querySelectorAll('.ltile'), function (el) {
+      el.onclick = function () {
+        if (el.dataset.used === '1') return;
+        if (el.dataset.c === t.charAt(next)) {
+          var slot = document.querySelector('.slot[data-i="' + next + '"]');
+          slot.textContent = el.dataset.c;
+          slot.classList.add('filled');
+          el.dataset.used = '1';
+          el.classList.add('used');
+          if (S.settings.sfx) A.sfx('pop');
+          next++;
+          if (next === t.length) {
+            A.sayWord(t).then(function () { right(r.track); advance(800); });
+          }
+        } else {
+          el.classList.add('is-wrong');
+          setTimeout(function () { el.classList.remove('is-wrong'); }, 650);
+          wrong(r.track);
+        }
+      };
+    });
+  }
+
   /* ---- three-choice picker (pictures OR letters) ---- */
   function rPick(r) {
     var opts = r.options.map(function (o, i) {
       var body = o.kind === 'pic' ? picture(o.word)
         : o.kind === 'word' ? '<span class="glyph glyph--word">' + esc(word(o.word).text) + '</span>'
+        /* a sight word has no picture and is not in the word list — that is
+           what makes it a sight word */
+        : o.kind === 'text' ? '<span class="glyph glyph--word">' + esc(o.text) + '</span>'
         : '<span class="glyph">' + esc(glyph(o.letter)) + '</span>';
       return '<button class="opt' + (o.kind === 'pic' ? ' opt--pic' : '') + '" data-i="' + i + '">' + body + '</button>';
     }).join('');
@@ -1007,6 +1701,7 @@
           /* name the thing she just chose, then praise it: "apple" — "well
              done", in that order, because the word is the thing being taught */
           if (o.kind === 'pic' || o.kind === 'word') A.sayWord(word(o.word).text);
+          else if (o.kind === 'text') A.sayWord(o.text);
           right(r.track);
           advance();
         } else {
@@ -1020,6 +1715,36 @@
   }
 
   /* ---- the letter card: big Aa, how to say it, four keyword pictures ---- */
+  /* Which part of the keyword to print in red.
+
+     On a letter card it is the first letter, the way the printed card does
+     it. On a TEAM card it has to be the team, wherever the team happens to
+     sit: the `ai` card showed `rain` with the `r` in red, which points at the
+     one part of the word the card is not about. `fish` on the `sh` card had
+     the same problem from the other end. So a team card looks for its own
+     spelling inside the word — and for a magic-e spelling like `a_e` it marks
+     both halves, because both halves are the spelling. */
+  function markSound(text, L, key) {
+    if (!L.team) return '<b>' + esc(text.charAt(0)) + '</b>' + esc(text.slice(1));
+    var ways = L.spells ? L.spells.map(function (sp) { return sp.as; }) : [key];
+    for (var i = 0; i < ways.length; i++) {
+      var as = ways[i];
+      if (as.indexOf('_') >= 0) {
+        var v = as.charAt(0), at = text.lastIndexOf(v);
+        if (at > 0 && at < text.length - 1 && text.charAt(text.length - 1) === 'e') {
+          return esc(text.slice(0, at)) + '<b>' + esc(v) + '</b>' +
+            esc(text.slice(at + 1, text.length - 1)) + '<b>e</b>';
+        }
+      } else {
+        var at2 = text.indexOf(as);
+        if (at2 >= 0) {
+          return esc(text.slice(0, at2)) + '<b>' + esc(as) + '</b>' + esc(text.slice(at2 + as.length));
+        }
+      }
+    }
+    return esc(text);
+  }
+
   function rMeet(r) {
     var L = C.sound(r.letter);
     var pics = L.words.map(function (k, i) {
@@ -1028,7 +1753,7 @@
         '<span class="kw-pic">' + (PHOTOS[k]
           ? '<span class="pic pic--photo" style="background-image:url(' + PHOTOS[k] + ')"></span>'
           : icon(word(k).icon)) + '</span>' +
-        '<span class="kw-text"><b>' + esc(t.charAt(0)) + '</b>' + esc(t.slice(1)) + '</span>' +
+        '<span class="kw-text">' + markSound(t, L, r.letter) + '</span>' +
         '</button>';
     }).join('');
 
@@ -1040,11 +1765,21 @@
             '<span class="card-ipa">' + esc(L.ipa) + '</span>' +
             (L.friend ? '<span class="card-friend">' + esc(L.friend) + '</span>' : '') +
           '</button>' +
-          '<button class="card-mouth" id="cardmouth" aria-label="How to say it">' +
+          '<button class="card-mouth' + (L.mouth2 ? ' card-mouth--glide' : '') +
+            '" id="cardmouth" aria-label="How to say it">' +
+            /* A diphthong is a movement between two mouth positions, so the
+               card shows both and an arrow. One static shape would be a
+               picture of neither end of it. */
             window.mouthSvg(L.mouth) +
+            (L.mouth2 ? '<span class="mouth-arrow">&rarr;</span>' + window.mouthSvg(L.mouth2) : '') +
             '<span class="card-tip">' + esc(L.tip) + '</span>' +
           '</button>' +
         '</div>' +
+        (L.spells && L.spells.length > 1
+          ? '<div class="spells">' + L.spells.map(function (sp) {
+              return '<span class="spell"><b>' + esc(sp.as) + '</b><small>' + esc(sp.where) + '</small></span>';
+            }).join('') + '</div>'
+          : '') +
         (L.also ? '<p class="card-also">' + esc(L.also) + '</p>' : '') +
         '<div class="kws">' + pics + '</div>' +
         '<button class="nextbtn" id="cardnext">' + icon('play') + '</button>' +
@@ -1234,7 +1969,11 @@
     var overCap = sessionStart && (Date.now() - sessionStart) / 60000 > S.settings.cap;
     var ls = C.levelLessons(l.level);
     var idx = ls.map(function (x) { return x.id; }).indexOf(l.id);
-    var next = l.game ? null : ls[idx + 1];
+    /* The last stop of a level used to offer nothing, which made the end of
+       a level feel like the end of the app — she finished Z and the only way
+       on was through the map. Next now steps into the level above. */
+    var next = l.game ? null
+      : (ls[idx + 1] || C.LESSONS.filter(function (x) { return x.level > l.level && !done(x.id); })[0]);
 
     nav(
       '<div class="screen screen-done">' +
@@ -1271,7 +2010,7 @@
   /* ==================================================================
      SCREEN · GROWN-UPS
      ================================================================== */
-  var tab = 'progress';
+  var tab = 'plan';
 
   function screenParent() {
     A.stop();
@@ -1281,7 +2020,7 @@
           '<button class="iconbtn" id="pback" aria-label="Back">' + icon('back') + '</button>' +
           '<h2>Grown-ups</h2><span class="iconbtn iconbtn--ghost"></span>' +
         '</div>' +
-        '<nav class="tabs">' + ['progress', 'pictures', 'voice', 'sounds', 'settings'].map(function (t) {
+        '<nav class="tabs">' + ['plan', 'progress', 'pictures', 'voice', 'sounds', 'settings'].map(function (t) {
           return '<button class="tab ' + (tab === t ? 'is-on' : '') + '" data-t="' + t + '">' + t + '</button>';
         }).join('') + '</nav>' +
         '<div id="ptab"></div>' +
@@ -1291,13 +2030,91 @@
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
       b.onclick = function () { tab = b.dataset.t; screenParent(); };
     });
-    ({ progress: tabProgress, pictures: tabPictures, voice: tabVoice,
+    ({ plan: tabPlan, progress: tabProgress, pictures: tabPictures, voice: tabVoice,
        sounds: tabSounds, settings: tabSettings })[tab]();
+  }
+
+  /* ------------------------------------------------------------------
+     PLAN — the answer to "which one do I open, and when do I move her on".
+
+     Everything on this page is already in content.js; this is just where it
+     is shown to the person who has to decide. Nothing here changes what the
+     app does — the app never locks anything — it changes what the grown-up
+     knows while deciding.
+     ------------------------------------------------------------------ */
+  function tabPlan() {
+    var a = ageYears();
+    var here = levelNow();
+    var ageLv = levelForAge();
+    var stop = todaysStop();
+
+    var head = a == null
+      ? '<div class="panel"><h3>How old is she?</h3>' +
+          '<p class="hint">Put her birth month in <b>Settings</b> and this page says which level to open, and when to move on. Without it the app uses what she has already finished, which works &mdash; it just cannot tell you whether she is ahead or behind.</p>' +
+        '</div>'
+      : '<div class="panel"><h3>Right now</h3>' +
+          '<p class="stat"><b>' + esc(ageText()) + '</b> old</p>' +
+          '<p class="hint">Her age points at <b>Level ' + ageLv + ' &middot; ' + esc(levelOf(ageLv).name) + '</b>. ' +
+            'What she has finished puts her on <b>Level ' + here + ' &middot; ' + esc(levelOf(here).name) + '</b>.' +
+            (here < ageLv
+              ? (C.LESSONS.some(function (x) { return done(x.id); })
+                ? ' She is behind the usual pace, which is very common and is not a problem: the order matters, the timing does not. Keep going from where she is &mdash; skipping ahead to catch up is what actually causes the trouble.'
+                : ' Nothing has been done on this device yet, so the app has started at the alphabet rather than at her age. It cannot hear her read, so it has no way to know what she already knows; one turn on Level 2 will tell you, and it takes four minutes. If she clears it easily, open Level 3 from the map and carry on from there.')
+              : here > ageLv
+                ? ' She is ahead of the usual pace. Let her carry on; the only thing worth watching is whether she is still reading the words or has started guessing them from the pictures.'
+                : ' Those agree, which is the ordinary case.') +
+          '</p>' +
+          (stop ? '<p class="hint">Today the app will open <b>' + esc(stop.shortName || stop.name) + '</b>, and about <b>' +
+            levelOf(stop.level).minutes + ' minutes</b> is a full turn at that level.</p>' : '') +
+        '</div>';
+
+    var rows = C.LEVELS.map(function (lv) {
+      var ls = C.levelLessons(lv.id);
+      var d = ls.filter(function (l) { return done(l.id); }).length;
+      var state = d === ls.length ? 'done' : (lv.id === here ? 'now' : (lv.id < here ? 'part' : 'later'));
+      return '<div class="plevel is-' + state + '">' +
+        '<div class="plevel-head">' +
+          '<span class="plevel-n tint-' + lv.tint + '">' + lv.id + '</span>' +
+          '<span class="plevel-t"><b>' + esc(lv.name) + '</b>' +
+            '<small>' + esc(lv.age) + ' years &middot; ' + ls.length + ' stops &middot; ' + lv.minutes + ' min a go</small></span>' +
+          '<span class="plevel-tag">' +
+            (state === 'now' ? 'open this' : state === 'done' ? 'finished' :
+             state === 'part' ? d + '/' + ls.length : 'later') + '</span>' +
+        '</div>' +
+        '<p class="plevel-blurb">' + esc(lv.blurb) + '</p>' +
+        '<dl class="plevel-when">' +
+          '<dt>Open it when</dt><dd>' + esc(lv.opens) + '</dd>' +
+          '<dt>Move on when</dt><dd>' + esc(lv.ready) + '</dd>' +
+        '</dl>' +
+        '</div>';
+    }).join('');
+
+    document.getElementById('ptab').innerHTML =
+      head +
+      '<div class="panel"><h3>The seven levels, in order</h3>' +
+        '<p class="hint">The order is fixed because each level needs the one before it. The <b>ages are what to expect, not what to enforce</b> &mdash; a five-year-old who is reading <i>cat</i> belongs in Level 3 whatever the table says, and a six-year-old still learning letters belongs in Level 2. Nothing in the app is locked: any stop on any level is one tap away, always.</p>' +
+        '<div class="plevels">' + rows + '</div>' +
+      '</div>' +
+      '<div class="panel"><h3>How to run a week</h3>' +
+        '<ul class="plist">' +
+          '<li><b>One turn a day beats three at the weekend.</b> Five to fifteen minutes depending on the level, and stop while she still wants more.</li>' +
+          '<li><b>Open the app at Today.</b> It already knows the next stop on the level she is on; the map is for when you want something else.</li>' +
+          '<li><b>Two days a week on Games instead.</b> Same skills, no sense of a queue, and it mixes old work back in so it does not fade.</li>' +
+          '<li><b>Read to her every day as well.</b> Phonics is how a word is got off the page; it is not what makes a child want to. Those are two different jobs and the app only does one of them.</li>' +
+          '<li><b>When she is stuck, go back a level for a day.</b> An easy win the day after a hard session is worth more than another go at the hard one.</li>' +
+        '</ul>' +
+      '</div>' +
+      '<div class="panel"><h3>What this app does not do</h3>' +
+        '<p class="hint">It does not listen to her. It cannot hear that she said <i>tink</i> for <i>think</i>, so the sounds she has trouble making are yours to catch &mdash; sit beside her for the letter cards and the books, and the mouth pictures on each card are there for you to copy together.</p>' +
+        '<p class="hint">It does not teach handwriting. Level 7 spells with letter tiles, which is the right first step, but a pencil is a different skill and belongs on paper.</p>' +
+        '<p class="hint">It stops where phonics stops. After Level 7 what she needs is books, and the amount of them, not another app.</p>' +
+      '</div>';
   }
 
   function tabProgress() {
     var tr = C.trackables();
     var letters = tr.filter(function (t) { return t.kind === 'letter'; });
+    var teams = tr.filter(function (t) { return t.kind === 'team' || t.kind === 'vowel'; });
     var themes = tr.filter(function (t) { return t.kind === 'theme'; });
 
     function cells(list) {
@@ -1324,6 +2141,7 @@
       '<div class="panel"><h3>Mastery map</h3>' +
         '<p class="hint">Leitner box 0&ndash;5: a box goes up on a right answer and back to 1 on a wrong one. Green means it has been right several times across several days.</p>' +
         '<h4>Letter sounds</h4><div class="grid">' + cells(letters) + '</div>' +
+        '<h4>Two-letter teams and vowel teams</h4><div class="grid grid--wide">' + cells(teams) + '</div>' +
         '<h4>Word themes</h4><div class="grid grid--wide">' + cells(themes) + '</div>' +
         '<div class="legend">' + [0, 1, 2, 3, 4, 5].map(function (n) {
           return '<span class="lg"><i class="cell b' + n + '"></i>' + (n === 0 ? 'new' : n) + '</span>';
@@ -1334,9 +2152,19 @@
         (weak.length
           ? '<ol class="weak">' + weak.map(function (t) {
               var a = Math.round(SRS.acc(t.key) * 100);
+              /* What to actually DO about it, off the screen. A letter is
+                 found in the world; a team is heard in a handful of words
+                 said one after another, which is how you hear that they
+                 share a sound; a theme is named. "Name these things when
+                 you see them" was being printed for all three, and for a
+                 vowel team it means nothing. */
+              var snd = t.kind !== 'theme' && C.sound(t.key.slice(2));
               var hint = t.kind === 'letter' && C.ALPHABET[t.label]
                 ? 'Point at ' + C.ALPHABET[t.label].words.map(function (k) { return C.WORDS[k].text; }).join(', ') + ' in real life'
-                : 'Name these things when you see them';
+                : snd && snd.words && snd.words.length
+                  ? 'Say these one after another and listen for the same sound: ' +
+                    snd.words.map(function (k) { return C.WORDS[k].text; }).join(', ')
+                  : 'Name these things when you see them';
               return '<li><b>' + esc(t.label) + '</b><span class="acc">' + a + '%</span><em>' + esc(hint) + '</em></li>';
             }).join('') + '</ol>'
           : '<p class="hint">Fills up once an item has been seen three times.</p>') +
@@ -1402,9 +2230,9 @@
 
   function tabVoice() {
     var can = A.canRecord();
-    /* the five two-letter teams have clips of their own, so they belong in
-       this list next to the letters */
-    var keys = C.LETTERS.concat(Object.keys(C.TEAMS));
+    /* the five consonant teams and the thirteen vowel teams have clips of
+       their own, so they belong in this list next to the letters */
+    var keys = C.LETTERS.concat(Object.keys(C.TEAMS)).concat(C.VOWELKEYS);
 
     function row(key, label, sub) {
       var has = A.hasRecording(key);
@@ -1419,7 +2247,7 @@
     document.getElementById('ptab').innerHTML =
       '<div class="panel">' +
         '<h3>Do I need to record anything?</h3>' +
-        '<p class="hint"><b>No.</b> Every letter sound ships as a clip. The 26 single letters are <b>recordings of a reading teacher</b> saying each sound on its own &mdash; not a word with the sound cut out of it, and not a synthesiser. The four two-letter teams (<b>sh ch th ng</b>) have no recording and are still built from a word by a British neural voice. Each row says which.</p>' +
+        '<p class="hint"><b>No.</b> Every sound in the app ships as a clip. The 26 single letters are <b>recordings of a reading teacher</b> saying each sound on its own &mdash; not a word with the sound cut out of it, and not a synthesiser. The consonant teams (<b>sh ch th ng</b>) and the thirteen <b>vowel teams</b> have no recording, because the recorded set is single letters; each of those is cut out of a word by a British neural voice and measured before it ships. Each row says which route it took.</p>' +
         '<p class="hint">Tap <b>&#9654;</b> on any row to hear it. Recording over one in your own voice is optional &mdash; worth doing only for a sound she keeps mishearing.</p>' +
         '<p class="hint">The words, the sentences and the stories are the same voice: every one of them ships with the app as a recording, so nothing depends on which voices this device happens to have. Only a line with her name in it is spoken by the device.</p>' +
         '<p class="stat"><b>' + A.recordingCount() + '</b> clips recorded' + (can ? '' : ' &middot; <span class="warn">this browser will not give the page a microphone</span>') + '</p>' +
@@ -1498,7 +2326,7 @@
       '<div class="panel"><h3>Why 44 sounds and only 26 letters</h3>' +
         '<p class="hint">A phonics sound is a <b>phoneme</b> &mdash; the smallest unit of sound in spoken English. English has about <b>44</b> of them and <b>26</b> letters to spell them with.</p>' +
         '<p class="hint">That mismatch is why reading English is harder than reading Hindi or Spanish, where a letter almost always makes one sound. The letter <b>a</b> on its own is four different sounds in <i>cat</i>, <i>cake</i>, <i>car</i> and <i>was</i>. Knowing which sound goes with which letters is the whole of phonics.</p>' +
-        '<p class="hint">Children learn single-letter consonants and short vowels first, then the two-letter teams (<b>sh ch th ng</b>), then the vowel teams. This app is at the first two steps.</p>' +
+        '<p class="hint">Children learn single-letter consonants and short vowels first (Level 2), then the two-letter teams <b>sh ch th ng</b> (Level 3), then the vowel teams <b>ai ee oa igh oo ou oi ar or er air ear</b> (Level 5). All three steps are in here.</p>' +
         '<p class="stat"><b>' + taught + '</b> of the ' + all + ' have a sound in this app</p>' +
       '</div>' +
       groups.map(function (g) {
@@ -1507,8 +2335,8 @@
           ' sounds <small>' + n + '/' + C.PHONEMES[g].length + ' taught here</small></h3>' +
           list(g) + '</div>';
       }).join('') +
-      '<div class="panel"><h3>The greyed-out ones</h3>' +
-        '<p class="hint">Real English this app does not cover yet. They are not missing by accident &mdash; long vowels and vowel teams come after single letters, and the app stops where the child is. Tapping one does nothing; there is no clip behind it.</p>' +
+      '<div class="panel"><h3>The four that are greyed out</h3>' +
+        '<p class="hint">Real English, deliberately left out. <b>/ð/</b> (<i>this</i>) shares its letters with <b>/θ/</b> (<i>thin</i>) and is learned from the word, not from a rule. <b>/&#690;/</b> (<i>treasure</i>) has no spelling of its own and appears in a handful of words. <b>/&#650;&#601;/</b> (<i>tour</i>) has merged with <b>/&#596;&#720;/</b> for most speakers. <b>/&#601;/</b>, the schwa, is the commonest sound in English and is what every vowel collapses to when it is unstressed &mdash; it is a consequence of rhythm, not a spelling to learn. Tapping one does nothing; there is no clip behind it.</p>' +
       '</div>';
 
     Array.prototype.forEach.call(document.querySelectorAll('.srow[data-k] .vplay'), function (b) {
@@ -1521,6 +2349,11 @@
       '<div class="panel"><h3>Who is playing</h3>' +
         '<label class="field"><span>Name on the welcome screen</span>' +
           '<input type="text" id="kidname" value="' + esc(S.name) + '" maxlength="16"></label>' +
+        '<label class="field"><span>Born</span>' +
+          '<input type="month" id="kidborn" value="' + esc(S.born || '') + '" max="' + dayKey().slice(0, 7) + '"></label>' +
+        '<p class="hint">' + (ageYears() == null
+          ? 'Optional. With it, <b>Plan</b> says which level suits her age and the app opens a fresh device at the right one instead of at the beginning. The month, not the day &mdash; and it stays on this device like everything else.'
+          : '<b>' + esc(ageText()) + '</b> old. The <b>Plan</b> tab uses this to say which level to open; the app never locks anything either way.') + '</p>' +
         '<label class="field"><span>Photo</span></label>' +
         '<div class="photorow"><div class="pphoto" id="pphoto">' + icon('camera') + '</div>' +
           '<div class="btnrow"><label class="btn btn--ghost" for="photofile">Choose a photo</label>' +
@@ -1570,6 +2403,13 @@
 
     document.getElementById('kidname').onchange = function () {
       S.name = this.value.trim().slice(0, 16); save();
+    };
+    document.getElementById('kidborn').onchange = function () {
+      /* Anything that is not YYYY-MM is stored as nothing, and the app goes
+         back to deciding from her progress alone. */
+      S.born = /^\d{4}-\d{2}$/.test(this.value) ? this.value : '';
+      save();
+      screenParent();            // the hint under the field, and Plan, both move
     };
     document.getElementById('photofile').onchange = function () {
       var f = this.files && this.files[0];
@@ -1690,6 +2530,6 @@
   A.init().then(loadPhotos).then(function () {
     if (S.settings.voice) setTimeout(function () { A.setVoice(S.settings.voice); }, 300);
     screenWelcome();
-    A.preload();          // 185 KB of letter sounds, so the first tap is not a wait
+    A.preload();          // every letter and team sound, so the first tap is not a wait
   });
 })();

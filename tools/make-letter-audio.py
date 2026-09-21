@@ -126,6 +126,71 @@ LETTERS = {
     'wh': dict(word='web',   ph=['w'],        at='onset',   kind='glide'),
 }
 
+# ------------------------------------------------- the vowel teams (Level 5)
+# Two or three letters that spell one vowel sound. There are no recordings of
+# these — audio-src/ is a single-letter set — so every one is cut out of a
+# carrier word, the route the four consonant digraphs already take.
+#
+# They split into two kinds, and the difference is not cosmetic:
+#
+#   a LONG VOWEL (/i:/, /u:/, /a:/, /o:/, /3:/) is one steady mouth position
+#   held. It behaves exactly like the short vowels above, so it is `vowel`:
+#   it may be held by tiling its middle, because its middle is all the same.
+#
+#   a DIPHTHONG (/ei/, /ai/, /oi/, /au/, /@u/, /I@/, /e@/) is a MOVEMENT from
+#   one vowel to another. Tiling its middle would repeat the middle of the
+#   glide, and cropping the middle out would remove the two ends the ear
+#   identifies it by — /ei/ without its start and finish is neither /e/ nor
+#   /i/, it is a smear. So a diphthong is never tiled and never centre
+#   cropped: the search has to find a take that is already long enough, which
+#   is what `diphthong` means below.
+#
+# `label` is what the clip is filed as and what the card must print. The
+# length mark belongs in it (/i:/ is not /i/) but not in `ph`, because espeak
+# emits the mark as a span of its own and locate() folds it in.
+TEAMS = {
+    'ai':  dict(word='rain',  ph=['e', 'ɪ'], at='nucleus', kind='diphthong', label='/eɪ/',
+                alts=[('train', 'nucleus'), ('snail', 'nucleus'), ('day', 'coda'),
+                      ('cake', 'nucleus'), ('gate', 'nucleus')]),
+    'ee':  dict(word='feet',  ph=['i'],      at='nucleus', kind='vowel', label='/iː/',
+                alts=[('tree', 'coda'), ('bee', 'coda'), ('sea', 'coda'),
+                      ('bean', 'nucleus'), ('green', 'nucleus')]),
+    'oa':  dict(word='boat',  ph=['ə', 'ʊ'], at='nucleus', kind='diphthong', label='/əʊ/',
+                alts=[('coat', 'nucleus'), ('road', 'nucleus'), ('snow', 'coda'),
+                      ('goat', 'nucleus'), ('bone', 'nucleus')]),
+    'igh': dict(word='night', ph=['a', 'ɪ'], at='nucleus', kind='diphthong', label='/aɪ/',
+                alts=[('light', 'nucleus'), ('pie', 'coda'), ('tie', 'coda'),
+                      ('sky', 'coda'), ('bike', 'nucleus')]),
+    'oo':  dict(word='moon',  ph=['u'],      at='nucleus', kind='vowel', label='/uː/',
+                alts=[('spoon', 'nucleus'), ('pool', 'nucleus'), ('zoo', 'coda'),
+                      ('boot', 'nucleus'), ('food', 'nucleus')]),
+    'uu':  dict(word='book',  ph=['ʊ'],      at='nucleus', kind='vowel', label='/ʊ/',
+                alts=[('cook', 'nucleus'), ('foot', 'nucleus'), ('hook', 'nucleus'),
+                      ('wood', 'nucleus'), ('good', 'nucleus')]),
+    'ou':  dict(word='cloud', ph=['a', 'ʊ'], at='nucleus', kind='diphthong', label='/aʊ/',
+                alts=[('cow', 'coda'), ('owl', 'onset'), ('town', 'nucleus'),
+                      ('house', 'nucleus'), ('mouse', 'nucleus')]),
+    'oi':  dict(word='coin',  ph=['ɔ', 'ɪ'], at='nucleus', kind='diphthong', label='/ɔɪ/',
+                alts=[('boy', 'coda'), ('toy', 'coda'), ('oil', 'onset'),
+                      ('soil', 'nucleus'), ('join', 'nucleus')]),
+    'ar':  dict(word='car',   ph=['ɑ'],      at='coda',    kind='vowel', label='/ɑː/',
+                alts=[('star', 'coda'), ('jar', 'coda'), ('farm', 'nucleus'),
+                      ('arm', 'onset'), ('park', 'nucleus')]),
+    'or':  dict(word='corn',  ph=['ɔ'],      at='nucleus', kind='vowel', label='/ɔː/',
+                alts=[('fork', 'nucleus'), ('saw', 'coda'), ('claw', 'coda'),
+                      ('paw', 'coda'), ('horse', 'nucleus')]),
+    'er':  dict(word='bird',  ph=['ɜ'],      at='nucleus', kind='vowel', label='/ɜː/',
+                alts=[('girl', 'nucleus'), ('shirt', 'nucleus'), ('nurse', 'nucleus'),
+                      ('fern', 'nucleus'), ('her', 'nucleus')]),
+    'air': dict(word='hair',  ph=['e', 'ə'], at='coda',    kind='diphthong', label='/eə/',
+                alts=[('chair', 'coda'), ('pair', 'coda'), ('care', 'coda'),
+                      ('bear', 'coda')]),
+    'ear': dict(word='deer',  ph=['i', 'ə'], at='coda',    kind='diphthong', label='/ɪə/',
+                alts=[('ear', 'onset'), ('near', 'coda'), ('beard', 'nucleus'),
+                      ('year', 'coda')]),
+}
+LETTERS.update(TEAMS)
+
 # espeak writes IPA; these are the symbols each key above maps to. Written in
 # ASCII in the table so the file stays readable, translated here.
 # Some symbols differ between voices, because each was trained against its own
@@ -144,7 +209,11 @@ def ipa(sym):
 # fragment: /h/ is a puff of breath and cannot be held for a quarter of a
 # second however much you want it to.
 HOLD = {'vowel': 0.30, 'nasal': 0.26, 'liquid': 0.26, 'fric': 0.24,
-        'sibilant': 0.28, 'glide': 0.22, 'breath': 0.16, 'stop': 0.0}
+        'sibilant': 0.28, 'glide': 0.22, 'breath': 0.16, 'stop': 0.0,
+        # A diphthong is not held: it is already a movement, and the only
+        # thing tiling can repeat is the middle of that movement. It ships
+        # at whatever length the model gave it, capped in carve().
+        'diphthong': 0.0}
 
 # Ask the model for the carrier word at these speeds. A phoneme is only as long
 # as the model makes it, and at 1.15 the /f/ of `fish` is forty milliseconds —
@@ -214,7 +283,30 @@ CHECK = {
     # rule at all until this; they were passing on length alone.
     'stop':     dict(centroid=(400, 6500),  voiced=None, min_voicing=0.55,
                      lo=(0.70, 1.00), ideal=dict(lo=0.96)),
+    # Same mouth as a vowel, and the same power distribution, but it is
+    # allowed — required, really — to move while it is being said.
+    # A diphthong measures like a vowel except in one figure: `drift`, how far
+    # the spectrum travels from the start of the clip to the end. For every
+    # other sound here drift is a fault — it means the clip leaked into the
+    # sound beside it. For this one it is the sound. So drift is in the ideal,
+    # not only in the bounds: without it the search cheerfully returns the
+    # take that moves least, which is the one that is not a diphthong at all.
+    # 0.28 is where the takes that are audibly a glide sit; a take up near
+    # 0.75 has run on into the consonant after it.
+    'diphthong': dict(centroid=(300, 2600), voiced=True, voiced_min=0.60,
+                     lo=(0.60, 1.00), hi=(0.00, 0.06), ideal=dict(lo=0.90, drift=0.28)),
 }
+
+# How far the spectrum may travel between the start of a clip and its end.
+# A held sound that moves has leaked into the sound beside it. A diphthong
+# that does NOT move is not a diphthong, so the rule is inverted for it:
+# there is a floor as well as a ceiling.
+DRIFT_MAX = {'diphthong': 0.75}
+DRIFT_MIN = {'diphthong': 0.10}
+# A diphthong cannot be lengthened after the fact, so a take that is too
+# short is simply not usable — the glide has to be there in the audio.
+MIN_MS_KIND = {'diphthong': 190}
+DIPHTHONG_MAX = 0.46
 
 # Fricatives split by voicing rather than by class: a voiceless one is
 # turbulence and nothing else, a voiced one is turbulence over a voice bar.
@@ -621,7 +713,7 @@ def carve(audio, sr, spec, spans, stretch=1.0, word=None, at=None):
             return None, 0, 'empty segment'
         return envelope(seg, sr), 1.0, None
 
-    voiced = spec.get('voiced', kind in ('vowel', 'nasal', 'liquid', 'glide'))
+    voiced = spec.get('voiced', kind in ('vowel', 'diphthong', 'nasal', 'liquid', 'glide'))
     s2, e2 = refine(audio, sr, start, end, voiced,
                     grow_left=int(sr * 0.06), grow_right=int(sr * 0.16))
     seg = audio[s2:e2]
@@ -631,6 +723,18 @@ def carve(audio, sr, spec, spans, stretch=1.0, word=None, at=None):
     if not len(seg):
         return None, 0, 'empty segment'
     source = len(seg)
+
+    if kind == 'diphthong':
+        # Neither of the two shaping steps below is available here. Tiling
+        # repeats the middle of a glide, which is a wobble in the one place the
+        # sound is supposed to be moving; centre cropping throws away the start
+        # and the end, which are the two positions that name it. So a diphthong
+        # ships as it was said, trimmed only if it runs long, and from the front
+        # so that the movement survives.
+        cap = int(sr * DIPHTHONG_MAX * stretch)
+        if len(seg) > cap:
+            seg = seg[:cap]
+        return envelope(seg, sr), 1.0, None
 
     target = HOLD_OVERRIDE.get(spec.get('key'), HOLD[kind]) * stretch
     cap = int(sr * (target + 0.12))      # never a drawn-out drone
@@ -705,7 +809,7 @@ def distance(spec, m):
 def check(key, kind, m, voiced=None, stretch=1.0, tiles=1.0):
     want = rules_for(kind, voiced)
     bad = []
-    lo, hi = MIN_MS * stretch, MAX_MS * stretch
+    lo, hi = MIN_MS_KIND.get(kind, MIN_MS) * stretch, MAX_MS * stretch
     if not (lo <= m['ms'] <= hi):
         bad.append('length %.0f ms outside %.0f-%.0f' % (m['ms'], lo, hi))
     lo, hi = want['centroid']
@@ -723,8 +827,11 @@ def check(key, kind, m, voiced=None, stretch=1.0, tiles=1.0):
     if want['voiced'] == 'buzz':
         if m['voicing'] < 0.40:
             bad.append('should buzz, periodicity %.2f' % m['voicing'])
-    if kind != 'stop' and m['drift'] > 0.50:
+    if kind != 'stop' and m['drift'] > DRIFT_MAX.get(kind, 0.50):
         bad.append('slides into the next sound, spectrum moves %.0f%%' % (100 * m['drift']))
+    if m['drift'] < DRIFT_MIN.get(kind, 0.0):
+        bad.append('does not move, spectrum shifts only %.0f%% — that is a pure vowel, not a glide'
+                   % (100 * m['drift']))
     if m['rms'] < 0.04:
         bad.append('too quiet, rms %.3f' % m['rms'])
     for band, nice in (('lo', 'below 1 kHz'), ('hi', 'above 3 kHz')):
@@ -845,7 +952,9 @@ def to_mp3(a, sr, kbps):
 
 
 def label_of(spec):
-    return '/' + ''.join(ipa(p)[0] for p in spec['ph']) + '/'
+    # The length mark is part of the name of a long vowel but not part of
+    # its phoneme sequence, so those carry the label they must print.
+    return spec.get('label') or ('/' + ''.join(ipa(p)[0] for p in spec['ph']) + '/')
 
 
 def main():
@@ -877,7 +986,7 @@ def main():
                 failures.append('%s: %s' % (key, exc))
                 print('%-8s FAIL  %s' % (key, exc))
                 continue
-            row = {'word': spec['ipa_label'], 'rec': True}
+            row = {'word': spec['ipa_label'], 'ipa': spec['ipa_label'], 'rec': True}
             for label, clip in (('', fast), ('-slow', slow)):
                 m = measure(clip, RECORDED_SR)
                 bad = check_recorded(key, m) if not label else []
@@ -964,6 +1073,7 @@ def main():
                 with open(os.path.join(OUT, key + label + '.mp3'), 'wb') as f:
                     f.write(mp3)
             row['word'] = word if not label else row.get('word', word)
+            row['ipa'] = spec['ipa_label']
             row['ms' if not label else 'slowMs'] = round(m['ms'])
             print('%-8s %-7s %-8s x%.1f %4.0f ms  <1k %3.0f%%  >3k %3.0f%%  voi %.2f  %s'
                   % (key + label, word, spec['kind'], scale, m['ms'],
@@ -1002,13 +1112,15 @@ def main():
                     '   sound at <key>-slow.mp3 for the first, teaching reading.\n'
                     '   rec: true means a recording of a person saying that sound on its own\n'
                     '   (audio-src/letters/, Sound City Reading, Kathryn Davis). The rest are\n'
-                    '   synthesised: %s (Piper), trained on public-domain LibriVox recordings. */\n'
+                    '   synthesised: %s (Piper), trained on public-domain LibriVox recordings.\n'
+                    '   `ipa` is the sound the clip claims to be, and tools/build.mjs refuses\n'
+                    '   to build if it disagrees with what the card prints. */\n'
                     % args.voice)
             f.write('window.LETTER_CLIPS = {\n')
             for k in sorted(manifest):
                 r = manifest[k]
-                f.write("  '%s': { from: '%s', ms: %d, slowMs: %d%s },\n"
-                        % (k, r['word'], r.get('ms', 0), r.get('slowMs', 0),
+                f.write("  '%s': { from: '%s', ipa: '%s', ms: %d, slowMs: %d%s },\n"
+                        % (k, r['word'], r.get('ipa', ''), r.get('ms', 0), r.get('slowMs', 0),
                            ', rec: true' if r.get('rec') else ''))
             f.write('};\n')
         print('wrote', MANIFEST)

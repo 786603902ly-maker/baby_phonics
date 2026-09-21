@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "node tools/dist.mjs",
+    "check": "node tools/check-config.mjs && node tools/check-lessons.mjs --runs=25",
     "start": "node tools/build.mjs && npx --yes serve web -l 8000",
     "icons": "node tools/make-icons.mjs",
     "letter-audio": "python3 tools/make-letter-audio.py",

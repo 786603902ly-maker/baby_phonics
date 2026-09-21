@@ -29,8 +29,10 @@ export function spokenTexts() {
 
   Object.keys(C.WORDS).forEach((k) => words.add(C.WORDS[k].text));
   C.SIGHT.forEach((w) => words.add(w));
+  C.SIGHT2.forEach((w) => words.add(w));
   C.SENTENCES.forEach((s) => lines.add(s.text));
-  C.STORIES.forEach((st) => {
+  /* Stories (Level 4) and books (Level 7) are the same shape. */
+  [...C.STORIES, ...C.BOOKS].forEach((st) => {
     lines.add(st.title);
     st.pages.forEach((p) => {
       lines.add(p.text);
@@ -43,6 +45,29 @@ export function spokenTexts() {
     st.questions.forEach((q) => lines.add(q.q));
   });
   C.SENTENCES.forEach((s) => s.text.replace(/[.!?]$/, '').split(' ').forEach((w) => words.add(w)));
+
+  /* Level 5: every word in every spelling list is read aloud when it is
+     sorted, and most of them have no picture, so they are not reached by the
+     WORDS sweep above on their text alone — they are, but only because they
+     are IN WORDS. Listing them here as well costs nothing and means a word
+     added to a spelling list but forgotten in WORDS fails the build loudly
+     rather than falling through to the device voice. */
+  C.VOWELKEYS.forEach((t) => {
+    C.VOWELTEAMS[t].spells.forEach((sp) => sp.words.forEach((k) => {
+      words.add(C.WORDS[k] ? C.WORDS[k].text : k);
+    }));
+  });
+
+  /* Level 6: the bases, the words they become, and both halves of every
+     compound. Each is spoken on its own as she builds it. */
+  C.ENDINGS.forEach((e) => e.items.forEach((it) => {
+    words.add(C.WORDS[it.base] ? C.WORDS[it.base].text : it.base);
+    words.add(C.WORDS[it.made] ? C.WORDS[it.made].text : it.made);
+  }));
+  C.COMPOUNDS.forEach((c) => {
+    words.add(C.WORDS[c.word] ? C.WORDS[c.word].text : c.word);
+    c.parts.forEach((k) => words.add(C.WORDS[k] ? C.WORDS[k].text : k));
+  });
 
   /* the letter names, said before the sound on the letter card */
   const names = {};
