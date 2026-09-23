@@ -12,7 +12,7 @@
 <meta name="description" content="Phonics for a four-year-old: one letter a day, with its real sound, its mouth shape, and the four words it lives in.">
 <meta name="robots" content="noindex">
 <meta name="build" content="dev">
-<script>window.ASSET_V = '79d15e2a58'; window.BUILD = 'dev';</script>
+<script>window.ASSET_V = 'cf33ce9ad3'; window.BUILD = 'dev';</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -882,6 +882,67 @@ input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--river); }
 .broad-bar i { display: block; height: 100%; border-radius: 999px; background: var(--leaf); }
 .broad-c { flex: none; font-size: 11.5px; font-weight: 800; color: var(--ink2); }
 
+/* ---- Level 7: articles, chapters, ordering ---- */
+.story-topic {
+  margin: 0; font-size: 10.5px; font-weight: 800; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--river); text-align: center;
+}
+/* An article is a paragraph, not a line of a picture book. A story page has
+   six big words on it and centring them works; six lines of prose centred,
+   at story-page size, with a gap between every word, is not a paragraph and
+   is not what a seven-year-old is learning to read. So the article variant
+   is smaller, left-aligned, ranged against a real left margin, with the word
+   gap back down to a word gap — while every word stays its own button,
+   because tapping one is the point. */
+.story--article .story-text {
+  justify-content: flex-start; text-align: left;
+  gap: 1px 0; line-height: 1.6; width: 100%;
+}
+.story--article .sword {
+  font-family: var(--ui); font-size: clamp(16px, 4.4vw, 19px); font-weight: 600;
+  padding: 1px 3px; margin-right: 3px;
+}
+.story--article .story-pic .pic { width: clamp(96px, 26vw, 128px); height: clamp(96px, 26vw, 128px); }
+.story--article { gap: 11px; }
+.readbtn {
+  display: flex; align-items: center; gap: 9px; padding: 9px 18px;
+  background: var(--surface); border: 2px solid var(--river); border-radius: 999px;
+  box-shadow: var(--shadow); font-size: 13px; font-weight: 800; color: var(--ink2);
+}
+.readbtn svg { width: 20px; height: 20px; flex: none; color: var(--river); }
+.sortword--long {
+  font-family: var(--ui); font-size: clamp(17px, 4.8vw, 22px); font-weight: 700;
+  line-height: 1.4; max-width: 30ch; padding: 16px 22px; text-align: center;
+}
+.glyph--phrase {
+  font-family: var(--ui) !important; font-size: clamp(13px, 3.6vw, 15px) !important;
+  font-weight: 700; line-height: 1.35; text-align: center; white-space: normal;
+}
+.opt:has(.glyph--phrase) { aspect-ratio: auto; min-height: 96px; padding: 12px 10px; }
+.order { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; }
+.oslots { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.oslot {
+  width: 72px; height: 72px; display: grid; place-items: center;
+  border: 3px dashed var(--line); border-radius: 16px; background: var(--surface2);
+  font-family: var(--display); font-size: 20px; color: var(--ink2); padding: 5px;
+}
+.oslot.filled { border-style: solid; border-color: var(--leaf); background: var(--surface); animation: pop .35s ease; }
+.oslot .pic { width: 100%; aspect-ratio: 1; }
+.oslot.filled b { display: none; }
+.obank { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.ocard {
+  width: 86px; padding: 8px; background: var(--surface);
+  border: 3px solid var(--line); border-radius: 18px; box-shadow: var(--shadow);
+}
+.ocard .pic { width: 100%; aspect-ratio: 1; }
+.ocard:active { transform: scale(.95); }
+.ocard.used { opacity: .22; box-shadow: none; }
+.ocard.is-wrong { border-color: var(--coral); animation: wob .4s ease; }
+@media (max-width: 420px) {
+  .oslot { width: 62px; height: 62px; }
+  .ocard { width: 72px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
@@ -891,15 +952,15 @@ input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--river); }
 <body>
 <div id="app"></div>
 
-<script src="icons.js?v=79d15e2a58"></script>
-<script src="icons-words.js?v=79d15e2a58"></script>
-<script src="icons-more.js?v=79d15e2a58"></script>
-<script src="mouths.js?v=79d15e2a58"></script>
-<script src="content.js?v=79d15e2a58"></script>
-<script src="letter-clips.js?v=79d15e2a58"></script>
-<script src="speech-clips.js?v=79d15e2a58"></script>
-<script src="audio.js?v=79d15e2a58"></script>
-<script src="app.js?v=79d15e2a58"></script>
+<script src="icons.js?v=cf33ce9ad3"></script>
+<script src="icons-words.js?v=cf33ce9ad3"></script>
+<script src="icons-more.js?v=cf33ce9ad3"></script>
+<script src="mouths.js?v=cf33ce9ad3"></script>
+<script src="content.js?v=cf33ce9ad3"></script>
+<script src="letter-clips.js?v=cf33ce9ad3"></script>
+<script src="speech-clips.js?v=cf33ce9ad3"></script>
+<script src="audio.js?v=cf33ce9ad3"></script>
+<script src="app.js?v=cf33ce9ad3"></script>
 
 <script>
   var secure = location.protocol === 'https:' || ['localhost', '127.0.0.1'].indexOf(location.hostname) >= 0;

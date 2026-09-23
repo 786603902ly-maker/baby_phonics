@@ -17,18 +17,19 @@ what she has actually finished.
 
 ## What is built
 
-All seven levels are built. **92 stops, age 3 to age 7**, from "point at the
-cat" to reading a book and writing words down from hearing them.
+All seven levels are built. **102 stops, age 3 to age 7**, from "point at the
+cat" to reading an article to find something out and writing words down from
+hearing them.
 
 | Level | Age | Stops | Open it when | What it is |
 |---|---|---|---|---|
 | 1 · Look and Listen | 3–4 | 8 | She can point at a picture when you name it | Vocabulary only. Hear a word, find the picture. Memory pairs. No letters. |
 | 2 · The Alphabet | 4–5 | 30 | She can sit through one card and copy a sound back | A–Z + 4 reviews. Each stop is her OPW card, made interactive. |
 | 3 · Reading Words | 5–6 | 14 | She knows most single-letter sounds | Blending. One short vowel at a time, then ck / sh / ch / th / ng, then blends, then magic e. |
-| 4 · Reading Books | 5½–6½ | 7 | She reads short words without spelling out every letter | Decodable sentences to build, and three short stories with questions. |
+| 4 · Reading Books | 5½–6½ | 8 | She reads short words without spelling out every letter | Decodable sentences to build, the first twenty sight words, and three short stories with questions. |
 | 5 · Same Sound, New Look | 6–7 | 14 | She reads short words easily and has met sh, ch, th and magic e | The thirteen vowel teams, each with every way English spells it. |
 | 6 · Longer Words | 6½–7 | 10 | She reads one-syllable words with vowel teams in them | Syllables, compounds, -s / -ing / -ed / -er, soft c and soft g. |
-| 7 · Real Books | 7+ | 9 | She reads most words without stopping | Four eight-page books, spelling from dictation, and the tricky words. |
+| 7 · Real Books | 7+ | 18 | She reads most words without stopping | Four decodable books, **five articles**, **a story in three chapters**, spelling from dictation, and the 46 tricky words. |
 
 **The ages are what to expect, not what to enforce**, and nothing in the app
 is locked. A five-year-old reading `cat` belongs in Level 3 whatever the table
@@ -81,18 +82,42 @@ says all of this on screen, against the child's own age and her own progress.
 
 ### Level 7 games
 
-- **Books** — four of them, eight pages each, every word tappable, three
-  comprehension questions at the end instead of two.
+Everything before this level is reading *practice* — the words on the page are
+there so that they can be decoded, and what they say is secondary. At seven
+that is the wrong way round, so Level 7 is four different jobs alternating.
+
+- **Books** — four decodable ones, eight pages each, every word tappable,
+  three comprehension questions instead of two.
+- **Articles** — five pieces of short non-fiction: *How a Seed Becomes a
+  Tree*, *Where Rain Comes From*, *What Ants Do All Day*, *Why the Moon
+  Changes*, *Animals That Come Out at Night*. Read for the answer, not for
+  the practice, so the vocabulary is ordinary English rather than a
+  controlled list — and every word is tappable, because at seven an
+  unfamiliar word is something to reach for. Each one carries four things
+  after it, because reading for meaning is not one skill:
+  - **What does it mean?** — two words from the article, with three
+    plausible meanings. Answerable from the text, not by elimination.
+  - **Put them in order** — the stages, jumbled. Cannot be done from
+    remembering words, only from having understood how the thing works.
+  - **True or not true** — four statements, two of them false in a way that
+    only the article settles.
+  - **Read and answer** — the ordinary comprehension check.
+- **A story in three chapters** — *The Kite That Would Not Come Down*. The
+  first story in the app long enough that chapter one has to be **remembered
+  between sittings**: everything before it fitted on one screen's worth of
+  pages, so nothing in it ever had to be held. **The Whole Story** at the end
+  asks questions no single chapter answers.
 - **Write it down** — dictation. She hears the word and builds it out of
   letters with **no picture on the screen**. That is the whole difference
   between this and Build the Word, and it is the difference between matching
-  and spelling.
-- **Tricky words** — the 46 words that cannot be sounded out, heard and
-  picked from three written words. No pictures; a sight word has none.
+  and spelling. The tiles say their **names**, not their sounds, because
+  `ship` is four letters and three sounds and spelling is done in names.
+- **Tricky words** — the 46 that cannot be sounded out, heard and picked from
+  three written words. No pictures; a sight word has none.
 
 ### Free play
 
-**Games** on the welcome screen opens a hub of **eighteen** games, each
+**Games** on the welcome screen opens a hub of **twenty-one** games, each
 playable on its own with whatever content she has met, and labelled with the
 level it belongs to. Nothing in the app is locked or has to be done in order —
 what the welcome screen offers today is a suggestion, not a gate.
@@ -296,7 +321,7 @@ and a phone with no British English voice reads *ax* and *durian* accordingly.
 
 So all of it is recorded too, in one British neural voice (the same one the
 four synthesised letter clips come from):
-**500 clips, 280 seconds, 1.8 MB** — every keyword and sight word, every letter
+**819 clips, 11 minutes, 4.1 MB** — every keyword and sight word, every letter
 name, every sentence and story page, and every line of instruction and praise.
 `tools/make-speech-audio.py` generates them; the text comes from
 `tools/speech-texts.mjs`, which reads `content.js` and the `A.say()` literals in
@@ -330,7 +355,7 @@ about seventy milliseconds, too short to cut out and hand to a child as a word,
 so it is taken from somewhere the same sound is unhurried — the end of *banana*
 — and held to a fifth of a second.
 
-The build is reproducible: the same command produces the same 500 files. That
+The build is reproducible: the same command produces the same 819 files. That
 comes from seeding the model before its session is created; each take is then
 reseeded from its own text and attempt number, which is what makes a retry draw
 something different rather than repeating itself. Reseeding does not isolate a
@@ -397,6 +422,35 @@ Each alphabet stop runs four games:
 `x` is handled correctly: its words end with the sound, so its round asks
 "which one *ends* with x".
 
+### The one line the app still said in the wrong voice
+
+Everything fixed that the app says is recorded in one British voice. Except
+one thing was not, and it was the first thing said in a session:
+
+```js
+A.say('Today we learn ' + letter.toUpperCase() + '.')      // and 'Let us do B.'
+```
+
+That string is different text for all 26 letters, so **no clip could ever
+exist for it**. `tools/speech-texts.mjs` finds what to record by reading the
+string *literals* handed to `A.say()`, and there is no literal here to find —
+so nothing was missing, nothing failed, and at run time it fell through to the
+device's own synthesiser. A second voice, in whatever accent the tablet has,
+pronouncing the letter's **name** as that voice saw fit, in the opening breath
+of every session. The one place the app was still doing exactly what the
+recordings were made to stop.
+
+It is now composed out of pieces that each have a clip: `A.say('Today we
+learn')` and then `A.sayLetterName(l)` — the recorded name, in the right
+voice. The greeting no longer says the child's name out loud, which was the
+only reason the string had to be built at all; her name is on the screen
+in front of her.
+
+`node tools/check-voice.mjs` refuses any `A.say()` or `A.sayWord()` whose
+argument is built with `+`, because such a string can never be recorded. Run
+against the commit before the fix, it finds exactly that line. It runs inside
+`tools/build.mjs` and in CI, so the class of bug cannot come back.
+
 ### Every stop, dealt and checked
 
 The whole curriculum is data, and data goes wrong quietly. A picture option
@@ -411,11 +465,21 @@ see every path — and checks each round against what its renderer will actually
 do with it: exactly one right answer, **three options and never two**, a
 picture option only for a word that has a picture, a sound-out word that has a
 breakdown with a clip behind every sound in it, build tiles that contain the
-answer, a sort answer inside the range of its boxes. Then it calls each
-round's `play()` against a stub that fails on any phoneme with no audio. CI
-runs it on every push.
+answer, a sort answer inside the range of its boxes, an ordering round whose
+every step has a picture and appears once.
 
-Writing it turned up two defects that had been shipping:
+Then it checks **everything the round can say**, and not only the prompt.
+`play()` is the prompt; every renderer also speaks from its own click
+handlers — the word under the picture she chose, the letter name of the tile
+she placed, the half of a compound she joined, every tappable word on an
+article page — and none of that goes through `play()`. Text with no clip does
+not fail; it falls through to the device's own voice, mid-activity, in a
+different accent. So each round is asked what it could possibly say, and each
+of those is looked up in the shipped manifest. Deleting four clips from
+`speech-clips.js` by hand makes it name all four and where each is reached
+from. CI runs it on every push.
+
+Writing it turned up defects that had been shipping:
 
 - **`ax` is a keyword for both `a` and `x`.** Wrong answers were drawn from
   every other letter's word list, so "which one starts with **a**" could offer
@@ -425,6 +489,15 @@ Writing it turned up two defects that had been shipping:
 - **`shell` was broken down as `sh-e-ll`.** There is no phoneme `ll`, so one
   of its three tiles fell through to the device's speech synthesiser and said
   the letter name. It is `sh-e-l`.
+- **A page's picture is a word key, not an icon name**, and the two look
+  identical in the data: `house` is the word, `hdb` is the drawing it uses.
+  Chapter one of the long story named the drawing, which renders nothing and
+  throws on the way there. Every page picture is now checked to be a word
+  that has a drawing.
+- **The Pictures tab listed words that have no picture.** Since Level 5 the
+  word list also holds `day`, `out`, `her` and forty-odd others that cannot
+  be drawn, and the one page whose entire subject is replacing a drawing with
+  a photograph was showing fifty empty grey squares.
 
 ## Game mode
 
@@ -500,6 +573,7 @@ internet at all** — every sound, picture and lesson ships with the page.
 | `tools/speech-texts.mjs` | Lists what there is to record, read out of `content.js` and the `A.say()` literals in `app.js` |
 | `audio-src/letters/` | The 26 recorded letter sounds as supplied, before anything is done to them. Not shipped; see the README in that folder for where they came from |
 | `tools/check-config.mjs` | Refuses a `vercel.json` Vercel would reject, which is a failure mode with no logs |
+| `tools/check-voice.mjs` | Refuses a spoken string built by concatenation. Such a string has no literal to record, so the clip check cannot see it and it falls through to the device voice — silently, which is how `'Today we learn ' + letter` shipped |
 | `tools/check-lessons.mjs` | Deals every stop in the app 25 times and checks every round against what its renderer will do with it: exactly one right answer, a picture option only for a word that HAS a picture, every sound in a word breakdown backed by a clip. All of that is data, and data goes wrong silently |
 | `web/icons-more.js` | The Level 5–7 pictures — 68 more inline SVGs, merged into `window.ICONS` after `icons-words.js` |
 | `tools/serve.mjs` | Serves `dist/` with `vercel.json`'s real headers, which is the only way to test whether a deploy actually reaches an installed app |
@@ -595,6 +669,14 @@ node tools/dist.mjs       # assemble dist/ exactly as Vercel will
 `web/content.js` is the whole curriculum — keyword sets, themes, lessons.
 `web/icons.js`, `web/icons-words.js` and `web/icons-more.js` hold all 240
 pictures as inline SVG: no image files, nothing to break offline.
+
+**The whole app is 5 MB**, of which 4.6 MB is audio — every word, sentence,
+article and story page recorded, plus 90 letter-sound clips. All of it is
+precached, which is what makes it work with no network at all: on a tablet
+that is a one-off download of a few seconds on wifi, and nothing after that.
+Lazy-loading the Level 7 articles would halve the first load and break the
+offline promise for exactly the level that most needs a quiet corner, so it
+is not done.
 
 After editing `web/page.html`, regenerate the standalone page:
 

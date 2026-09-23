@@ -314,7 +314,13 @@
     car: ['c', 'ar'], star: ['s', 't', 'ar'], farm: ['f', 'ar', 'm'],
     fork: ['f', 'or', 'k'], horse: ['h', 'or', 's'],
     bird: ['b', 'er', 'd'], girl: ['g', 'er', 'l'],
-    bear: ['b', 'air'], ear: ['ear']
+    bear: ['b', 'air'], ear: ['ear'],
+
+    /* `qu` says /kw/, which is two sounds written as one key and has had a
+       card since Level 2 — but none of its words could be taken apart,
+       because the vowel in `queen` is /iː/ and there was no clip for that
+       until Level 5. There is now. */
+    queen: ['q', 'ee', 'n'], quilt: ['q', 'i', 'l', 't'], quiz: ['q', 'i', 'z']
   };
   Object.keys(SOUNDS_OF).forEach(function (k) {
     if (WORDS[k] && SOUNDS_OF[k]) WORDS[k].ph = SOUNDS_OF[k];
@@ -626,7 +632,7 @@
       ready: 'She breaks a long word into beats and reads it instead of guessing.' },
     { id: 7, name: 'Real Books', tint: 'sun', built: true,
       age: '7 and up', ageFrom: 7, ageTo: 9, minutes: 15,
-      blurb: 'A whole book for the story, and writing words down from hearing them.',
+      blurb: 'Books for the story, articles for the answer, a story in three chapters, and writing words down from hearing them.',
       opens: 'She reads most words without stopping, and is starting to read for meaning.',
       ready: 'She reads a book to herself and tells you what happened. That is the end of phonics.' }
   ];
@@ -818,6 +824,224 @@
         { q: 'What gave a little light?', pic: 'star', not: ['sun', 'lamp'] }
       ] }
   ];
+
+  /* ------------------------------------------------------------------
+     ARTICLES — reading to find something out.
+
+     A decodable book exists so the words in it can be sounded out; what it
+     is about is secondary, and by seven that is the wrong way round. These
+     are the other thing: short non-fiction about how something actually
+     works, written to be read for the answer rather than for the practice.
+     The words are ordinary words now, not a controlled list — at this point
+     a child meeting an unfamiliar word should reach for it, and every word
+     on the page is tappable when she cannot.
+
+     Each one carries more than the text, because reading for meaning is not
+     one skill:
+
+       `parts`     the article itself, a picture and two sentences at a time
+       `words`     two words worth knowing, with what they mean
+       `order`     the stages, to be put back in order. Always the order the
+                   article itself puts them in — for `seed` and `rain` that
+                   is also the real causal chain, and for the other three it
+                   is sequencing the text, which is its own skill. What it
+                   must never be is an order the article never gave: an ant's
+                   life cycle and a lunar month are both true and neither is
+                   in the text, and asking for either was asking for
+                   knowledge the article had not handed over.
+       `facts`     true or not true, answerable only from the article
+       `questions` the ordinary comprehension check
+     ------------------------------------------------------------------ */
+  var ARTICLES = [
+    { id: 'seed', title: 'How a Seed Becomes a Tree', topic: 'Plants', icon: 'seed',
+      parts: [
+        { text: 'A seed is small and hard. Inside it a tiny plant is asleep.', pic: 'seed' },
+        { text: 'Rain soaks into the ground. The seed drinks and begins to swell.', pic: 'rain' },
+        { text: 'A root pushes down into the soil. A green shoot pushes up.', pic: 'seed' },
+        { text: 'The shoot opens its first leaves. Leaves catch the light.', pic: 'leaf' },
+        { text: 'Light is how a plant makes its food. That is why it grows towards it.', pic: 'sun' },
+        { text: 'Every year the stem grows thicker. After many years the seed is a tall tree.', pic: 'tree' }
+      ],
+      words: [
+        { word: 'root', means: 'the part that grows down and drinks water', not: ['the part you eat', 'a kind of bird'] },
+        { word: 'shoot', means: 'the first green part that pushes up', not: ['a very small seed', 'the top of a tree'] }
+      ],
+      order: ['seed', 'rain', 'leaf', 'tree'],
+      facts: [
+        { text: 'A seed needs water before it can grow.', yes: true },
+        { text: 'A plant grows best in the dark.', yes: false },
+        { text: 'Leaves catch the light.', yes: true },
+        { text: 'A tree becomes tall in one week.', yes: false }
+      ],
+      questions: [
+        { q: 'What does a seed need first?', pic: 'rain', not: ['fish', 'coin'] },
+        { q: 'What catches the light?', pic: 'leaf', not: ['rock', 'boot'] },
+        { q: 'What does a seed become in the end?', pic: 'tree', not: ['bee', 'cloud'] }
+      ] },
+
+    { id: 'rain', title: 'Where Rain Comes From', topic: 'Weather', icon: 'cloud',
+      parts: [
+        { text: 'The sun warms the top of the sea. Some of the water rises into the air.', pic: 'sea' },
+        { text: 'You cannot see it go. Water in the air is a gas, and a gas is invisible.', pic: 'sun' },
+        { text: 'High up, the air is cold. The water turns back into tiny drops.', pic: 'cloud' },
+        { text: 'Millions of drops floating together are what we call a cloud.', pic: 'cloud' },
+        { text: 'The drops bump into each other and grow. When they are heavy enough they fall.', pic: 'rain' },
+        { text: 'The rain runs down into rivers and back to the sea. Then it all starts again.', pic: 'sea' }
+      ],
+      words: [
+        { word: 'rise', means: 'to move upwards', not: ['to get wet', 'to fall down'] },
+        { word: 'invisible', means: 'there, but impossible to see', not: ['very cold', 'made of ice'] }
+      ],
+      order: ['sea', 'sun', 'cloud', 'rain'],
+      facts: [
+        { text: 'The sun warms the sea.', yes: true },
+        { text: 'A cloud is made of tiny drops of water.', yes: true },
+        { text: 'You can see water rising into the air.', yes: false },
+        { text: 'Rain never goes back to the sea.', yes: false }
+      ],
+      questions: [
+        { q: 'What warms the sea?', pic: 'sun', not: ['moon', 'owl'] },
+        { q: 'What do millions of drops make?', pic: 'cloud', not: ['tree', 'nest'] },
+        { q: 'Where does the rain run back to?', pic: 'sea', not: ['jar', 'pool'] }
+      ] },
+
+    { id: 'ants', title: 'What Ants Do All Day', topic: 'Animals', icon: 'ant',
+      parts: [
+        { text: 'An ant is small, but an ant is never alone.', pic: 'ant' },
+        { text: 'Thousands of ants live together in one nest under the ground.', pic: 'nest' },
+        { text: 'One ant is the queen. She is bigger than the rest, and she lays all the eggs.', pic: 'queen' },
+        { text: 'The others go out to find food and carry it home along the same path.', pic: 'ant' },
+        { text: 'An ant can lift something many times heavier than itself.', pic: 'leaf' },
+        { text: 'Nobody tells an ant what to do. Every ant has a job, and the nest keeps going.', pic: 'nest' }
+      ],
+      words: [
+        { word: 'queen', means: 'the one ant that lays all the eggs', not: ['the biggest nest', 'an ant with wings'] },
+        { word: 'lift', means: 'to pick something up', not: ['to run fast', 'to dig a hole'] }
+      ],
+      order: ['ant', 'nest', 'queen', 'leaf'],
+      facts: [
+        { text: 'Ants live on their own.', yes: false },
+        { text: 'The queen lays the eggs.', yes: true },
+        { text: 'An ant can carry more than its own weight.', yes: true },
+        { text: 'Ants build their nest in the sky.', yes: false }
+      ],
+      questions: [
+        { q: 'Who lays all the eggs?', pic: 'queen', not: ['king', 'bee'] },
+        { q: 'Where do ants live?', pic: 'nest', not: ['jar', 'boat'] },
+        { q: 'What can one ant carry?', pic: 'leaf', not: ['bus', 'house'] }
+      ] },
+
+    { id: 'moon', title: 'Why the Moon Changes', topic: 'Space', icon: 'moon',
+      parts: [
+        { text: 'The moon looks a different shape every night.', pic: 'moon' },
+        { text: 'But the moon never changes shape. It is always round, like a ball.', pic: 'circle' },
+        { text: 'The moon makes no light of its own. The sun shines on it.', pic: 'sun' },
+        { text: 'Half of the moon is lit, and half of it is dark. That is always true.', pic: 'moon' },
+        { text: 'The moon goes round the earth once a month. As it moves we see the lit half from a new side.', pic: 'night' },
+        { text: 'So the moon is not changing. What changes is how much of the lit half we can see.', pic: 'moon' }
+      ],
+      words: [
+        { word: 'lit', means: 'with light falling on it', not: ['very small', 'made of rock'] },
+        { word: 'month', means: 'about four weeks', not: ['one night', 'a whole year'] }
+      ],
+      order: ['moon', 'circle', 'sun', 'night'],
+      facts: [
+        { text: 'The moon makes its own light.', yes: false },
+        { text: 'The moon is really round all the time.', yes: true },
+        { text: 'The sun shines on the moon.', yes: true },
+        { text: 'The moon goes round the earth once a night.', yes: false }
+      ],
+      questions: [
+        { q: 'What shines on the moon?', pic: 'sun', not: ['lamp', 'light'] },
+        { q: 'What shape is the moon really?', pic: 'circle', not: ['star', 'gem'] },
+        { q: 'When do we see the moon best?', pic: 'night', not: ['sea', 'road'] }
+      ] },
+
+    { id: 'nightlife', title: 'Animals That Come Out at Night', topic: 'Animals', icon: 'owl',
+      parts: [
+        { text: 'When you go to bed, some animals are only just waking up.', pic: 'night' },
+        { text: 'An owl hunts in the dark. Its eyes are huge, and huge eyes catch more light.', pic: 'owl' },
+        { text: 'The edge of an owl feather is soft and ragged, so an owl flies without a sound.', pic: 'owl' },
+        { text: 'A fox comes out when the streets are quiet and looks for something to eat.', pic: 'fox' },
+        { text: 'A cat can see in light so dim that you would see nothing at all.', pic: 'cat' },
+        { text: 'When the sun comes up they all go home to sleep, and we get up.', pic: 'sun' }
+      ],
+      words: [
+        { word: 'hunt', means: 'to look for an animal to eat', not: ['to sleep all day', 'to build a nest'] },
+        { word: 'dim', means: 'with only a little light', not: ['very loud', 'wet and cold'] }
+      ],
+      order: ['night', 'owl', 'fox', 'sun'],
+      facts: [
+        { text: 'An owl can fly almost silently.', yes: true },
+        { text: 'A cat can see better in the dark than you can.', yes: true },
+        { text: 'A fox hunts when the sun is high.', yes: false },
+        { text: 'Big eyes let in more light.', yes: true }
+      ],
+      questions: [
+        { q: 'Which bird hunts at night?', pic: 'owl', not: ['hen', 'duck'] },
+        { q: 'Who comes out when the streets are quiet?', pic: 'fox', not: ['cow', 'goat'] },
+        { q: 'When do night animals sleep?', pic: 'sun', not: ['moon', 'star'] }
+      ] }
+  ];
+
+  /* ------------------------------------------------------------------
+     CHAPTERS — one story long enough to have to remember it.
+
+     Every story so far has fitted on one screen's worth of pages, so
+     nothing in it had to be held in mind. This one runs over three
+     sittings, and its questions at the end can only be answered by
+     someone who read the first chapter days ago and kept it.
+     ------------------------------------------------------------------ */
+  var CHAPTERS = {
+    id: 'kite', title: 'The Kite That Would Not Come Down',
+    parts: [
+      { id: 'k1', n: 1, name: 'The Wind Takes It', icon: 'kite',
+        pages: [
+          { text: 'Ben had a red kite. He got it for his birthday and he had not flown it yet.', pic: 'kite' },
+          { text: 'On Saturday the wind was strong. Ben ran across the grass and let out the string.', pic: 'kite' },
+          { text: 'Up it went, higher than the trees, higher than the roofs.', pic: 'tree' },
+          { text: 'Then something snapped. The string went soft in his hand.', pic: 'hand' },
+          { text: 'The kite turned over once and flew away over the houses.', pic: 'house' },
+          { text: 'Ben sat down on the grass. He did not say a word.', pic: 'boy' }
+        ],
+        questions: [
+          { q: 'What did Ben get for his birthday?', pic: 'kite', not: ['bike', 'boat'] },
+          { q: 'What broke?', pic: 'hand', not: ['tree', 'gate'] }
+        ] },
+      { id: 'k2', n: 2, name: 'The Hunt', icon: 'town',
+        pages: [
+          { text: 'His sister Mei found him there. "Come on," she said. "It went that way."', pic: 'girl' },
+          { text: 'They looked in the park, under every tree. No kite.', pic: 'tree' },
+          { text: 'They looked by the pool, where the wind always drops. No kite.', pic: 'pool' },
+          { text: 'A dog barked at them through a gate and they walked a little faster.', pic: 'dog' },
+          { text: 'Then Mei stopped and pointed straight up.', pic: 'girl' },
+          { text: 'The red kite was caught at the top of a very tall tree.', pic: 'kite' }
+        ],
+        questions: [
+          { q: 'Who came to help Ben?', pic: 'girl', not: ['boy', 'farmer'] },
+          { q: 'Where was the kite in the end?', pic: 'tree', not: ['pool', 'road'] }
+        ] },
+      { id: 'k3', n: 3, name: 'Getting It Back', icon: 'trophy',
+        pages: [
+          { text: 'An old man came out of the house. "That is my tree," he said.', pic: 'farmer' },
+          { text: 'Ben said he was sorry. The man looked up, and then he smiled.', pic: 'face' },
+          { text: 'He went inside and came back with a long pole for picking fruit.', pic: 'tree' },
+          { text: 'Up went the pole. Down came the kite, turning over and over.', pic: 'kite' },
+          { text: 'One wing was torn. But Mei had tape in her bag, and she was good at mending.', pic: 'girl' },
+          { text: 'On Sunday the red kite flew again, with a much stronger string.', pic: 'kite' }
+        ],
+        questions: [
+          { q: 'Who owned the tree?', pic: 'farmer', not: ['boy', 'nurse'] },
+          { q: 'What did Mei have in her bag?', pic: 'girl', not: ['basket', 'jar'] }
+        ] }
+    ],
+    /* answerable only by someone who read all three */
+    questions: [
+      { q: 'What day did the kite first fly?', pic: 'kite', not: ['moon', 'sun'] },
+      { q: 'Who found Ben on the grass?', pic: 'girl', not: ['farmer', 'boy'] },
+      { q: 'What fixed the torn wing?', pic: 'girl', not: ['hand', 'pencil'] }
+    ]
+  };
 
   /* Dictation. She hears the word and builds it out of letters, with no
      picture in front of her — which is what makes it spelling and not
@@ -1027,6 +1251,15 @@
       activities: [{ type: 'story', story: st.id }]
     });
   });
+  /* The first twenty sight words have been IN the sentences since the start of
+     this level — `the`, `said`, `was` cannot be sounded out and are in almost
+     every line — but nothing taught them. They had to wait until Level 7,
+     which is two years after she first met them. */
+  LESSONS.push({
+    id: 's-sight1', level: 4, n: 4, name: 'Words to Just Know', shortName: 'Words to Know',
+    icon: 'key',
+    activities: [{ type: 'sightRead', set: 'first', rounds: 8 }]
+  });
   LESSONS.push({
     id: 's-pick2', level: 4, n: 20, name: 'Read and Choose Again', shortName: 'Read & Choose 2',
     icon: 'trophy', review: true,
@@ -1127,11 +1360,13 @@
   });
 
   /* ---- Level 7 ----
-     Books and spelling alternate. Reading and writing a word are two halves
-     of the same skill and a week of one without the other shows. */
+     Four things alternate, because at seven they are four different skills
+     and a week of one without the others shows: a decodable book, spelling
+     from dictation, an article read for the answer, and a chapter of one
+     story long enough to have to be remembered between sittings. */
   BOOKS.forEach(function (bk, i) {
     LESSONS.push({
-      id: 'bk-' + bk.id, level: 7, n: 1 + i * 2, book: bk.id,
+      id: 'bk-' + bk.id, level: 7, n: 1 + i * 4, book: bk.id,
       name: bk.title, shortName: bk.title,
       icon: WORDS[bk.pages[0].pic].icon,
       activities: [{ type: 'book', book: bk.id }]
@@ -1139,15 +1374,43 @@
   });
   SPELLINGS.forEach(function (sp, i) {
     LESSONS.push({
-      id: 'sp-' + sp.id, level: 7, n: 2 + i * 2, name: sp.name, shortName: sp.name.replace('Write the ', 'Write: '),
+      id: 'sp-' + sp.id, level: 7, n: 2 + i * 4, name: sp.name,
+      shortName: sp.name.replace('Write the ', 'Write: '),
       icon: 'pen',
       activities: [{ type: 'spellIt', set: sp.id, rounds: 5 }]
     });
   });
+  ARTICLES.forEach(function (ar, i) {
+    LESSONS.push({
+      id: 'ar-' + ar.id, level: 7, n: 3 + i * 4, article: ar.id,
+      name: ar.title, shortName: ar.title, icon: ar.icon,
+      activities: [
+        { type: 'article', article: ar.id },
+        { type: 'wordMeaning', article: ar.id },
+        { type: 'putInOrder', article: ar.id },
+        { type: 'trueOrNot', article: ar.id, rounds: 3 },
+        { type: 'articleAsk', article: ar.id }
+      ]
+    });
+  });
+  CHAPTERS.parts.forEach(function (ch, i) {
+    LESSONS.push({
+      id: 'ch-' + ch.id, level: 7, n: 4 + i * 4, chapter: ch.id,
+      name: CHAPTERS.title + ' \u00b7 ' + ch.name,
+      shortName: 'Chapter ' + ch.n + ': ' + ch.name,
+      icon: ch.icon,
+      activities: [{ type: 'chapter', chapter: ch.id }]
+    });
+  });
   LESSONS.push({
-    id: 'sight-2', level: 7, n: 8, name: 'Words You Cannot Sound Out', shortName: 'Tricky Words',
+    id: 'sight-2', level: 7, n: 80, name: 'Words You Cannot Sound Out', shortName: 'Tricky Words',
     icon: 'question',
     activities: [{ type: 'sightRead', rounds: 8 }]
+  });
+  LESSONS.push({
+    id: 'ch-all', level: 7, n: 85, name: 'The Whole Story', shortName: 'The Whole Story',
+    icon: 'book', review: true,
+    activities: [{ type: 'wholeStory' }]
   });
   LESSONS.push({
     id: 'bk-review', level: 7, n: 90, name: 'Read On Your Own', shortName: 'On Your Own',
@@ -1155,7 +1418,8 @@
     activities: [
       { type: 'sightRead', rounds: 4 },
       { type: 'spellIt', set: 'vowels', rounds: 4 },
-      { type: 'bookQuestions', rounds: 6 }
+      { type: 'bookQuestions', rounds: 4 },
+      { type: 'trueOrNot', rounds: 4 }
     ]
   });
 
@@ -1184,6 +1448,8 @@
     SENTENCES: SENTENCES,
     STORIES: STORIES,
     BOOKS: BOOKS,
+    ARTICLES: ARTICLES,
+    CHAPTERS: CHAPTERS,
     BEATS: BEATS,
     COMPOUNDS: COMPOUNDS,
     ENDINGS: ENDINGS,
@@ -1192,6 +1458,8 @@
     MAGICE: MAGICE,
     story: function (id) { return STORIES.filter(function (x) { return x.id === id; })[0]; },
     book: function (id) { return BOOKS.filter(function (x) { return x.id === id; })[0]; },
+    article: function (id) { return ARTICLES.filter(function (x) { return x.id === id; })[0]; },
+    chapter: function (id) { return CHAPTERS.parts.filter(function (x) { return x.id === id; })[0]; },
     ending: function (id) { return ENDINGS.filter(function (x) { return x.id === id; })[0]; },
     softOf: function (id) { return SOFT.filter(function (x) { return x.id === id; })[0]; },
     spellingSet: function (id) { return SPELLINGS.filter(function (x) { return x.id === id; })[0]; },

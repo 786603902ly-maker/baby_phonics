@@ -320,10 +320,18 @@
     if (tb) tb.onclick = function () {
       ensureSound();
       startLesson(stop);
-      if (stop.letter) {
-        A.say(doneToday ? 'Let us do ' + stop.letter.toUpperCase() + '.'
-                        : 'Hello' + (S.name ? ' ' + S.name : '') + '! Today we learn ' + stop.letter.toUpperCase() + '.');
-      }
+      /* Composed out of recorded pieces, never built as one string.
+
+         This used to be `'Today we learn ' + letter.toUpperCase() + '.'`,
+         which is different text for all 26 letters and therefore can never
+         have a clip behind it — so the very first thing the app said in a
+         session went to the device's own synthesiser, in whatever voice and
+         accent the tablet happened to have, and it pronounced the letter's
+         NAME as that voice saw fit. The one place the app was still speaking
+         in two voices in one breath, and it was the opening line. */
+      var open = A.say(doneToday ? 'One more.' : 'Today we learn');
+      if (stop.letter) open.then(function () { return A.sayLetterName(stop.letter); });
+      else if (stop.team) open.then(function () { return A.sayPhoneme(stop.team); });
     };
     document.getElementById('go').onclick = function () { ensureSound(); screenMap(); };
     document.getElementById('toBook').onclick = function () { ensureSound(); screenBook(); };
@@ -944,7 +952,9 @@
   /* The words that cannot be sounded out and have to be known by sight.
      Written options only — a sight word has no picture, that is the point. */
   GEN.sightRead = function (cfg) {
-    var pool = C.SIGHT.concat(C.SIGHT2);
+    /* `first` is the twenty that turn up in Level 4's own sentences; without
+       a set it is all forty-six, which is what Level 7 asks for. */
+    var pool = cfg.set === 'first' ? C.SIGHT : C.SIGHT.concat(C.SIGHT2);
     return sample(pool, cfg.rounds || 8).map(function (t) {
       var others = sample(pool.filter(function (x) { return x !== t; }), 2);
       return { kind: 'pick', track: 'S:sight',
@@ -954,6 +964,121 @@
           return { kind: 'text', text: x, correct: x === t };
         }) };
     });
+  };
+
+  /* ------------------------------------------------------------------
+     LEVEL 7 · reading to find something out
+
+     A book is read for the story; an article is read for the answer, and
+     that is a different job. These four activities are the four things a
+     seven-year-old actually has to be able to do with a page of text —
+     get through it, work out a word from around it, hold the order of what
+     it said, and tell what it did say from what it did not.
+     ------------------------------------------------------------------ */
+
+  /* The article itself: a picture and two sentences at a time, every word
+     tappable. No controlled word list here — by seven an unfamiliar word is
+     something to reach for, and tapping it is the reaching. */
+  GEN.article = function (cfg) {
+    var ar = C.article(cfg.article);
+    return ar.parts.map(function (pt, i) {
+      return { kind: 'page', track: 'S:read', page: pt, n: i + 1, of: ar.parts.length,
+        title: ar.title, article: true, topic: ar.topic,
+        text: 'Tap any word to hear it',
+        play: (function (t) { return function () { return A.say(t); }; })(pt.text) };
+    });
+  };
+
+  /* Two words from what she has just read, and what each one means. The
+     wrong answers are plausible, so the question is answered from the
+     article rather than by elimination. */
+  GEN.wordMeaning = function (cfg) {
+    var ar = C.article(cfg.article);
+    return ar.words.map(function (w2) {
+      return { kind: 'pick', track: 'S:meaning',
+        bigword: w2.word,
+        text: 'What does this word mean?',
+        play: (function (x) { return function () { return A.sayWord(x); }; })(w2.word),
+        options: shuffle([w2.means].concat(w2.not)).map(function (x) {
+          return { kind: 'text', text: x, correct: x === w2.means, small: true };
+        }) };
+    });
+  };
+
+  /* Put the stages back in order. It cannot be done by remembering words —
+     only by having understood how the thing works. */
+  GEN.putInOrder = function (cfg) {
+    var ar = C.article(cfg.article);
+    return [{ kind: 'order', track: 'S:meaning', order: ar.order,
+      text: 'Put them in order',
+      play: function () { return A.say('Put them in order'); } }];
+  };
+
+  /* True, or not true. Answerable only from the article — which is what
+     makes it reading and not guessing. */
+  GEN.trueOrNot = function (cfg) {
+    var pool = cfg.article ? C.article(cfg.article).facts
+      : C.ARTICLES.reduce(function (a, x) { return a.concat(x.facts); }, []);
+    return sample(pool, Math.min(cfg.rounds || 3, pool.length)).map(function (f) {
+      return { kind: 'sort', track: 'S:meaning',
+        label: f.text, speak: f.text, correct: f.yes ? 0 : 1,
+        text: 'Is that true?',
+        boxes: [{ as: 'True' }, { as: 'Not true' }],
+        play: (function (t) { return function () { return A.say(t); }; })(f.text) };
+    });
+  };
+
+  GEN.articleAsk = function (cfg) {
+    var ar = C.article(cfg.article);
+    return ar.questions.map(function (q) {
+      return { kind: 'pick', track: 'S:read', text: esc(q.q),
+        play: (function (t) { return function () { return A.say(t); }; })(q.q),
+        options: shuffle([q.pic].concat(q.not)).map(function (x) {
+          return { kind: 'pic', word: x, correct: x === q.pic };
+        }) };
+    });
+  };
+
+  /* One chapter of the long story, then its two questions. */
+  GEN.chapter = function (cfg) {
+    var ch = C.chapter(cfg.chapter);
+    var out = ch.pages.map(function (pg, i) {
+      return { kind: 'page', track: 'S:read', page: pg, n: i + 1, of: ch.pages.length,
+        title: C.CHAPTERS.title + ' \u00b7 ' + ch.name, chapter: ch.n,
+        text: 'Tap any word to hear it',
+        play: (function (t) { return function () { return A.say(t); }; })(pg.text) };
+    });
+    ch.questions.forEach(function (q) {
+      out.push({ kind: 'pick', track: 'S:read', text: esc(q.q),
+        play: (function (t) { return function () { return A.say(t); }; })(q.q),
+        options: shuffle([q.pic].concat(q.not)).map(function (x) {
+          return { kind: 'pic', word: x, correct: x === q.pic };
+        }) });
+    });
+    return out;
+  };
+
+  /* And the questions that need all three chapters at once. The first was
+     read days ago, which is the point: everything before this level fitted
+     on one screen and so never had to be held. */
+  GEN.wholeStory = function () {
+    var out = [];
+    C.CHAPTERS.parts.forEach(function (ch) {
+      out.push({ kind: 'pick', track: 'S:read',
+        text: 'Which chapter is this? &mdash; ' + esc(ch.pages[0].text),
+        play: (function (t) { return function () { return A.say(t); }; })(ch.pages[0].text),
+        options: shuffle(C.CHAPTERS.parts.map(function (x) { return x; })).map(function (x) {
+          return { kind: 'text', text: 'Chapter ' + x.n + ': ' + x.name, correct: x.id === ch.id, small: true };
+        }) });
+    });
+    C.CHAPTERS.questions.forEach(function (q) {
+      out.push({ kind: 'pick', track: 'S:read', text: esc(q.q),
+        play: (function (t) { return function () { return A.say(t); }; })(q.q),
+        options: shuffle([q.pic].concat(q.not)).map(function (x) {
+          return { kind: 'pic', word: x, correct: x === q.pic };
+        }) });
+    });
+    return out;
   };
 
   /* ==================================================================
@@ -1064,7 +1189,17 @@
         return C.SPELLINGS.map(function (x) { return { type: 'spellIt', set: x.id, rounds: 3 }; });
       } },
     { id: 'sight', name: 'Tricky Words', icon: 'question', level: 7,
-      make: function () { return [{ type: 'sightRead', rounds: 8 }]; } }
+      make: function () { return [{ type: 'sightRead', rounds: 8 }]; } },
+    { id: 'truefalse', name: 'True or Not True', icon: 'thumb', level: 7,
+      make: function () { return [{ type: 'trueOrNot', rounds: 8 }]; } },
+    { id: 'meanings', name: 'What Does It Mean?', icon: 'seed', level: 7,
+      make: function () {
+        return C.ARTICLES.map(function (a) { return { type: 'wordMeaning', article: a.id }; });
+      } },
+    { id: 'order', name: 'Put Them in Order', icon: 'three', level: 7,
+      make: function () {
+        return C.ARTICLES.map(function (a) { return { type: 'putInOrder', article: a.id }; });
+      } }
   ];
 
   function startFreeGame(g) {
@@ -1240,7 +1375,7 @@
        soundout: rSoundOut, build: rBuild, magice: rMagicE,
        sentence: rSentence, page: rPage, sort: rSort, beats: rBeats,
        join: rJoin, meetend: rMeetEnding, addend: rAddEnding,
-       meetsoft: rMeetSoft, spell: rSpell })[r.kind](r);
+       meetsoft: rMeetSoft, spell: rSpell, order: rOrder })[r.kind](r);
   }
 
   /* ---- tap each sound, then push them together ---- */
@@ -1393,15 +1528,21 @@
     });
   }
 
-  /* ---- one page of a story ---- */
+  /* ---- one page of a story, a chapter, or an article ----
+     The same shape serves all three. An article gets its topic as an
+     eyebrow and a button to hear the whole thing read, because it is read
+     for what it says and she will want it again; a story page does not,
+     because it is read once and turned over. */
   function rPage(r) {
     shell(
-      '<div class="story">' +
+      '<div class="story' + (r.article ? ' story--article' : '') + '">' +
+        (r.topic ? '<p class="story-topic">' + esc(r.topic) + '</p>' : '') +
         '<p class="story-title">' + esc(r.title) + ' &middot; ' + r.n + ' of ' + r.of + '</p>' +
         '<div class="story-pic">' + picture(r.page.pic, true) + '</div>' +
         '<p class="story-text">' + r.page.text.split(' ').map(function (w2) {
           return '<button class="sword">' + esc(w2) + '</button>';
         }).join(' ') + '</p>' +
+        (r.article ? '<button class="readbtn" id="pread">' + icon('ear') + '<span>read it to me</span></button>' : '') +
         '<button class="nextbtn ready" id="pnext">' + icon('play') + '</button>' +
       '</div>'
     );
@@ -1411,6 +1552,8 @@
         A.sayWord(el.textContent.replace(/[^A-Za-z']/g, ''));
       };
     });
+    var rb = document.getElementById('pread');
+    if (rb) rb.onclick = function () { A.stop(); A.say(r.page.text); };
     document.getElementById('pnext').onclick = function () {
       A.stop();
       credit(r.track); advance(0);
@@ -1423,9 +1566,14 @@
      /k/ here. Both are: here is a written word, here are the boxes, which
      box is it. */
   function rSort(r) {
+    /* `word` for the spelling and soft-letter games, where the thing being
+       sorted is one word; `label` for true-or-not-true, where it is a whole
+       sentence. Same game, and the sentence just needs room to wrap. */
+    var txt = r.label != null ? r.label : word(r.word).text;
+    var say = r.speak != null ? r.speak : txt;
     shell(
       '<div class="sorter">' +
-        '<button class="sortword" id="sw">' + esc(word(r.word).text) + '</button>' +
+        '<button class="sortword' + (r.label != null ? ' sortword--long' : '') + '" id="sw">' + esc(txt) + '</button>' +
         '<div class="boxes">' + r.boxes.map(function (b, i) {
           return '<button class="sbox" data-i="' + i + '">' +
             '<b>' + esc(b.as) + '</b>' +
@@ -1434,20 +1582,60 @@
         }).join('') + '</div>' +
       '</div>'
     );
-    document.getElementById('sw').onclick = function () { A.sayWord(word(r.word).text); };
+    document.getElementById('sw').onclick = function () {
+      if (r.label != null) A.say(say); else A.sayWord(say);
+    };
     Array.prototype.forEach.call(document.querySelectorAll('.sbox'), function (b) {
       b.onclick = function () {
         if (b.dataset.spent === '1') return;
         if (+b.dataset.i === r.correct) {
           Array.prototype.forEach.call(document.querySelectorAll('.sbox'), function (x) { x.dataset.spent = '1'; });
           b.classList.add('is-right');
-          A.sayWord(word(r.word).text);
+          if (r.label == null) A.sayWord(say);
           right(r.track);
           advance();
         } else {
           b.dataset.spent = '1';
           b.classList.add('is-wrong');
           setTimeout(function () { b.classList.remove('is-wrong'); b.dataset.spent = '0'; }, 750);
+          wrong(r.track);
+        }
+      };
+    });
+  }
+
+  /* ---- put them in order ----
+     Four pictures, jumbled, to be tapped in the order the article described.
+     It cannot be done from the words on the page, only from having followed
+     what happens to what. */
+  function rOrder(r) {
+    shell(
+      '<div class="order">' +
+        '<div class="oslots">' + r.order.map(function (_, i) {
+          return '<div class="oslot" data-i="' + i + '"><b>' + (i + 1) + '</b></div>';
+        }).join('') + '</div>' +
+        '<div class="obank">' + shuffle(r.order.slice()).map(function (k) {
+          return '<button class="ocard" data-k="' + k + '">' + picture(k, true) + '</button>';
+        }).join('') + '</div>' +
+      '</div>'
+    );
+    var next = 0;
+    Array.prototype.forEach.call(document.querySelectorAll('.ocard'), function (el) {
+      el.onclick = function () {
+        if (el.dataset.used === '1') return;
+        if (el.dataset.k === r.order[next]) {
+          el.dataset.used = '1';
+          el.classList.add('used');
+          var slot = document.querySelector('.oslot[data-i="' + next + '"]');
+          slot.innerHTML = picture(el.dataset.k, true);
+          slot.classList.add('filled');
+          A.sayWord(word(el.dataset.k).text);
+          if (S.settings.sfx) A.sfx('pop');
+          next++;
+          if (next === r.order.length) { right(r.track); advance(900); }
+        } else {
+          el.classList.add('is-wrong');
+          setTimeout(function () { el.classList.remove('is-wrong'); }, 650);
           wrong(r.track);
         }
       };
@@ -1659,6 +1847,11 @@
           slot.classList.add('filled');
           el.dataset.used = '1';
           el.classList.add('used');
+          /* The NAME, not the sound. These tiles are letters, not phonemes —
+             `ship` is four letters and three sounds — and spelling a word
+             out loud is done in names. It is also why letter names are not
+             taught before this point: during blending they compete. */
+          A.sayLetterName(el.dataset.c);
           if (S.settings.sfx) A.sfx('pop');
           next++;
           if (next === t.length) {
@@ -1680,7 +1873,7 @@
         : o.kind === 'word' ? '<span class="glyph glyph--word">' + esc(word(o.word).text) + '</span>'
         /* a sight word has no picture and is not in the word list — that is
            what makes it a sight word */
-        : o.kind === 'text' ? '<span class="glyph glyph--word">' + esc(o.text) + '</span>'
+        : o.kind === 'text' ? '<span class="glyph glyph--word' + (o.small ? ' glyph--phrase' : '') + '">' + esc(o.text) + '</span>'
         : '<span class="glyph">' + esc(glyph(o.letter)) + '</span>';
       return '<button class="opt' + (o.kind === 'pic' ? ' opt--pic' : '') + '" data-i="' + i + '">' + body + '</button>';
     }).join('');
@@ -1701,7 +1894,9 @@
           /* name the thing she just chose, then praise it: "apple" — "well
              done", in that order, because the word is the thing being taught */
           if (o.kind === 'pic' || o.kind === 'word') A.sayWord(word(o.word).text);
-          else if (o.kind === 'text') A.sayWord(o.text);
+          /* a definition or a chapter title is a phrase, not a word: it has
+             no clip of its own and is read out as a line */
+          else if (o.kind === 'text') { if (o.small) A.say(o.text); else A.sayWord(o.text); }
           right(r.track);
           advance();
         } else {
@@ -2104,6 +2299,16 @@
           '<li><b>When she is stuck, go back a level for a day.</b> An easy win the day after a hard session is worth more than another go at the hard one.</li>' +
         '</ul>' +
       '</div>' +
+      '<div class="panel"><h3>What Level 7 is, and why it is different</h3>' +
+        '<p class="hint">Everything up to Level 7 is reading <b>practice</b>: the words on the page are there so they can be decoded, and what they say is secondary. At seven that is the wrong way round. Level 7 alternates four different jobs, and they are four different skills:</p>' +
+        '<ul class="plist">' +
+          '<li><b>Four decodable books.</b> The last of the controlled word lists. Every word can still be sounded out.</li>' +
+          '<li><b>Five articles</b> &mdash; how a seed becomes a tree, where rain comes from, what ants do all day, why the moon changes, animals that come out at night. Real non-fiction, read for the answer. The words are ordinary English now, not a controlled list: at seven an unfamiliar word is something to reach for, and every word on the page can be tapped. After each one she is asked what two of the words mean, to put the stages back in order, whether four statements are true, and the ordinary questions.</li>' +
+          '<li><b>A story in three chapters.</b> The first thing in the app too long to hold on one screen &mdash; chapter one has to be remembered by the time she reaches chapter three, and <i>The Whole Story</i> at the end asks what no single chapter answers.</li>' +
+          '<li><b>Dictation.</b> Hearing a word and writing it down is the other half of phonics and the half a reading app usually leaves out. No picture on the screen, which is the whole difference between this and building a word.</li>' +
+        '</ul>' +
+        '<p class="hint">Do them in the order they appear on the map. They alternate on purpose &mdash; a week of books without spelling, or of spelling without meaning, shows.</p>' +
+      '</div>' +
       '<div class="panel"><h3>What this app does not do</h3>' +
         '<p class="hint">It does not listen to her. It cannot hear that she said <i>tink</i> for <i>think</i>, so the sounds she has trouble making are yours to catch &mdash; sit beside her for the letter cards and the books, and the mouth pictures on each card are there for you to copy together.</p>' +
         '<p class="hint">It does not teach handwriting. Level 7 spells with letter tiles, which is the right first step, but a pencil is a different skill and belongs on paper.</p>' +
@@ -2188,7 +2393,14 @@
   }
 
   function tabPictures() {
-    var keys = Object.keys(C.WORDS).sort();
+    /* Only the words that HAVE a drawing. Since Level 5 the word list also
+       holds words with no picture — `day`, `out`, `her`, the commonest words
+       in English and none of them drawable — and listing those here put
+       fifty empty grey squares on the one page whose entire subject is
+       replacing a drawing with a photograph. */
+    var keys = Object.keys(C.WORDS).filter(function (k) {
+      return C.WORDS[k].icon && !C.WORDS[k].noPic;
+    }).sort();
     document.getElementById('ptab').innerHTML =
       '<div class="panel">' +
         '<h3>Replace a drawing with a real photo</h3>' +

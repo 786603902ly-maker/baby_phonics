@@ -24,6 +24,10 @@ jobs:
       # vercel.json must be something Vercel will accept
       - run: node tools/check-config.mjs
 
+      # nothing the app says may be built by concatenation: such a string has
+      # no literal to record and falls through to the device's own voice
+      - run: node tools/check-voice.mjs
+
       # every stop, dealt 25 times, must produce rounds the app can draw —
       # a picture option for a word with no picture, or a sound in a word
       # breakdown with no clip behind it, is a blank square or a silence in

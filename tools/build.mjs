@@ -57,6 +57,21 @@ export const STATIC = [
 ];
 export const SERVABLE = ['index.html', ...SCRIPTS, ...STATIC, ...AUDIO, 'sw.js'];
 
+/* ------------------------------- and every spoken line is a line, not a sum
+   A line built by concatenation has no literal to extract, so the clip check
+   below cannot see it and it falls through to the device voice at run time.
+   That is how `'Today we learn ' + letter` — the first thing the app said in
+   a session — went out in a second voice for months. */
+{
+  const { execFileSync } = await import('node:child_process');
+  try {
+    execFileSync(process.execPath, [join(dirname(fileURLToPath(import.meta.url)), 'check-voice.mjs')],
+      { stdio: ['ignore', 'ignore', 'inherit'] });
+  } catch (e) {
+    process.exit(1);
+  }
+}
+
 /* ------------------------------------------- every spoken line has a clip
    A line the app says with no clip behind it falls back to the device voice,
    which is exactly the two-voices-in-one-breath problem the recordings were

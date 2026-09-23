@@ -25,9 +25,15 @@ const win = {};
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const web = join(dirname(fileURLToPath(import.meta.url)), '..', 'web');
-for (const f of ['icons.js', 'icons-words.js', 'icons-more.js', 'mouths.js', 'content.js', 'letter-clips.js'])
+for (const f of ['icons.js', 'icons-words.js', 'icons-more.js', 'mouths.js', 'content.js',
+                 'letter-clips.js', 'speech-clips.js'])
   new Function('window', readFileSync(join(web, f), 'utf8'))(win);
-const C = win.CONTENT, ICONS = win.ICONS, CLIPS = win.LETTER_CLIPS;
+const C = win.CONTENT, ICONS = win.ICONS, CLIPS = win.LETTER_CLIPS, SPEECH = win.SPEECH_CLIPS;
+
+/* The key audio.js files a piece of text under. */
+const skey = (t) => String(t).toLowerCase().replace(/[^a-z0-9' ]+/g, ' ')
+  .replace(/\s+/g, ' ').replace(/^ | $/g, '');
+const hasClip = (t) => !!SPEECH[skey(t)];
 
 /* a stand-in for audio.js and the DOM: the generators only call A.say* inside
    closures they hand back, so calling those is how we check them too */
@@ -71,7 +77,8 @@ if (!GEN) { console.error('could not reach GEN in app.js'); process.exit(1); }
 const RUNS = Math.max(1, +((process.argv.find((a) => a.startsWith('--runs=')) || '').split('=')[1]) || 1);
 
 const KINDS = new Set(['pick', 'memory', 'meet', 'missing', 'soundout', 'build', 'magice',
-  'sentence', 'page', 'sort', 'beats', 'join', 'meetend', 'addend', 'meetsoft', 'spell']);
+  'sentence', 'page', 'sort', 'beats', 'join', 'meetend', 'addend', 'meetsoft', 'spell',
+  'order']);
 
 /* The free games and Mix it up are lessons too — built at run time out of
    whatever she has met, which is exactly where a bad word list hides. They
@@ -125,7 +132,18 @@ for (const lesson of C.LESSONS.concat(extra)) {
       }
       if (r.kind === 'sort') {
         if (!(r.correct >= 0 && r.correct < r.boxes.length)) fail(lesson.id + ': sort answer out of range');
-        if (!C.WORDS[r.word]) fail(lesson.id + ': sort on unknown word ' + r.word);
+        /* a sort round shows either one word (which must be a real one) or a
+           whole sentence given as a label */
+        if (r.label == null && !C.WORDS[r.word]) fail(lesson.id + ': sort on unknown word ' + r.word);
+      }
+      if (r.kind === 'order') {
+        if (r.order.length < 3) fail(lesson.id + ': order round with ' + r.order.length + ' step(s)');
+        r.order.forEach((k) => {
+          const w = C.WORDS[k];
+          if (!w) fail(lesson.id + ': order step is not a word: ' + k);
+          else if (!w.icon || w.noPic) fail(lesson.id + ': order step has no picture: ' + k);
+        });
+        if (new Set(r.order).size !== r.order.length) fail(lesson.id + ': order has the same picture twice');
       }
       if (r.kind === 'join') {
         r.parts.forEach((p) => { if (r.bank.indexOf(p) < 0) fail(lesson.id + ': join bank missing ' + p); });
@@ -133,6 +151,77 @@ for (const lesson of C.LESSONS.concat(extra)) {
       if (r.kind === 'beats' && !(r.n >= 1 && r.n <= 3)) fail(lesson.id + ': beats out of range');
       if (r.kind === 'meet' && !C.sound(r.letter)) fail(lesson.id + ': meet card for unknown sound ' + r.letter);
       if (r.play) { try { r.play(); } catch (e) { fail(lesson.id + '/' + act.type + ': play() threw ' + e.message); } }
+
+      /* ------------------------------------------------------------------
+         And everything the round can say once she starts TAPPING it.
+
+         play() is only the prompt. Every renderer also speaks from its own
+         click handlers — the word under a picture she chose, the letter name
+         of the tile she placed, the half of a compound she joined — and none
+         of that goes through play(), so none of it was checked here. Text
+         with no clip does not fail: it falls through to the device's own
+         voice, mid-activity, in a different accent. That is the failure this
+         whole set of recordings exists to prevent, and it is silent.
+         ------------------------------------------------------------------ */
+      const says = [];                       // [what, why]
+      const W = (k) => C.WORDS[k];
+      if (r.options) {
+        for (const o of r.options) {
+          if (o.kind === 'pic' || o.kind === 'word') { if (W(o.word)) says.push([W(o.word).text, 'option']); }
+          else if (o.kind === 'text') says.push([o.text, 'option']);
+        }
+      }
+      if (r.kind === 'soundout' || r.kind === 'build' || r.kind === 'magice') says.push([W(r.word).text, r.kind]);
+      if (r.kind === 'spell') {
+        says.push([W(r.word).text, 'spell']);
+        /* every tile placed says its LETTER NAME, which is filed apart */
+        for (const ch of W(r.word).text.split('')) {
+          if (!SPEECH['letter:' + ch]) fail(lesson.id + ': no letter-name clip for ' + JSON.stringify(ch));
+        }
+      }
+      if (r.kind === 'sort') says.push([r.label != null ? r.label : W(r.word).text, 'sort']);
+      if (r.kind === 'beats') says.push([W(r.word).text, 'beats']);
+      if (r.kind === 'join') {
+        says.push([W(r.word).text, 'join']);
+        r.parts.forEach((k) => says.push([W(k) ? W(k).text : k, 'join part']));
+      }
+      if (r.kind === 'addend') { says.push([r.base, 'base']); says.push([r.made, 'made']); }
+      if (r.kind === 'order') r.order.forEach((k) => says.push([W(k).text, 'order step']));
+      if (r.kind === 'sentence') {
+        r.sn.text.replace(/[.!?]$/, '').split(' ').forEach((w) => says.push([w, 'sentence word']));
+        says.push([r.sn.text, 'sentence']);
+      }
+      if (r.kind === 'page') {
+        /* The picture on a page is a WORD key, not an icon name, and the two
+           look identical in the data: `house` is the word and `hdb` is the
+           drawing it uses. Writing the drawing's name renders nothing and
+           throws on the way — which is what `pic: 'hdb'` did to chapter one
+           of the long story, on the page it was written. */
+        const pw = W(r.page.pic);
+        if (!pw) fail(lesson.id + ': page picture is not a word: ' + JSON.stringify(r.page.pic));
+        else if (!pw.icon || pw.noPic) fail(lesson.id + ': page picture has no drawing: ' + r.page.pic);
+        says.push([r.page.text, 'page']);
+        /* every word on a story or article page is tappable */
+        r.page.text.split(/\s+/).forEach((w) => {
+          const bare = w.replace(/[^A-Za-z']/g, '');
+          if (bare) says.push([bare, 'tapped word']);
+        });
+      }
+      if (r.kind === 'meet') {
+        const L = C.sound(r.letter);
+        (L.words || []).forEach((k) => says.push([W(k).text, 'keyword']));
+        if (!L.team && !SPEECH['letter:' + r.letter]) fail(lesson.id + ': no letter-name clip for ' + r.letter);
+      }
+      if (r.kind === 'meetend') {
+        C.ending(r.ending).items.forEach((it) => { says.push([it.base, 'ending base']); says.push([it.made, 'ending made']); });
+      }
+      if (r.kind === 'meetsoft') {
+        const sf = C.softOf(r.soft);
+        sf.softWords.concat(sf.hardWords).forEach((k) => says.push([W(k).text, 'soft word']));
+      }
+      for (const [t, why] of says) {
+        if (!hasClip(t)) fail(lesson.id + ': ' + why + ' ' + JSON.stringify(t) + ' has no clip, so it would be spoken by the device voice');
+      }
     }
   }
 }

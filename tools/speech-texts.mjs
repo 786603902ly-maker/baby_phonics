@@ -31,8 +31,16 @@ export function spokenTexts() {
   C.SIGHT.forEach((w) => words.add(w));
   C.SIGHT2.forEach((w) => words.add(w));
   C.SENTENCES.forEach((s) => lines.add(s.text));
-  /* Stories (Level 4) and books (Level 7) are the same shape. */
-  [...C.STORIES, ...C.BOOKS].forEach((st) => {
+  /* Stories (Level 4), books and the chapter story (Level 7) are the same
+     shape, and an article is the same shape with `parts` for `pages`. */
+  const chapters = C.CHAPTERS.parts.map((ch) => ({
+    id: ch.id, title: C.CHAPTERS.title + ' \u00b7 ' + ch.name,
+    pages: ch.pages, questions: ch.questions
+  }));
+  const articles = C.ARTICLES.map((ar) => ({
+    id: ar.id, title: ar.title, pages: ar.parts, questions: ar.questions
+  }));
+  [...C.STORIES, ...C.BOOKS, ...chapters, ...articles].forEach((st) => {
     lines.add(st.title);
     st.pages.forEach((p) => {
       lines.add(p.text);
@@ -68,6 +76,28 @@ export function spokenTexts() {
     words.add(C.WORDS[c.word] ? C.WORDS[c.word].text : c.word);
     c.parts.forEach((k) => words.add(C.WORDS[k] ? C.WORDS[k].text : k));
   });
+
+  /* Level 7. An article's meanings and its true/not-true statements are read
+     out as LINES, not words — a definition is a phrase and asking the model
+     for it inside the single-word frame would mangle it. The two words being
+     defined are words, and so is every word of every chapter title, because
+     the whole-story round reads a chapter's first line aloud. */
+  C.ARTICLES.forEach((ar) => {
+    lines.add(ar.title);
+    ar.words.forEach((w) => {
+      words.add(w.word);
+      lines.add(w.means);
+      w.not.forEach((x) => lines.add(x));
+    });
+    ar.facts.forEach((f) => lines.add(f.text));
+    ar.order.forEach((k) => words.add(C.WORDS[k] ? C.WORDS[k].text : k));
+  });
+  lines.add(C.CHAPTERS.title);
+  C.CHAPTERS.parts.forEach((ch) => {
+    lines.add('Chapter ' + ch.n + ': ' + ch.name);
+    ch.pages.forEach((p) => words.add(C.WORDS[p.pic] ? C.WORDS[p.pic].text : p.pic));
+  });
+  C.CHAPTERS.questions.forEach((q) => lines.add(q.q));
 
   /* the letter names, said before the sound on the letter card */
   const names = {};

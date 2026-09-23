@@ -1,5 +1,74 @@
 # Phonics Tool — Product & Curriculum Plan (Age 4 → 7, Singapore)
 
+> ### Revision 13 — reading for the answer, and the line said in the wrong voice
+>
+> **Level 7 stops being phonics.** Everything up to it is reading practice:
+> the words on the page are there to be decoded and what they say is
+> secondary. At seven that is the wrong way round, so Level 7 is now four
+> jobs alternating — a decodable book, dictation, **an article**, and **a
+> chapter of one long story**.
+>
+> Five articles: how a seed becomes a tree, where rain comes from, what ants
+> do all day, why the moon changes, animals that come out at night. Ordinary
+> English, not a controlled word list, with every word tappable — at seven an
+> unfamiliar word is something to reach for, and tapping it is the reaching.
+> Each carries four activities after it, because reading for meaning is not
+> one skill: what a word means (from the text, not by elimination), putting
+> the stages back in order (impossible without having understood the
+> mechanism), true or not true, and the ordinary comprehension check.
+>
+> And *The Kite That Would Not Come Down*, three chapters. The first story in
+> the app long enough that chapter one has to be held between sittings —
+> everything before it fitted on one screen's worth of pages, so nothing in
+> it ever had to be remembered. Its closing round asks what no single chapter
+> answers.
+>
+> Also: Level 4 finally teaches the first twenty sight words. They have been
+> *in* its sentences since it was built — `the`, `said`, `was` are in almost
+> every line and none can be sounded out — but nothing taught them until
+> Level 7, two years later.
+>
+> **The one line still spoken in the device's voice.** Every fixed thing the
+> app says is recorded, and one thing was not:
+>
+> ```js
+> A.say('Today we learn ' + letter.toUpperCase() + '.')
+> ```
+>
+> Different text for all 26 letters, so no clip could ever exist for it.
+> speech-texts.mjs finds what to record by reading the string *literals*
+> handed to A.say(), and there is no literal here — so nothing was reported
+> missing, nothing failed, and at run time it went to the device's own
+> synthesiser: a second voice, in whatever accent the tablet has, saying the
+> letter's NAME as that voice saw fit, in the opening breath of every
+> session. Exactly what the recordings were made to stop, in the one place
+> nobody looked.
+>
+> Now composed of pieces that each have a clip — `A.say('Today we learn')`
+> then `A.sayLetterName(l)` — and `tools/check-voice.mjs` refuses any spoken
+> string built with `+`. Run against the previous commit it finds that line
+> and nothing else.
+>
+> **And the check that would have found it from the other end.**
+> tools/check-lessons.mjs now asks every round what it could possibly say —
+> the prompt, but also every click handler: the word under a chosen picture,
+> the letter name of a placed tile, both halves of a joined compound, every
+> tappable word on an article page — and looks each one up in the shipped
+> manifest. Delete four clips from speech-clips.js by hand and it names all
+> four and the route each is reached by. With the real content it is silent,
+> which is the claim: **every single thing this app can say, prompt or tap,
+> plays a shipped recording.** Nothing reaches the device's synthesiser.
+>
+> Two smaller things found while looking. Level 7's dictation tiles said
+> nothing when tapped; they now say the letter's NAME, which is what spelling
+> a word aloud is done in, and is why names are deliberately not taught
+> earlier — during blending they compete with the sounds. And `qu` has had a
+> card since Level 2 but none of its words could be taken apart, because the
+> vowel in `queen` is /iː/ and there was no clip for it until Level 5. There
+> is now.
+>
+> ---
+>
 > ### Revision 12 — the whole road is built, and it says when to walk it
 >
 > **Levels 5, 6 and 7 are real.** 92 stops, age 3 to age 7. The app no longer
