@@ -381,10 +381,27 @@
           'Mix it up, or pick one game on its own</small></span>' +
         '<span class="gamecard-stars">' + stars(starsFor('game')) + '</span>' +
       '</button>';
+    /* A heading wherever the unit changes. A level of thirty stops in one
+       path was a list; with its units named it is a plan, and a grown-up can
+       see where she is in it without counting. Each heading says how far
+       through that unit she is. */
+    var perUnit = {};
+    ls.forEach(function (l) {
+      var u = perUnit[l.unit] || (perUnit[l.unit] = { n: 0, d: 0 });
+      u.n++; if (done(l.id)) u.d++;
+    });
+    var lastUnit = null;
     var body = gameCard + '<div class="path">' + ls.map(function (l, i) {
       var n = starsFor(l.id);
       var isNext = l.id === nxt.id;
-      return '<button class="stop ' + (i % 2 ? 'right' : 'left') + (n ? ' is-done' : '') + (isNext ? ' is-next' : '') + '" data-id="' + l.id + '">' +
+      var head = '';
+      if (l.unit && l.unit !== lastUnit) {
+        lastUnit = l.unit;
+        var u = perUnit[l.unit];
+        head = '<div class="unit' + (u.d === u.n ? ' is-full' : '') + '">' +
+          '<b>' + esc(l.unit) + '</b><small>' + u.d + ' / ' + u.n + '</small></div>';
+      }
+      return head + '<button class="stop ' + (i % 2 ? 'right' : 'left') + (n ? ' is-done' : '') + (isNext ? ' is-next' : '') + '" data-id="' + l.id + '">' +
         '<span class="stop-pic">' + icon(l.icon) + '</span>' +
         '<span class="stop-body">' +
           '<b>' + esc(l.shortName || l.name) + '</b>' +
@@ -954,7 +971,7 @@
   GEN.sightRead = function (cfg) {
     /* `first` is the twenty that turn up in Level 4's own sentences; without
        a set it is all forty-six, which is what Level 7 asks for. */
-    var pool = cfg.set === 'first' ? C.SIGHT : C.SIGHT.concat(C.SIGHT2);
+    var pool = cfg.set === 'first' ? C.SIGHT : cfg.set === 'second' ? C.SIGHT2 : C.SIGHT.concat(C.SIGHT2);
     return sample(pool, cfg.rounds || 8).map(function (t) {
       var others = sample(pool.filter(function (x) { return x !== t; }), 2);
       return { kind: 'pick', track: 'S:sight',
@@ -1041,10 +1058,10 @@
 
   /* One chapter of the long story, then its two questions. */
   GEN.chapter = function (cfg) {
-    var ch = C.chapter(cfg.chapter);
+    var hit = C.chapter(cfg.chapter), ch = hit.part;
     var out = ch.pages.map(function (pg, i) {
       return { kind: 'page', track: 'S:read', page: pg, n: i + 1, of: ch.pages.length,
-        title: C.CHAPTERS.title + ' \u00b7 ' + ch.name, chapter: ch.n,
+        title: hit.book.title + ' \u00b7 ' + ch.name, chapter: ch.n,
         text: 'Tap any word to hear it',
         play: (function (t) { return function () { return A.say(t); }; })(pg.text) };
     });
@@ -1061,17 +1078,18 @@
   /* And the questions that need all three chapters at once. The first was
      read days ago, which is the point: everything before this level fitted
      on one screen and so never had to be held. */
-  GEN.wholeStory = function () {
+  GEN.wholeStory = function (cfg) {
+    var bk = C.chapterBook(cfg.book);
     var out = [];
-    C.CHAPTERS.parts.forEach(function (ch) {
+    bk.parts.forEach(function (ch) {
       out.push({ kind: 'pick', track: 'S:read',
         text: 'Which chapter is this? &mdash; ' + esc(ch.pages[0].text),
         play: (function (t) { return function () { return A.say(t); }; })(ch.pages[0].text),
-        options: shuffle(C.CHAPTERS.parts.map(function (x) { return x; })).map(function (x) {
+        options: shuffle(bk.parts.slice()).map(function (x) {
           return { kind: 'text', text: 'Chapter ' + x.n + ': ' + x.name, correct: x.id === ch.id, small: true };
         }) });
     });
-    C.CHAPTERS.questions.forEach(function (q) {
+    bk.questions.forEach(function (q) {
       out.push({ kind: 'pick', track: 'S:read', text: esc(q.q),
         play: (function (t) { return function () { return A.say(t); }; })(q.q),
         options: shuffle([q.pic].concat(q.not)).map(function (x) {
@@ -2300,14 +2318,14 @@
         '</ul>' +
       '</div>' +
       '<div class="panel"><h3>What Level 7 is, and why it is different</h3>' +
-        '<p class="hint">Everything up to Level 7 is reading <b>practice</b>: the words on the page are there so they can be decoded, and what they say is secondary. At seven that is the wrong way round. Level 7 alternates four different jobs, and they are four different skills:</p>' +
+        '<p class="hint">Everything up to Level 7 is reading <b>practice</b>: the words on the page are there so they can be decoded, and what they say is secondary. At seven that is the wrong way round. Level 7 is <b>six units</b>, and each unit holds one of each of four different jobs &mdash; about a week of work:</p>' +
         '<ul class="plist">' +
-          '<li><b>Four decodable books.</b> The last of the controlled word lists. Every word can still be sounded out.</li>' +
-          '<li><b>Five articles</b> &mdash; how a seed becomes a tree, where rain comes from, what ants do all day, why the moon changes, animals that come out at night. Real non-fiction, read for the answer. The words are ordinary English now, not a controlled list: at seven an unfamiliar word is something to reach for, and every word on the page can be tapped. After each one she is asked what two of the words mean, to put the stages back in order, whether four statements are true, and the ordinary questions.</li>' +
-          '<li><b>A story in three chapters.</b> The first thing in the app too long to hold on one screen &mdash; chapter one has to be remembered by the time she reaches chapter three, and <i>The Whole Story</i> at the end asks what no single chapter answers.</li>' +
+          '<li><b>A decodable book.</b> The last of the controlled word lists. Every word can still be sounded out.</li>' +
+          '<li><b>An article</b> &mdash; eight in all: how a seed becomes a tree, where rain comes from, what ants do, why the moon changes, animals at night, where frogs come from, why we brush our teeth, what a volcano is. Real non-fiction, read for the answer, in ordinary English, and every word can be tapped. After each: what two of its words mean, the stages put back in order, true or not true, and questions.</li>' +
+          '<li><b>A chapter.</b> Two chapter books, three chapters each, with the same two children in both. The first things in the app too long to hold on one screen &mdash; <i>The Whole Story</i> at the end of each asks what no single chapter answers.</li>' +
           '<li><b>Dictation.</b> Hearing a word and writing it down is the other half of phonics and the half a reading app usually leaves out. No picture on the screen, which is the whole difference between this and building a word.</li>' +
         '</ul>' +
-        '<p class="hint">Do them in the order they appear on the map. They alternate on purpose &mdash; a week of books without spelling, or of spelling without meaning, shows.</p>' +
+        '<p class="hint">Work through a unit, in order, then the next. They mix the four jobs on purpose &mdash; a week of books without spelling, or of spelling without meaning, shows.</p>' +
       '</div>' +
       '<div class="panel"><h3>What this app does not do</h3>' +
         '<p class="hint">It does not listen to her. It cannot hear that she said <i>tink</i> for <i>think</i>, so the sounds she has trouble making are yours to catch &mdash; sit beside her for the letter cards and the books, and the mouth pictures on each card are there for you to copy together.</p>' +

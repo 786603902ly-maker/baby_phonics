@@ -33,10 +33,10 @@ export function spokenTexts() {
   C.SENTENCES.forEach((s) => lines.add(s.text));
   /* Stories (Level 4), books and the chapter story (Level 7) are the same
      shape, and an article is the same shape with `parts` for `pages`. */
-  const chapters = C.CHAPTERS.parts.map((ch) => ({
-    id: ch.id, title: C.CHAPTERS.title + ' \u00b7 ' + ch.name,
+  const chapters = C.CHAPTER_BOOKS.flatMap((bk) => bk.parts.map((ch) => ({
+    id: ch.id, title: bk.title + ' \u00b7 ' + ch.name,
     pages: ch.pages, questions: ch.questions
-  }));
+  })));
   const articles = C.ARTICLES.map((ar) => ({
     id: ar.id, title: ar.title, pages: ar.parts, questions: ar.questions
   }));
@@ -92,12 +92,14 @@ export function spokenTexts() {
     ar.facts.forEach((f) => lines.add(f.text));
     ar.order.forEach((k) => words.add(C.WORDS[k] ? C.WORDS[k].text : k));
   });
-  lines.add(C.CHAPTERS.title);
-  C.CHAPTERS.parts.forEach((ch) => {
-    lines.add('Chapter ' + ch.n + ': ' + ch.name);
-    ch.pages.forEach((p) => words.add(C.WORDS[p.pic] ? C.WORDS[p.pic].text : p.pic));
+  C.CHAPTER_BOOKS.forEach((bk) => {
+    lines.add(bk.title);
+    bk.parts.forEach((ch) => {
+      lines.add('Chapter ' + ch.n + ': ' + ch.name);
+      ch.pages.forEach((p) => words.add(C.WORDS[p.pic] ? C.WORDS[p.pic].text : p.pic));
+    });
+    bk.questions.forEach((q) => lines.add(q.q));
   });
-  C.CHAPTERS.questions.forEach((q) => lines.add(q.q));
 
   /* the letter names, said before the sound on the letter card */
   const names = {};

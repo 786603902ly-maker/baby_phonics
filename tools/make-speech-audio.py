@@ -33,7 +33,23 @@ MANIFEST = os.path.join(ROOT, 'web', 'speech-clips.js')
 TEXTS = os.path.join(ROOT, 'build', 'speech.json')
 
 # A word on its own is read a little slower than the same word in a sentence.
-WORD_SCALE, LINE_SCALE = 1.18, 1.05
+WORD_SCALE = 1.18
+# The frame a single word is cut out of ("The word is ___.") is spoken at this
+# speed. It used to share LINE_SCALE, which meant slowing the sentences would
+# have quietly slowed every one of the 500-odd single words as well.
+FRAME_SCALE = 1.05
+# Whole lines — sentences, story pages, articles, questions, instructions —
+# are read 20% slower than they were: speed x0.8. Asked for by the parent,
+# and right: at 1.05 a five-word sentence went by faster than a five-year-old
+# can follow it with a finger.
+# The factor is measured, not assumed. The model's length_scale does not map
+# one to one onto the length of what comes out — pauses and the edges of the
+# phrase do not stretch with it — so x1.25 gave only 14% longer audio. Over
+# six sample lines x1.35 gives 24% longer, which is speed 80%.
+# This is done by asking the MODEL to speak slower, not by playing the clip
+# back slower. Web Audio has no pitch-preserving playback, so a clip played at
+# 0.8x comes out 20% lower in pitch as well — a different, drowsy voice.
+LINE_SCALE = 1.05 * 1.35
 
 # A single short word is out of distribution for a voice trained on read
 # sentences: ask this one for "and" on its own and it produces five seconds of
@@ -62,7 +78,22 @@ SPOKEN = {'i': 'I'}
 # which is too short to cut and hand to a child as a word. So it is taken from
 # somewhere the same sound is unhurried: the end of `banana`, which is a word
 # she already knows, and held to a fifth of a second.
-OVERRIDE = {'a': dict(from_word='banana', phoneme='ə', hold=0.20, floor_ms=150)}
+#
+# SUPERSEDED. That schwa was a fifth of a second of synthetic vowel, and when
+# the letter sounds became recordings of a teacher (audio-src/letters/) it was
+# left behind: the letter card said "a" in a real person's voice, and the
+# moment the same letter turned up as a word — placing the `A` card in "A fox
+# is in the box" — it said it in the synthesiser's, as a short grunt. The
+# parent heard exactly that and reported it as the correction not having
+# reached the sentences. It had not; the word lives in a different file.
+#
+# So the word `a` is now the teacher's recording of the letter, byte for byte
+# the clip the letter card plays. Read in a whole sentence the article is still
+# the natural unstressed vowel, because the sentence is its own recording; it
+# is only the word on its own, tapped or placed, that this changes — and on
+# its own, what a four-year-old has been taught `a` says is the letter card.
+OVERRIDE = {'a': dict(from_letter='a', floor_ms=150)}
+LETTER_CLIPS_DIR = os.path.join(ROOT, 'web', 'audio', 'letters')
 
 
 def key(text):
@@ -131,7 +162,7 @@ def word_clip(voice, text, frame=None, index=None):
     audio so the final release and its decay come with it. With `index`, the
     word sits inside the frame instead and only its own span is taken — needed
     for a word whose sound depends on being unstressed."""
-    audio, spans = letters.say(voice, (frame or FRAME_TEXT) % text, LINE_SCALE)
+    audio, spans = letters.say(voice, (frame or FRAME_TEXT) % text, FRAME_SCALE)
     # how many espeak words the target is: `hot dog` and `yo-yo` are two
     n = 1 + voice.phonemize(text)[0].count(' ')
     words = groups_of(spans)
@@ -147,7 +178,7 @@ def word_clip(voice, text, frame=None, index=None):
 def phoneme_clip(voice, carrier, phoneme):
     """Cut one phoneme out of a carrier word — the same trick the letter clips
     use, for a sound no frame will give at a usable length."""
-    audio, spans = letters.say(voice, FRAME_TEXT % carrier, LINE_SCALE)
+    audio, spans = letters.say(voice, FRAME_TEXT % carrier, FRAME_SCALE)
     hits = [i for i, (p, _, _) in enumerate(spans) if p == phoneme]
     if not hits:
         return None
@@ -205,7 +236,11 @@ def main():
         best, bad = None, ['nothing synthesised']
         for attempt in range(TRIES):
             seed(k, attempt)
-            if over.get('from_word'):
+            if over.get('from_letter'):
+                # the shipped letter clip, already trimmed and levelled by
+                # make-letter-audio.py; nothing to synthesise, nothing to retry
+                raw = letters.decode(os.path.join(LETTER_CLIPS_DIR, over['from_letter'] + '.mp3'), sr)
+            elif over.get('from_word'):
                 raw = phoneme_clip(voice, over['from_word'], over['phoneme'])
             elif is_word:
                 raw = word_clip(voice, text,
@@ -234,7 +269,14 @@ def main():
         name = filename(k)
         if name in manifest.values():
             bad.append('filename %s already taken' % name)
-        mp3 = letters.to_mp3(clip, sr, args.kbps)
+        if over.get('from_letter'):
+            # The recording itself, byte for byte. Decoding it and encoding it
+            # again at this tool's 48 kbps would be a second lossy generation
+            # of the one clip the parent specifically asked to hear unchanged.
+            with open(os.path.join(LETTER_CLIPS_DIR, over['from_letter'] + '.mp3'), 'rb') as f:
+                mp3 = f.read()
+        else:
+            mp3 = letters.to_mp3(clip, sr, args.kbps)
         total += len(mp3)
         seconds += ms / 1000.0
         if not args.dry_run:

@@ -919,6 +919,20 @@ input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--river); }
   .ocard { width: 72px; }
 }
 
+/* ---- unit headings on the map ---- */
+.unit {
+  /* sits over the path's dotted line, so it needs a ground of its own or the
+     dots run straight through the heading */
+  position: relative; z-index: 1; background: var(--ground);
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  margin: 22px 0 4px; padding: 8px 8px 6px; border-bottom: 2px solid var(--line);
+}
+.path > .unit:first-child { margin-top: 6px; }
+.unit b { font-family: var(--display); font-weight: 600; font-size: 16px; color: var(--ink); }
+.unit small { flex: none; font-size: 11.5px; font-weight: 800; color: var(--ink2); }
+.unit.is-full { border-bottom-color: var(--leaf); }
+.unit.is-full small { color: var(--leaf); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

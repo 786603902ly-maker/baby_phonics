@@ -86,6 +86,21 @@ const KINDS = new Set(['pick', 'memory', 'meet', 'missing', 'soundout', 'build',
    checks; app.js hands them over next to GEN. */
 const extra = (globalThis.EXTRA_LESSONS || []);
 
+/* Every stop sits under a named unit, and a unit's stops sit together. A stop
+   with no unit falls outside every heading on the map; a unit split in two
+   draws its heading twice, with half the count under each. */
+for (const lv of C.LEVELS) {
+  const ls = C.levelLessons(lv.id);
+  const seenUnits = [];
+  for (const l of ls) {
+    if (!l.unit) { fail(l.id + ': no unit, so it would sit outside every heading on the map'); continue; }
+    if (seenUnits[seenUnits.length - 1] !== l.unit) {
+      if (seenUnits.includes(l.unit)) fail(l.id + ': unit "' + l.unit + '" is split in two on Level ' + lv.id);
+      seenUnits.push(l.unit);
+    }
+  }
+}
+
 let rounds = 0;
 for (let run = 0; run < RUNS; run++)
 for (const lesson of C.LESSONS.concat(extra)) {

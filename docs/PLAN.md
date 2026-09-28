@@ -1,5 +1,36 @@
 # Phonics Tool — Product & Curriculum Plan (Age 4 → 7, Singapore)
 
+> ### Revision 14 — more to read, organised into units, and the last synthetic "a"
+>
+> **The report:** levels still locked; too little content for three years;
+> and in the sentence game the word `a` had not picked up the corrected sound.
+>
+> **The locked levels were not this code.** The live site deploys the
+> repository's default branch, `claude/inspiring-pascal-v4elni`, which stops
+> before Levels 5–7 existed. This branch is strictly ahead of it. See
+> README → *Which branch is live*.
+>
+> **The `a` was a real defect**, and deploying alone would not have fixed it.
+> The letter sounds became teacher recordings in `audio/letters/`; the *word*
+> `a` lives in `audio/speech/` and was still a 239 ms synthetic schwa cut from
+> "banana" — identical in the old build and the new. It is now the teacher's
+> recording, byte for byte.
+>
+> **Sentences are 20% slower** — speed 80%, measured, on every line; single
+> words unchanged. Done by the voice model, not by slowed playback, which
+> would have dropped the pitch 20% too.
+>
+> **Content, 102 → 131 stops, organised into 29 named units.** The map draws
+> a heading per unit with its progress. Levels 4–6 now put a story straight
+> after the skill it uses. Level 4: 24 sentences (was 12) and 9 little books
+> (was 3). Level 5: 8 vowel-team stories, and the second 26 tricky words moved
+> here from Level 7, because they are in these stories. Level 6: 3 stories of
+> long words. Level 7: six units, each a book + an article + a chapter + a
+> spelling set; 8 articles (was 5), a second chapter book with the same two
+> children, 5 spelling sets (was 3).
+>
+> ---
+>
 > ### Revision 13 — reading for the answer, and the line said in the wrong voice
 >
 > **Level 7 stops being phonics.** Everything up to it is reading practice:

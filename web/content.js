@@ -617,22 +617,22 @@
       ready: 'She reads a three-letter word she has never seen by sounding it out.' },
     { id: 4, name: 'Reading Books', tint: 'sun', built: true,
       age: '5½ to 6½', ageFrom: 5.5, ageTo: 7, minutes: 10,
-      blurb: 'Whole sentences, then whole stories.',
+      blurb: 'Twenty-four sentences to build and read, then a shelf of nine little books.',
       opens: 'She reads short words without stopping to think about every letter.',
       ready: 'She reads a five-word sentence and can tell you what it was about.' },
     { id: 5, name: 'Same Sound, New Look', tint: 'leaf', built: true,
       age: '6 to 7', ageFrom: 6, ageTo: 7.5, minutes: 12,
-      blurb: 'ai, ay and a-e all say the same thing. So do ee and ea, oa and ow.',
+      blurb: 'ai, ay and a-e all say the same thing. Thirteen vowel teams, each with a story straight after it.',
       opens: 'She reads short words easily and has met sh, ch, th and magic e.',
       ready: 'She meets `boat` and `snow` and hears that they share a sound.' },
     { id: 6, name: 'Longer Words', tint: 'river', built: true,
       age: '6½ to 7', ageFrom: 6.5, ageTo: 7.5, minutes: 12,
-      blurb: 'Two syllables, and the endings -ing, -ed, -er. Soft c and soft g.',
+      blurb: 'Beats, compound words, the endings -s -ing -ed -er, soft c and soft g — and a story for each.',
       opens: 'She reads one-syllable words with vowel teams in them.',
       ready: 'She breaks a long word into beats and reads it instead of guessing.' },
     { id: 7, name: 'Real Books', tint: 'sun', built: true,
       age: '7 and up', ageFrom: 7, ageTo: 9, minutes: 15,
-      blurb: 'Books for the story, articles for the answer, a story in three chapters, and writing words down from hearing them.',
+      blurb: 'Six units, each with a book, an article, a chapter and a spelling set. Eight articles and two chapter books.',
       opens: 'She reads most words without stopping, and is starting to read for meaning.',
       ready: 'She reads a book to herself and tells you what happened. That is the end of phonics.' }
   ];
@@ -981,6 +981,84 @@
         { q: 'Which bird hunts at night?', pic: 'owl', not: ['hen', 'duck'] },
         { q: 'Who comes out when the streets are quiet?', pic: 'fox', not: ['cow', 'goat'] },
         { q: 'When do night animals sleep?', pic: 'sun', not: ['moon', 'star'] }
+      ] },
+
+    { id: 'frog', title: 'Where Frogs Come From', topic: 'Animals', icon: 'frog',
+      parts: [
+        { text: 'A frog starts its life as a tiny egg in a pond.', pic: 'egg' },
+        { text: 'Hundreds of eggs float together in a clump of jelly.', pic: 'water' },
+        { text: 'Out of each egg wriggles a tadpole. It has a long tail and swims like a fish.', pic: 'fish' },
+        { text: 'Slowly the tadpole grows back legs, and then front legs.', pic: 'leg' },
+        { text: 'Its tail gets shorter and shorter, until it is gone.', pic: 'tail' },
+        { text: 'Now it is a frog. It can hop out of the water and breathe the air.', pic: 'frog' }
+      ],
+      words: [
+        { word: 'tadpole', means: 'a baby frog that lives in water', not: ['a small fish', 'a kind of plant'] },
+        { word: 'pond', means: 'a small pool of still water', not: ['a tall hill', 'a kind of boat'] }
+      ],
+      order: ['egg', 'fish', 'leg', 'frog'],
+      facts: [
+        { text: 'A frog starts life as an egg.', yes: true },
+        { text: 'A tadpole has legs from the start.', yes: false },
+        { text: 'A tadpole swims like a fish.', yes: true },
+        { text: 'A grown frog can never leave the water.', yes: false }
+      ],
+      questions: [
+        { q: 'What does a frog start as?', pic: 'egg', not: ['seed', 'rock'] },
+        { q: 'What does a tadpole lose as it grows?', pic: 'tail', not: ['leg', 'foot'] },
+        { q: 'What does a tadpole become?', pic: 'frog', not: ['fish', 'duck'] }
+      ] },
+
+    { id: 'teeth', title: 'Why We Brush Our Teeth', topic: 'Our Bodies', icon: 'teeth',
+      parts: [
+        { text: 'Your teeth help you bite and chew your food.', pic: 'teeth' },
+        { text: 'Tiny germs live in your mouth. They are far too small to see.', pic: 'face' },
+        { text: 'Germs love sugar. They make a sticky layer on your teeth.', pic: 'cupcake' },
+        { text: 'If the layer stays there, it can make a hole in a tooth.', pic: 'teeth' },
+        { text: 'Brushing in the morning and at night sweeps the germs away.', pic: 'teeth' },
+        { text: 'Milk and cheese help keep your teeth hard and strong.', pic: 'milk' }
+      ],
+      words: [
+        { word: 'chew', means: 'to crush food with your teeth', not: ['to drink very fast', 'to wash your hands'] },
+        { word: 'germs', means: 'living things too small to see', not: ['a kind of sweet', 'the white part of a tooth'] }
+      ],
+      order: ['teeth', 'face', 'cupcake', 'milk'],
+      facts: [
+        { text: 'Germs are too small to see.', yes: true },
+        { text: 'Germs love sugar.', yes: true },
+        { text: 'You only need to brush once a week.', yes: false },
+        { text: 'Milk helps keep teeth strong.', yes: true }
+      ],
+      questions: [
+        { q: 'What do germs love?', pic: 'cupcake', not: ['carrot', 'fish'] },
+        { q: 'What helps keep teeth strong?', pic: 'milk', not: ['cupcake', 'popcorn'] },
+        { q: 'What do you brush twice a day?', pic: 'teeth', not: ['hair', 'feet'] }
+      ] },
+
+    { id: 'volcano', title: 'What Is a Volcano?', topic: 'Our Planet', icon: 'volcano',
+      parts: [
+        { text: 'A volcano is a mountain with a hole at the top.', pic: 'volcano' },
+        { text: 'Deep under the ground it is hot enough to melt rock.', pic: 'rock' },
+        { text: 'Melted rock is called lava. It glows orange and red.', pic: 'orange' },
+        { text: 'Sometimes the lava pushes up and bursts out of the top.', pic: 'volcano' },
+        { text: 'When lava cools down, it turns hard and black. It is rock again.', pic: 'rock' },
+        { text: 'Some islands are the tops of old volcanoes, sticking up out of the sea.', pic: 'sea' }
+      ],
+      words: [
+        { word: 'lava', means: 'rock so hot it has melted', not: ['a kind of cloud', 'very hot water'] },
+        { word: 'melt', means: 'to turn from hard to runny', not: ['to break in half', 'to grow bigger'] }
+      ],
+      order: ['volcano', 'rock', 'orange', 'sea'],
+      facts: [
+        { text: 'Lava is melted rock.', yes: true },
+        { text: 'Lava is cold when it comes out.', yes: false },
+        { text: 'Lava turns hard when it cools.', yes: true },
+        { text: 'Every mountain is a volcano.', yes: false }
+      ],
+      questions: [
+        { q: 'What is lava made of?', pic: 'rock', not: ['water', 'ice'] },
+        { q: 'What is at the top of a volcano?', pic: 'volcano', not: ['tree', 'house'] },
+        { q: 'Where are some old volcanoes now?', pic: 'sea', not: ['road', 'farm'] }
       ] }
   ];
 
@@ -992,7 +1070,7 @@
      sittings, and its questions at the end can only be answered by
      someone who read the first chapter days ago and kept it.
      ------------------------------------------------------------------ */
-  var CHAPTERS = {
+  var CHAPTER_BOOKS = [{
     id: 'kite', title: 'The Kite That Would Not Come Down',
     parts: [
       { id: 'k1', n: 1, name: 'The Wind Takes It', icon: 'kite',
@@ -1041,7 +1119,58 @@
       { q: 'Who found Ben on the grass?', pic: 'girl', not: ['farmer', 'boy'] },
       { q: 'What fixed the torn wing?', pic: 'girl', not: ['hand', 'pencil'] }
     ]
-  };
+  }, {
+    /* The same two children, a second book. Carrying characters over is
+       what makes a series, and a series is what turns a reader into someone
+       who wants the next one. */
+    id: 'max', title: 'Mei and the Missing Dog',
+    parts: [
+      { id: 'm1', n: 1, name: 'Where Is Max?', icon: 'dog',
+        pages: [
+          { text: 'Ben and Mei had a dog called Max.', pic: 'dog' },
+          { text: 'Max liked digging holes and chasing balls.', pic: 'ball' },
+          { text: 'One morning the gate was open, and Max was gone.', pic: 'gate' },
+          { text: 'Mei looked under her bed. No Max.', pic: 'bed' },
+          { text: 'Ben looked all round the garden. No Max.', pic: 'tree' },
+          { text: '"We have to find him," said Ben, "before it gets dark."', pic: 'boy' }
+        ],
+        questions: [
+          { q: 'What had been left open?', pic: 'gate', not: ['box', 'jar'] },
+          { q: 'What did Max like to chase?', pic: 'ball', not: ['cat', 'kite'] }
+        ] },
+      { id: 'm2', n: 2, name: 'Following the Clues', icon: 'paw',
+        pages: [
+          { text: 'They asked the baker. "A dog ran past," she said. "He took a bun!"', pic: 'baker' },
+          { text: 'They asked the farmer. "A dog chased my hens," he said.', pic: 'hen' },
+          { text: 'They asked the nurse on the corner. "He went into the park."', pic: 'nurse' },
+          { text: 'In the park they found a trail of muddy paw prints.', pic: 'paw' },
+          { text: 'The paw prints led all the way down to the pond.', pic: 'water' },
+          { text: 'Then they stopped. The paw prints were gone.', pic: 'paw' }
+        ],
+        questions: [
+          { q: 'What did Max take from the baker?', pic: 'bun', not: ['muffin', 'pie'] },
+          { q: 'What did they follow in the park?', pic: 'paw', not: ['feet', 'boot'] }
+        ] },
+      { id: 'm3', n: 3, name: 'Found', icon: 'boat',
+        pages: [
+          { text: 'Mei heard a bark. It came from a little boat by the pond.', pic: 'boat' },
+          { text: 'Max was in the boat, fast asleep on an old coat.', pic: 'coat' },
+          { text: 'He still had the bun in his paws, and mud on his nose.', pic: 'nose' },
+          { text: 'Ben laughed so hard that he fell over.', pic: 'boy' },
+          { text: 'They carried Max home. He was heavy and wet and happy.', pic: 'house' },
+          { text: 'That night Mei shut the gate, and Max slept on her feet.', pic: 'feet' }
+        ],
+        questions: [
+          { q: 'Where was Max sleeping?', pic: 'boat', not: ['car', 'bus'] },
+          { q: 'What was he lying on?', pic: 'coat', not: ['bed', 'bag'] }
+        ] }
+    ],
+    questions: [
+      { q: 'Who did they ask first?', pic: 'baker', not: ['farmer', 'nurse'] },
+      { q: 'Where did the paw prints lead?', pic: 'water', not: ['road', 'farm'] },
+      { q: 'What did Mei shut at the very end?', pic: 'gate', not: ['box', 'book'] }
+    ]
+  }];
 
   /* Dictation. She hears the word and builds it out of letters, with no
      picture in front of her — which is what makes it spelling and not
@@ -1049,7 +1178,9 @@
   var SPELLINGS = [
     { id: 'cvc', name: 'Write the Short Words', words: ['cat', 'dog', 'sun', 'bed', 'pig', 'cup'] },
     { id: 'teams', name: 'Write the Teams', words: ['ship', 'fish', 'chip', 'sock', 'ring'] },
-    { id: 'vowels', name: 'Write the Long Words', words: ['rain', 'boat', 'night', 'book', 'coin', 'corn'] }
+    { id: 'vowels', name: 'Write the Long Words', words: ['rain', 'boat', 'night', 'book', 'coin', 'corn'] },
+    { id: 'magic', name: 'Write the Magic e Words', words: ['cake', 'bike', 'bone', 'kite', 'gate', 'five'] },
+    { id: 'more', name: 'Write the Harder Words', words: ['snail', 'feet', 'cloud', 'shirt', 'spoon', 'light'] }
   ];
 
   /* The second sight-word list. The first twenty are in SIGHT and came in at
@@ -1078,7 +1209,23 @@
     { text: 'The sun is up.', pic: 'sun', not: ['moon', 'star'] },
     { text: 'My cup is on the desk.', pic: 'cup', not: ['mug', 'pot'] },
     { text: 'A frog sat on a log.', pic: 'frog', not: ['fish', 'rat'] },
-    { text: 'The king has a big ring.', pic: 'king', not: ['queen', 'girl'] }
+    { text: 'The king has a big ring.', pic: 'king', not: ['queen', 'girl'] },
+
+    /* The second dozen. Same rules as the first: short vowels, the letter
+       teams, blends, and the twenty sight words — nothing she would have to
+       guess at. */
+    { text: 'The dog is on the bed.', pic: 'dog', not: ['cat', 'pig'] },
+    { text: 'A fish is in the net.', pic: 'fish', not: ['crab', 'duck'] },
+    { text: 'I can see a red van.', pic: 'van', not: ['bus', 'car'] },
+    { text: 'The cat has a hat.', pic: 'cat', not: ['dog', 'rat'] },
+    { text: 'The bug is on the log.', pic: 'insect', not: ['frog', 'fish'] },
+    { text: 'A frog can hop.', pic: 'frog', not: ['fish', 'duck'] },
+    { text: 'My mug is hot.', pic: 'mug', not: ['jug', 'pot'] },
+    { text: 'The fox ran to his den.', pic: 'fox', not: ['wolf', 'dog'] },
+    { text: 'Dad has a big drum.', pic: 'drum', not: ['doll', 'box'] },
+    { text: 'The duck is wet.', pic: 'duck', not: ['hen', 'cat'] },
+    { text: 'She has a pink sock.', pic: 'sock', not: ['hat', 'bag'] },
+    { text: 'The ship is in the dock.', pic: 'ship', not: ['bus', 'van'] }
   ];
 
   var STORIES = [
@@ -1117,6 +1264,245 @@
       questions: [
         { q: 'Who sat in the mud first?', pic: 'pig', not: ['hen', 'duck'] },
         { q: 'Who came to the pig?', pic: 'hen', not: ['dog', 'goat'] }
+      ] },
+
+    /* Six more, so that Level 4 is a shelf and not three books. Still every
+       word decodable with what Level 3 taught, or one of the twenty sight
+       words, or tappable — and each is a small story with a turn in it, not
+       a list of sentences that happen to share a picture. */
+    { id: 'henegg', title: 'The Hen and the Egg',
+      pages: [
+        { text: 'A hen sat on a nest.', pic: 'nest' },
+        { text: 'In the nest was an egg.', pic: 'egg' },
+        { text: 'The egg got a crack.', pic: 'egg' },
+        { text: 'It was not a chick. It was a duck!', pic: 'duck' },
+        { text: '"Quack!" said the duck.', pic: 'duck' },
+        { text: 'The hen and the duck sat in the sun.', pic: 'sun' }
+      ],
+      questions: [
+        { q: 'What did the hen sit on?', pic: 'nest', not: ['bed', 'box'] },
+        { q: 'What came out of the egg?', pic: 'duck', not: ['hen', 'cat'] }
+      ] },
+    { id: 'dadnet', title: 'Dad and the Net',
+      pages: [
+        { text: 'Dad has a big ship.', pic: 'ship' },
+        { text: 'He got his net and let it sink.', pic: 'net' },
+        { text: 'Then he got the net up.', pic: 'net' },
+        { text: 'In it was a fish and a crab!', pic: 'crab' },
+        { text: 'The crab bit Dad on the thumb.', pic: 'thumb' },
+        { text: 'Dad let the crab hop off. The fish was for lunch.', pic: 'fish' }
+      ],
+      questions: [
+        { q: 'What did Dad have?', pic: 'ship', not: ['bus', 'van'] },
+        { q: 'What bit Dad?', pic: 'crab', not: ['fish', 'dog'] }
+      ] },
+    { id: 'dogsock', title: 'The Dog and the Sock',
+      pages: [
+        { text: 'My dog has a red sock.', pic: 'sock' },
+        { text: 'He ran and ran with it.', pic: 'dog' },
+        { text: 'The sock fell in the mud.', pic: 'mud' },
+        { text: 'Mum got the sock and said, "Yuck!"', pic: 'sock' },
+        { text: 'She dunks it in a big tub.', pic: 'water' },
+        { text: 'The sock is not red. It is pink!', pic: 'sock' }
+      ],
+      questions: [
+        { q: 'What did the dog have?', pic: 'sock', not: ['hat', 'cap'] },
+        { q: 'Where did the sock fall?', pic: 'mud', not: ['pool', 'bed'] }
+      ] },
+    { id: 'kingsing', title: 'The King Can Sing',
+      pages: [
+        { text: 'The king has a big ring.', pic: 'ring' },
+        { text: 'The king can sing.', pic: 'king' },
+        { text: 'He sings and sings and sings.', pic: 'king' },
+        { text: 'The queen gets a drum.', pic: 'drum' },
+        { text: 'Bang! Bang! Bang!', pic: 'drum' },
+        { text: 'The king sings and the queen bangs. What a din!', pic: 'queen' }
+      ],
+      questions: [
+        { q: 'What does the king have?', pic: 'ring', not: ['hat', 'cup'] },
+        { q: 'What did the queen get?', pic: 'drum', not: ['ring', 'doll'] }
+      ] },
+    { id: 'chiprat', title: 'Chip the Rat',
+      pages: [
+        { text: 'Chip is a rat.', pic: 'rat' },
+        { text: 'Chip has a big chip.', pic: 'chip' },
+        { text: 'He ran to the top of the hill.', pic: 'rat' },
+        { text: 'A cat sat at the top.', pic: 'cat' },
+        { text: 'Chip ran back and hid in a box.', pic: 'box' },
+        { text: 'The cat did not get him, and he had his chip!', pic: 'rat' }
+      ],
+      questions: [
+        { q: 'What did Chip have?', pic: 'chip', not: ['cheese', 'jam'] },
+        { q: 'Where did Chip hide?', pic: 'box', not: ['bed', 'bag'] }
+      ] },
+    { id: 'funsun', title: 'Fun in the Sun',
+      pages: [
+        { text: 'It is hot. The sun is up.', pic: 'sun' },
+        { text: 'Mum has a hat. Dad has a cap.', pic: 'hat' },
+        { text: 'I sit on a mat and dig in the sand.', pic: 'mat' },
+        { text: 'I dig and dig and dig.', pic: 'hand' },
+        { text: 'I get a crab in my net!', pic: 'crab' },
+        { text: 'It is fun in the sun.', pic: 'sun' }
+      ],
+      questions: [
+        { q: 'What is up in the sky?', pic: 'sun', not: ['moon', 'star'] },
+        { q: 'What did I get in my net?', pic: 'crab', not: ['fish', 'frog'] }
+      ] },
+
+    /* ---- Level 5: a story for each group of vowel teams. `teaches` is the
+       team the story is built around; the map puts it straight after that
+       team's own stop, so she reads the team in a story the same day she
+       meets it on a card. Every word is still tappable — a few run ahead of
+       what she has met, because a story made only of one team's words is a
+       list, not a story. ---- */
+    { id: 'snailtrain', title: 'The Snail on the Train', teaches: 'ai',
+      pages: [
+        { text: 'A snail got on a train.', pic: 'train' },
+        { text: 'It was a long way, and the snail was slow.', pic: 'snail' },
+        { text: 'Rain fell on the train all day.', pic: 'rain' },
+        { text: 'The snail kept its tail in, out of the rain.', pic: 'tail' },
+        { text: 'The train went up a hill, and then down again.', pic: 'train' },
+        { text: 'At the end of the day, the snail got off. It had come a long way.', pic: 'snail' }
+      ],
+      questions: [
+        { q: 'What did the snail get on?', pic: 'train', not: ['bus', 'boat'] },
+        { q: 'What fell on the train?', pic: 'rain', not: ['snow', 'leaf'] }
+      ] },
+    { id: 'threebees', title: 'Three Bees in a Tree', teaches: 'ee',
+      pages: [
+        { text: 'Three bees sat in a green tree.', pic: 'tree' },
+        { text: 'One bee had sore feet from flying.', pic: 'feet' },
+        { text: 'One bee was asleep on a leaf.', pic: 'leaf' },
+        { text: 'One bee was looking for seeds to eat.', pic: 'seed' },
+        { text: 'Then the wind shook the tree. Whee!', pic: 'tree' },
+        { text: 'Three bees flew off, and the tree was still again.', pic: 'bee' }
+      ],
+      questions: [
+        { q: 'How many bees were there?', pic: 'three', not: ['five', 'six'] },
+        { q: 'What was one bee asleep on?', pic: 'leaf', not: ['rock', 'boat'] }
+      ] },
+    { id: 'goatcoat', title: 'Goat in a Coat', teaches: 'oa',
+      pages: [
+        { text: 'A goat had a warm red coat.', pic: 'coat' },
+        { text: 'It was cold, and snow fell on the road.', pic: 'snow' },
+        { text: 'The goat went slowly down the road in its coat.', pic: 'road' },
+        { text: 'At the end of the road was a boat.', pic: 'boat' },
+        { text: '"Can I come on board?" said the goat.', pic: 'goat' },
+        { text: 'The boat took the goat home, snug in its coat.', pic: 'boat' }
+      ],
+      questions: [
+        { q: 'What did the goat have?', pic: 'coat', not: ['hat', 'sock'] },
+        { q: 'What took the goat home?', pic: 'boat', not: ['train', 'bus'] }
+      ] },
+    { id: 'nightlight', title: 'The Fly and the Light', teaches: 'igh',
+      pages: [
+        { text: 'It was night. The moon was bright.', pic: 'moon' },
+        { text: 'A fly saw a light in a window.', pic: 'fly' },
+        { text: 'The fly flew right up to the light.', pic: 'light' },
+        { text: 'It went round and round and round.', pic: 'light' },
+        { text: 'Then, click! The light went off.', pic: 'night' },
+        { text: 'So the fly flew high, up to the moon, to find a light that stays on.', pic: 'moon' }
+      ],
+      questions: [
+        { q: 'What did the fly see in the window?', pic: 'light', not: ['kite', 'star'] },
+        { q: 'Where did the fly go at the end?', pic: 'moon', not: ['sun', 'tree'] }
+      ] },
+    { id: 'cookboot', title: 'Cook and the Boot', teaches: 'oo',
+      pages: [
+        { text: 'Cook had a big pot and a long spoon.', pic: 'spoon' },
+        { text: 'She looked in her book. It said: make moon soup.', pic: 'book' },
+        { text: 'In went some food. In went some more.', pic: 'pot' },
+        { text: 'Then in went something by mistake. A boot!', pic: 'boot' },
+        { text: '"Oh no!" said Cook. "Not a boot!"', pic: 'cook' },
+        { text: 'She fished it out with her spoon. The soup was good after all.', pic: 'spoon' }
+      ],
+      questions: [
+        { q: 'What did Cook stir with?', pic: 'spoon', not: ['fork', 'pan'] },
+        { q: 'What fell in the soup?', pic: 'boot', not: ['sock', 'hat'] }
+      ] },
+    { id: 'owlcow', title: 'The Owl and the Cow', teaches: 'ou',
+      pages: [
+        { text: 'An owl sat on a house in the town.', pic: 'house' },
+        { text: 'A brown cow came down the road.', pic: 'cow' },
+        { text: '"How are you, cow?" said the owl.', pic: 'owl' },
+        { text: 'The cow sat down under a big black cloud.', pic: 'cloud' },
+        { text: 'Out came the rain, all at once!', pic: 'rain' },
+        { text: 'The cow ran home. The owl just said, "Hoo."', pic: 'owl' }
+      ],
+      questions: [
+        { q: 'Who sat on the house?', pic: 'owl', not: ['duck', 'bird'] },
+        { q: 'Who came down the road?', pic: 'cow', not: ['horse', 'goat'] }
+      ] },
+    { id: 'boycoin', title: 'The Boy and the Coin', teaches: 'oi',
+      pages: [
+        { text: 'A boy found a coin in the soil.', pic: 'coin' },
+        { text: 'He put it in a jar.', pic: 'jar' },
+        { text: 'Every week he put in one more coin.', pic: 'coin' },
+        { text: 'Soon the jar was too heavy to lift.', pic: 'jar' },
+        { text: 'The boy took his coins to the toy shop.', pic: 'toy' },
+        { text: 'He got a red toy car, and he was full of joy.', pic: 'car' }
+      ],
+      questions: [
+        { q: 'What did the boy find?', pic: 'coin', not: ['key', 'ring'] },
+        { q: 'What did he buy?', pic: 'car', not: ['boat', 'drum'] }
+      ] },
+    { id: 'farstar', title: 'The Star on the Farm', teaches: 'ar',
+      pages: [
+        { text: 'It was dark on the farm.', pic: 'farm' },
+        { text: 'A horse looked up and saw a star.', pic: 'horse' },
+        { text: 'A bird looked up and saw the star too.', pic: 'bird' },
+        { text: 'The star was so far away, and so small.', pic: 'star' },
+        { text: '"I wish it were near," said the horse.', pic: 'horse' },
+        { text: 'The farmer put a lamp on the barn. Now they had a star of their own.', pic: 'lamp' }
+      ],
+      questions: [
+        { q: 'Who saw the star first?', pic: 'horse', not: ['cow', 'pig'] },
+        { q: 'What did the farmer put on the barn?', pic: 'lamp', not: ['kite', 'hat'] }
+      ] },
+
+    /* ---- Level 6: stories made of the long words. ---- */
+    { id: 'snowsunset', title: 'The Snowman at Sunset', teaches: 'compound',
+      pages: [
+        { text: 'On a cold morning, the children made a snowman.', pic: 'snowman' },
+        { text: 'They gave him a carrot for a nose.', pic: 'carrot' },
+        { text: 'They played football beside him all day.', pic: 'football' },
+        { text: 'At sunset, the whole sky went orange and pink.', pic: 'sunset' },
+        { text: 'Then one raindrop fell. Then another, and another.', pic: 'raindrop' },
+        { text: 'By morning, the snowman was a puddle and a carrot.', pic: 'carrot' }
+      ],
+      questions: [
+        { q: 'What did the children make?', pic: 'snowman', not: ['robot', 'doll'] },
+        { q: 'What did they use for his nose?', pic: 'carrot', not: ['banana', 'lemon'] }
+      ] },
+    { id: 'busytown', title: 'A Busy Day in Town', teaches: 'ending',
+      pages: [
+        { text: 'Everyone in the town has a job to do.', pic: 'town' },
+        { text: 'The farmer is up first. He is milking the cow.', pic: 'farmer' },
+        { text: 'The baker is baking bread and muffins.', pic: 'baker' },
+        { text: 'The teacher is reading a story to her class.', pic: 'teacher' },
+        { text: 'A painter is painting a picture of the sea.', pic: 'painting' },
+        { text: 'A boy is jumping over a puddle, splash!', pic: 'jumping' },
+        { text: 'When the sun goes down, everyone goes home.', pic: 'sunset' },
+        { text: 'By night, the whole town is sleeping.', pic: 'sleeping' }
+      ],
+      questions: [
+        { q: 'Who is milking the cow?', pic: 'farmer', not: ['baker', 'nurse'] },
+        { q: 'Who is reading to the class?', pic: 'teacher', not: ['farmer', 'cook'] },
+        { q: 'What is the town doing at night?', pic: 'sleeping', not: ['jumping', 'reading'] }
+      ] },
+    { id: 'gentlegiant', title: 'The Gentle Giant', teaches: 'soft',
+      pages: [
+        { text: 'In the middle of the city there lived a gentle giant.', pic: 'giant' },
+        { text: 'He was so tall that the giraffes looked up at him.', pic: 'giraffe' },
+        { text: 'Every day he gave the children an orange each.', pic: 'orange' },
+        { text: 'One day some mice ran into his house.', pic: 'mice' },
+        { text: 'The giant was not cross. He gave them a slice of cheese.', pic: 'cheese' },
+        { text: 'Now the mice and the giant have tea in a circle every afternoon.', pic: 'circle' }
+      ],
+      questions: [
+        { q: 'Where did the giant live?', pic: 'city', not: ['farm', 'sea'] },
+        { q: 'What ran into his house?', pic: 'mice', not: ['cat', 'ant'] },
+        { q: 'What did he give the children?', pic: 'orange', not: ['apple', 'lemon'] }
       ] }
   ];
 
@@ -1128,6 +1514,7 @@
   THEMES.forEach(function (t, i) {
     LESSONS.push({
       id: 'v-' + t.id, level: 1, n: i + 1, name: t.name, theme: t.id, icon: WORDS[t.words[0]].icon,
+      unit: i < 3 ? 'Animals' : (i < 5 ? 'Things to Eat' : 'My World'),
       activities: [
         { type: 'picturePick', words: t.words, rounds: 6 },
         { type: 'memoryMatch', words: t.words, pairs: 3 }
@@ -1138,6 +1525,8 @@
   LETTERS.forEach(function (l, i) {
     LESSONS.push({
       id: 'a-' + l, level: 2, n: i + 1, letter: l,
+      /* the four groups of six the reviews already marked out */
+      unit: i < 6 ? 'Letters a to f' : i < 12 ? 'Letters g to l' : i < 18 ? 'Letters m to r' : 'Letters s to z',
       name: l.toUpperCase() + l + '   ' + ALPHABET[l].words.map(function (k) { return WORDS[k].text; }).join(' · '),
       shortName: l.toUpperCase() + l,
       icon: WORDS[ALPHABET[l].words[0]].icon,
@@ -1156,6 +1545,7 @@
     var set = LETTERS.slice(from, to + 1);
     LESSONS.push({
       id: 'r-' + span[0] + span[1], level: 2, n: 100 + i,
+      unit: 'Letters ' + span[0] + ' to ' + span[1],
       name: 'Review ' + span[0].toUpperCase() + '–' + span[1].toUpperCase(),
       shortName: span[0].toUpperCase() + '–' + span[1].toUpperCase(),
       icon: 'trophy', review: true, letters: set,
@@ -1170,7 +1560,7 @@
   /* ---- Level 3 ---- */
   WORDSETS.forEach(function (set, i) {
     LESSONS.push({
-      id: 'w-' + set.id, level: 3, n: i + 1, name: set.name,
+      id: 'w-' + set.id, level: 3, n: i + 1, name: set.name, unit: 'Short Vowels',
       shortName: set.name.replace('Sound It Out: ', 'Short '),
       icon: WORDS[set.words[0]].icon, words: set.words,
       activities: [
@@ -1182,7 +1572,7 @@
   });
 
   LESSONS.push({
-    id: 'w-review1', level: 3, n: 6, name: 'Read Them All', shortName: 'Read Them All',
+    id: 'w-review1', level: 3, n: 6, name: 'Read Them All', shortName: 'Read Them All', unit: 'Short Vowels',
     icon: 'trophy', review: true,
     words: WORDSETS.reduce(function (a, s2) { return a.concat(s2.words); }, []),
     activities: [
@@ -1194,7 +1584,7 @@
   ['ck', 'sh', 'ch', 'th', 'ng'].forEach(function (t, i) {
     var ws = TEAMS[t].words.filter(function (k) { return WORDS[k]; });
     LESSONS.push({
-      id: 't-' + t, level: 3, n: 10 + i, team: t,
+      id: 't-' + t, level: 3, n: 10 + i, team: t, unit: 'Two Letters, One Sound',
       name: 'Team ' + t, shortName: t,
       icon: WORDS[ws[0]].icon,
       activities: [
@@ -1209,6 +1599,7 @@
   BLENDSETS.forEach(function (set, i) {
     LESSONS.push({
       id: 'b-' + set.id, level: 3, n: 20 + i, name: set.name, shortName: set.name.replace('Two Sounds ', ''),
+      unit: 'Two Sounds Together',
       icon: WORDS[set.words[0]].icon, words: set.words,
       activities: [
         { type: 'soundOut', words: set.words, rounds: 3 },
@@ -1219,7 +1610,7 @@
   });
 
   LESSONS.push({
-    id: 'w-magice', level: 3, n: 30, name: 'Magic e', shortName: 'Magic e',
+    id: 'w-magice', level: 3, n: 30, name: 'Magic e', shortName: 'Magic e', unit: 'Magic e',
     icon: 'cake', words: MAGICE, magice: true,
     activities: [
       { type: 'magicE', words: MAGICE, rounds: 4 },
@@ -1228,50 +1619,58 @@
     ]
   });
 
-  /* ---- Level 4 ---- */
-  LESSONS.push({
-    id: 's-build1', level: 4, n: 1, name: 'My First Sentence', shortName: 'First Sentence',
-    icon: 'cat',
-    activities: [{ type: 'buildSentence', from: 0, rounds: 4 }]
-  });
-  LESSONS.push({
-    id: 's-pick1', level: 4, n: 2, name: 'Read and Choose', shortName: 'Read & Choose',
-    icon: 'quiz',
-    activities: [{ type: 'sentencePick', from: 0, rounds: 6 }]
-  });
-  LESSONS.push({
-    id: 's-build2', level: 4, n: 3, name: 'More Sentences', shortName: 'More Sentences',
-    icon: 'pen',
-    activities: [{ type: 'buildSentence', from: 6, rounds: 4 }]
-  });
-  STORIES.forEach(function (st, i) {
-    LESSONS.push({
-      id: 'st-' + st.id, level: 4, n: 10 + i, name: st.title, shortName: st.title,
-      icon: WORDS[st.pages[0].pic].icon, story: st.id,
-      activities: [{ type: 'story', story: st.id }]
+  /* ------------------------------------------------------------------
+     Levels 4 to 7 are laid out as UNITS: a named group of stops that
+     belong together, shown as a heading on the map. A level of thirty
+     stops in one long path is a list; the same stops in five units of
+     six is a plan, and a grown-up can see where she is in it at a glance.
+
+     `n` is the order within the level. Units are listed in the order they
+     are met, and each stop's `unit` is the heading it sits under.
+     ------------------------------------------------------------------ */
+  function add(o) { LESSONS.push(o); return o; }
+  function storyStop(id, level, n, unit) {
+    var st = STORIES.filter(function (x) { return x.id === id; })[0];
+    return add({
+      id: 'st-' + id, level: level, n: n, unit: unit, story: id,
+      name: st.title, shortName: st.title, icon: WORDS[st.pages[0].pic].icon,
+      activities: [{ type: 'story', story: id }]
     });
-  });
+  }
+
+  /* ---- Level 4 ----
+     Sentences first, then a shelf of nine small books. */
+  var U4A = 'Building Sentences', U4B = 'Little Books';
+  add({ id: 's-build1', level: 4, n: 1, unit: U4A, name: 'My First Sentence', shortName: 'First Sentence',
+    icon: 'cat', activities: [{ type: 'buildSentence', from: 0, rounds: 4 }] });
+  add({ id: 's-pick1', level: 4, n: 2, unit: U4A, name: 'Read and Choose', shortName: 'Read & Choose',
+    icon: 'quiz', activities: [{ type: 'sentencePick', from: 0, rounds: 6 }] });
   /* The first twenty sight words have been IN the sentences since the start of
      this level — `the`, `said`, `was` cannot be sounded out and are in almost
      every line — but nothing taught them. They had to wait until Level 7,
      which is two years after she first met them. */
-  LESSONS.push({
-    id: 's-sight1', level: 4, n: 4, name: 'Words to Just Know', shortName: 'Words to Know',
-    icon: 'key',
-    activities: [{ type: 'sightRead', set: 'first', rounds: 8 }]
-  });
-  LESSONS.push({
-    id: 's-pick2', level: 4, n: 20, name: 'Read and Choose Again', shortName: 'Read & Choose 2',
-    icon: 'trophy', review: true,
-    activities: [{ type: 'sentencePick', from: 6, rounds: 6 }]
-  });
+  add({ id: 's-sight1', level: 4, n: 3, unit: U4A, name: 'Words to Just Know', shortName: 'Words to Know',
+    icon: 'key', activities: [{ type: 'sightRead', set: 'first', rounds: 8 }] });
+  add({ id: 's-build2', level: 4, n: 4, unit: U4A, name: 'More Sentences', shortName: 'More Sentences',
+    icon: 'pen', activities: [{ type: 'buildSentence', from: 6, rounds: 4 }] });
+  add({ id: 's-pick2', level: 4, n: 5, unit: U4A, name: 'Read and Choose Again', shortName: 'Read & Choose 2',
+    icon: 'book', activities: [{ type: 'sentencePick', from: 6, rounds: 6 }] });
+  add({ id: 's-build3', level: 4, n: 6, unit: U4A, name: 'Even More Sentences', shortName: 'Sentences 3',
+    icon: 'envelope', activities: [{ type: 'buildSentence', from: 12, rounds: 6 }] });
+  add({ id: 's-pick3', level: 4, n: 7, unit: U4A, name: 'Read and Choose 3', shortName: 'Read & Choose 3',
+    icon: 'trophy', review: true, activities: [{ type: 'sentencePick', from: 12, rounds: 12 }] });
+  ['catrat', 'foxbox', 'pigmud', 'henegg', 'dadnet', 'dogsock', 'kingsing', 'chiprat', 'funsun']
+    .forEach(function (id, i) { storyStop(id, 4, 10 + i, U4B); });
 
-  /* ---- Level 5 ---- */
+  /* ---- Level 5 ----
+     A card for each team, and straight after it a story built around it, so
+     the team is met in a sentence on the same day it is met on a card. */
+  var U5A = 'Long Vowels: ai ee oa igh', U5B = 'More Teams: oo ou oi',
+      U5C = 'Vowels with r: ar or er air ear', U5D = 'Tricky Words and Review';
   function picsOf(list) {
     return list.filter(function (k) { return WORDS[k] && WORDS[k].icon && !WORDS[k].noPic; });
   }
-
-  VOWELKEYS.forEach(function (t, i) {
+  function teamStop(t, n, unit) {
     var vt = VOWELTEAMS[t];
     var pics = picsOf(vt.words);
     var blend = pics.filter(function (k) { return WORDS[k].ph; });
@@ -1280,8 +1679,8 @@
     var middle = vt.spells.length > 1
       ? { type: 'spellSort', team: t, rounds: 4 }
       : { type: 'buildWord', words: blend, rounds: 3 };
-    LESSONS.push({
-      id: 'vt-' + t, level: 5, n: i + 1, team: t, vowel: true,
+    return add({
+      id: 'vt-' + t, level: 5, n: n, unit: unit, team: t, vowel: true,
       name: vt.spells.map(function (sp) { return sp.as; }).join(' · ') + '   ' + vt.ipa,
       shortName: vt.spells[0].as + ' ' + vt.ipa,
       icon: WORDS[pics[0]].icon,
@@ -1293,10 +1692,24 @@
         { type: 'wordPick', words: pics, rounds: 2 }
       ]
     });
-  });
-
-  LESSONS.push({
-    id: 'vt-review', level: 5, n: 90, name: 'Every Team', shortName: 'Every Team',
+  }
+  teamStop('ai', 1, U5A);  storyStop('snailtrain', 5, 2, U5A);
+  teamStop('ee', 3, U5A);  storyStop('threebees', 5, 4, U5A);
+  teamStop('oa', 5, U5A);  storyStop('goatcoat', 5, 6, U5A);
+  teamStop('igh', 7, U5A); storyStop('nightlight', 5, 8, U5A);
+  teamStop('oo', 10, U5B); teamStop('uu', 11, U5B); storyStop('cookboot', 5, 12, U5B);
+  teamStop('ou', 13, U5B); storyStop('owlcow', 5, 14, U5B);
+  teamStop('oi', 15, U5B); storyStop('boycoin', 5, 16, U5B);
+  teamStop('ar', 20, U5C); storyStop('farstar', 5, 21, U5C);
+  teamStop('or', 22, U5C); teamStop('er', 23, U5C);
+  teamStop('air', 24, U5C); teamStop('ear', 25, U5C);
+  /* The second list of tricky words arrives here now, not at Level 7: by six
+     she is reading the stories above, and `they`, `come`, `where` are all in
+     them. */
+  add({ id: 'sight-1b', level: 5, n: 30, unit: U5D, name: 'More Words to Just Know', shortName: 'Tricky Words',
+    icon: 'question', activities: [{ type: 'sightRead', set: 'second', rounds: 8 }] });
+  add({
+    id: 'vt-review', level: 5, n: 31, unit: U5D, name: 'Every Team', shortName: 'Every Team',
     icon: 'trophy', review: true,
     activities: [
       { type: 'spellSort', teams: VOWELKEYS.filter(function (t) { return VOWELTEAMS[t].spells.length > 1; }), rounds: 6 },
@@ -1306,27 +1719,21 @@
   });
 
   /* ---- Level 6 ---- */
-  LESSONS.push({
-    id: 'y-beats2', level: 6, n: 1, name: 'Clap the Beats', shortName: 'Two Beats',
-    icon: 'rabbit',
-    activities: [{ type: 'beats', max: 2, rounds: 6 }]
-  });
-  LESSONS.push({
-    id: 'y-beats3', level: 6, n: 2, name: 'Three Beats', shortName: 'Three Beats',
-    icon: 'banana',
-    activities: [{ type: 'beats', max: 3, rounds: 6 }]
-  });
-  LESSONS.push({
-    id: 'y-compound', level: 6, n: 3, name: 'Two Words in One', shortName: 'Two in One',
+  var U6A = 'Beats and Joins', U6B = 'Endings', U6C = 'Soft c and Soft g', U6D = 'Review';
+  add({ id: 'y-beats2', level: 6, n: 1, unit: U6A, name: 'Clap the Beats', shortName: 'Two Beats',
+    icon: 'rabbit', activities: [{ type: 'beats', max: 2, rounds: 6 }] });
+  add({ id: 'y-beats3', level: 6, n: 2, unit: U6A, name: 'Three Beats', shortName: 'Three Beats',
+    icon: 'banana', activities: [{ type: 'beats', max: 3, rounds: 6 }] });
+  add({ id: 'y-compound', level: 6, n: 3, unit: U6A, name: 'Two Words in One', shortName: 'Two in One',
     icon: 'cupcake',
     activities: [
       { type: 'joinWords', rounds: 6 },
       { type: 'readPick', words: COMPOUNDS.map(function (c) { return c.word; }), rounds: 4 }
-    ]
-  });
+    ] });
+  storyStop('snowsunset', 6, 4, U6A);
   ENDINGS.forEach(function (e, i) {
-    LESSONS.push({
-      id: 'y-' + e.id, level: 6, n: 4 + i, ending: e.id,
+    add({
+      id: 'y-' + e.id, level: 6, n: 10 + i, unit: U6B, ending: e.id,
       name: e.name + '   -' + e.ending, shortName: '-' + e.ending,
       icon: e.id === 'plural' ? 'three' : (e.id === 'ing' ? 'jumping' : (e.id === 'ed' ? 'painting' : 'farmer')),
       activities: [
@@ -1336,9 +1743,10 @@
       ]
     });
   });
+  storyStop('busytown', 6, 15, U6B);
   SOFT.forEach(function (sf, i) {
-    LESSONS.push({
-      id: 'y-' + sf.id, level: 6, n: 10 + i, soft: sf.id,
+    add({
+      id: 'y-' + sf.id, level: 6, n: 20 + i, unit: U6C, soft: sf.id,
       name: sf.name, shortName: 'soft ' + sf.letter,
       icon: sf.softWords[0],
       activities: [
@@ -1348,8 +1756,9 @@
       ]
     });
   });
-  LESSONS.push({
-    id: 'y-review', level: 6, n: 90, name: 'All the Long Words', shortName: 'All Together',
+  storyStop('gentlegiant', 6, 23, U6C);
+  add({
+    id: 'y-review', level: 6, n: 90, unit: U6D, name: 'All the Long Words', shortName: 'All Together',
     icon: 'trophy', review: true,
     activities: [
       { type: 'beats', max: 3, rounds: 4 },
@@ -1360,68 +1769,70 @@
   });
 
   /* ---- Level 7 ----
-     Four things alternate, because at seven they are four different skills
-     and a week of one without the others shows: a decodable book, spelling
-     from dictation, an article read for the answer, and a chapter of one
-     story long enough to have to be remembered between sittings. */
-  BOOKS.forEach(function (bk, i) {
-    LESSONS.push({
-      id: 'bk-' + bk.id, level: 7, n: 1 + i * 4, book: bk.id,
-      name: bk.title, shortName: bk.title,
-      icon: WORDS[bk.pages[0].pic].icon,
-      activities: [{ type: 'book', book: bk.id }]
-    });
-  });
-  SPELLINGS.forEach(function (sp, i) {
-    LESSONS.push({
-      id: 'sp-' + sp.id, level: 7, n: 2 + i * 4, name: sp.name,
-      shortName: sp.name.replace('Write the ', 'Write: '),
-      icon: 'pen',
-      activities: [{ type: 'spellIt', set: sp.id, rounds: 5 }]
-    });
-  });
-  ARTICLES.forEach(function (ar, i) {
-    LESSONS.push({
-      id: 'ar-' + ar.id, level: 7, n: 3 + i * 4, article: ar.id,
+     Six units, and every unit holds one of each of the four jobs: a book,
+     an article, a chapter, and a spelling set. That is the same alternation
+     as before — reading and writing and reading for meaning, never a week of
+     one — but now it is visible as a week's worth of work under one heading,
+     which is how a grown-up plans. */
+  function bookStop(id, n, unit) {
+    var bk = BOOKS.filter(function (x) { return x.id === id; })[0];
+    return add({ id: 'bk-' + id, level: 7, n: n, unit: unit, book: id,
+      name: bk.title, shortName: bk.title, icon: WORDS[bk.pages[0].pic].icon,
+      activities: [{ type: 'book', book: id }] });
+  }
+  function articleStop(id, n, unit) {
+    var ar = ARTICLES.filter(function (x) { return x.id === id; })[0];
+    return add({ id: 'ar-' + id, level: 7, n: n, unit: unit, article: id,
       name: ar.title, shortName: ar.title, icon: ar.icon,
       activities: [
-        { type: 'article', article: ar.id },
-        { type: 'wordMeaning', article: ar.id },
-        { type: 'putInOrder', article: ar.id },
-        { type: 'trueOrNot', article: ar.id, rounds: 3 },
-        { type: 'articleAsk', article: ar.id }
-      ]
-    });
-  });
-  CHAPTERS.parts.forEach(function (ch, i) {
-    LESSONS.push({
-      id: 'ch-' + ch.id, level: 7, n: 4 + i * 4, chapter: ch.id,
-      name: CHAPTERS.title + ' \u00b7 ' + ch.name,
-      shortName: 'Chapter ' + ch.n + ': ' + ch.name,
-      icon: ch.icon,
-      activities: [{ type: 'chapter', chapter: ch.id }]
-    });
-  });
-  LESSONS.push({
-    id: 'sight-2', level: 7, n: 80, name: 'Words You Cannot Sound Out', shortName: 'Tricky Words',
-    icon: 'question',
-    activities: [{ type: 'sightRead', rounds: 8 }]
-  });
-  LESSONS.push({
-    id: 'ch-all', level: 7, n: 85, name: 'The Whole Story', shortName: 'The Whole Story',
-    icon: 'book', review: true,
-    activities: [{ type: 'wholeStory' }]
-  });
-  LESSONS.push({
-    id: 'bk-review', level: 7, n: 90, name: 'Read On Your Own', shortName: 'On Your Own',
+        { type: 'article', article: id },
+        { type: 'wordMeaning', article: id },
+        { type: 'putInOrder', article: id },
+        { type: 'trueOrNot', article: id, rounds: 3 },
+        { type: 'articleAsk', article: id }
+      ] });
+  }
+  function chapterStop(bookId, partId, n, unit) {
+    var bk = CHAPTER_BOOKS.filter(function (x) { return x.id === bookId; })[0];
+    var ch = bk.parts.filter(function (x) { return x.id === partId; })[0];
+    return add({ id: 'ch-' + partId, level: 7, n: n, unit: unit, chapter: partId,
+      name: bk.title + ' · ' + ch.name, shortName: 'Chapter ' + ch.n + ': ' + ch.name,
+      icon: ch.icon, activities: [{ type: 'chapter', chapter: partId }] });
+  }
+  function wholeStop(bookId, n, unit) {
+    var bk = CHAPTER_BOOKS.filter(function (x) { return x.id === bookId; })[0];
+    return add({ id: 'ch-all-' + bookId, level: 7, n: n, unit: unit, review: true,
+      name: bk.title + ': The Whole Story', shortName: 'The Whole Story',
+      icon: 'book', activities: [{ type: 'wholeStory', book: bookId }] });
+  }
+  function spellStop(id, n, unit) {
+    var sp = SPELLINGS.filter(function (x) { return x.id === id; })[0];
+    return add({ id: 'sp-' + id, level: 7, n: n, unit: unit, name: sp.name,
+      shortName: sp.name.replace('Write the ', 'Write: '),
+      icon: 'pen', activities: [{ type: 'spellIt', set: id, rounds: 5 }] });
+  }
+  var U7 = ['Unit 1', 'Unit 2', 'Unit 3', 'Unit 4', 'Unit 5', 'Unit 6'];
+  U7 = [U7[0] + ': Seeds and Kites', U7[1] + ': Rain and the Wood', U7[2] + ': Ants and Boats',
+        U7[3] + ': The Moon and Max', U7[4] + ': Night and Teeth', U7[5] + ': Frogs and Volcanoes'];
+  bookStop('snailrain', 1, U7[0]);  articleStop('seed', 2, U7[0]);   chapterStop('kite', 'k1', 3, U7[0]); spellStop('cvc', 4, U7[0]);
+  bookStop('cookwood', 11, U7[1]);  articleStop('rain', 12, U7[1]);  chapterStop('kite', 'k2', 13, U7[1]); spellStop('teams', 14, U7[1]);
+  bookStop('boyboat', 21, U7[2]);   articleStop('ants', 22, U7[2]);  chapterStop('kite', 'k3', 23, U7[2]); spellStop('vowels', 24, U7[2]);
+  wholeStop('kite', 25, U7[2]);
+  bookStop('moonhid', 31, U7[3]);   articleStop('moon', 32, U7[3]);  chapterStop('max', 'm1', 33, U7[3]); spellStop('magic', 34, U7[3]);
+  articleStop('nightlife', 41, U7[4]); articleStop('teeth', 42, U7[4]); chapterStop('max', 'm2', 43, U7[4]); spellStop('more', 44, U7[4]);
+  articleStop('frog', 51, U7[5]);   articleStop('volcano', 52, U7[5]); chapterStop('max', 'm3', 53, U7[5]);
+  wholeStop('max', 54, U7[5]);
+  var U7R = 'Review';
+  add({ id: 'sight-2', level: 7, n: 80, unit: U7R, name: 'All the Tricky Words', shortName: 'Tricky Words',
+    icon: 'question', activities: [{ type: 'sightRead', rounds: 8 }] });
+  add({ id: 'bk-review', level: 7, n: 90, unit: U7R, name: 'Read On Your Own', shortName: 'On Your Own',
     icon: 'trophy', review: true,
     activities: [
       { type: 'sightRead', rounds: 4 },
       { type: 'spellIt', set: 'vowels', rounds: 4 },
       { type: 'bookQuestions', rounds: 4 },
       { type: 'trueOrNot', rounds: 4 }
-    ]
-  });
+    ] });
 
   /* review stops sit after the letters they cover */
   LESSONS.sort(function (a, b) {
@@ -1449,7 +1860,7 @@
     STORIES: STORIES,
     BOOKS: BOOKS,
     ARTICLES: ARTICLES,
-    CHAPTERS: CHAPTERS,
+    CHAPTER_BOOKS: CHAPTER_BOOKS,
     BEATS: BEATS,
     COMPOUNDS: COMPOUNDS,
     ENDINGS: ENDINGS,
@@ -1459,7 +1870,15 @@
     story: function (id) { return STORIES.filter(function (x) { return x.id === id; })[0]; },
     book: function (id) { return BOOKS.filter(function (x) { return x.id === id; })[0]; },
     article: function (id) { return ARTICLES.filter(function (x) { return x.id === id; })[0]; },
-    chapter: function (id) { return CHAPTERS.parts.filter(function (x) { return x.id === id; })[0]; },
+    chapterBook: function (id) { return CHAPTER_BOOKS.filter(function (x) { return x.id === id; })[0]; },
+    /* a chapter, and the book it belongs to */
+    chapter: function (id) {
+      for (var i = 0; i < CHAPTER_BOOKS.length; i++) {
+        var hit = CHAPTER_BOOKS[i].parts.filter(function (x) { return x.id === id; })[0];
+        if (hit) return { book: CHAPTER_BOOKS[i], part: hit };
+      }
+      return null;
+    },
     ending: function (id) { return ENDINGS.filter(function (x) { return x.id === id; })[0]; },
     softOf: function (id) { return SOFT.filter(function (x) { return x.id === id; })[0]; },
     spellingSet: function (id) { return SPELLINGS.filter(function (x) { return x.id === id; })[0]; },

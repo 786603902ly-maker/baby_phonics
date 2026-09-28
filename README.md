@@ -15,27 +15,57 @@ what she has actually finished.
 - **Plan:** [docs/PLAN.md](docs/PLAN.md) — read the Revision 2 note at the top first
 - **App source:** [`web/`](web/)
 
+> **Is the live site showing locked levels?** Then it is not running this
+> branch. Vercel deploys the repository's *default* branch, which is
+> `claude/inspiring-pascal-v4elni` and stops before Levels 5–7 were built.
+> The work is on `claude/determined-tesla-ppjjy3`. Merge it into the default
+> branch — it is strictly ahead, so it fast-forwards with no conflicts — or
+> set Vercel's Production Branch to it (Project → Settings → Git). See
+> [Which branch is live](#which-branch-is-live).
+
 ## What is built
 
-All seven levels are built. **102 stops, age 3 to age 7**, from "point at the
-cat" to reading an article to find something out and writing words down from
-hearing them.
+All seven levels are built. **131 stops in 29 named units, age 3 to age 7**,
+from "point at the cat" to reading an article to find something out and
+writing words down from hearing them. **31 stories, 8 articles, 2 chapter
+books, 24 sentences, 46 tricky words.**
 
-| Level | Age | Stops | Open it when | What it is |
+| Level | Age | Stops | Units | What it is |
 |---|---|---|---|---|
-| 1 · Look and Listen | 3–4 | 8 | She can point at a picture when you name it | Vocabulary only. Hear a word, find the picture. Memory pairs. No letters. |
-| 2 · The Alphabet | 4–5 | 30 | She can sit through one card and copy a sound back | A–Z + 4 reviews. Each stop is her OPW card, made interactive. |
-| 3 · Reading Words | 5–6 | 14 | She knows most single-letter sounds | Blending. One short vowel at a time, then ck / sh / ch / th / ng, then blends, then magic e. |
-| 4 · Reading Books | 5½–6½ | 8 | She reads short words without spelling out every letter | Decodable sentences to build, the first twenty sight words, and three short stories with questions. |
-| 5 · Same Sound, New Look | 6–7 | 14 | She reads short words easily and has met sh, ch, th and magic e | The thirteen vowel teams, each with every way English spells it. |
-| 6 · Longer Words | 6½–7 | 10 | She reads one-syllable words with vowel teams in them | Syllables, compounds, -s / -ing / -ed / -er, soft c and soft g. |
-| 7 · Real Books | 7+ | 18 | She reads most words without stopping | Four decodable books, **five articles**, **a story in three chapters**, spelling from dictation, and the 46 tricky words. |
+| 1 · Look and Listen | 3–4 | 8 | Animals · Things to Eat · My World | Vocabulary only. Hear a word, find the picture. Memory pairs. No letters. |
+| 2 · The Alphabet | 4–5 | 30 | Letters a–f · g–l · m–r · s–z | A–Z + 4 reviews. Each stop is her OPW card, made interactive. |
+| 3 · Reading Words | 5–6 | 14 | Short Vowels · Two Letters, One Sound · Two Sounds Together · Magic e | Blending: short vowels, then ck / sh / ch / th / ng, blends, magic e. |
+| 4 · Reading Books | 5½–6½ | 16 | Building Sentences · Little Books | 24 sentences to build and read, the first 20 sight words, and **9 little books**. |
+| 5 · Same Sound, New Look | 6–7 | 23 | ai ee oa igh · oo ou oi · vowels with r · Tricky Words | 13 vowel teams, each followed the same day by **a story built on it** (8 stories), and the second 26 tricky words. |
+| 6 · Longer Words | 6½–7 | 13 | Beats and Joins · Endings · Soft c and g · Review | Syllables, compounds, -s / -ing / -ed / -er, soft c and g — **a story for each** (3). |
+| 7 · Real Books | 7+ | 27 | Unit 1 … Unit 6 · Review | **Six units, each a week of work**: a decodable book, an article, a chapter, a spelling set. **8 articles, 2 chapter books, 5 spelling sets.** |
 
 **The ages are what to expect, not what to enforce**, and nothing in the app
 is locked. A five-year-old reading `cat` belongs in Level 3 whatever the table
 says; a six-year-old still learning letters belongs in Level 2. The order is
 what matters, because every level needs the one before it. **Grown-ups → Plan**
 says all of this on screen, against the child's own age and her own progress.
+
+### Units: how each level is organised
+
+Every stop belongs to a named **unit**, and the map draws a heading wherever
+one begins, with how many of its stops are done. A level of thirty stops in one
+long path was a list; the same stops under four headings is a plan, and a
+grown-up can see where she is in it without counting.
+
+Levels 4 to 6 put a **story straight after the skill it uses** — the `ai` card,
+then *The Snail on the Train*; the endings, then *A Busy Day in Town* — so a
+new pattern is met in a sentence on the same day it is met on a card, rather
+than a level later.
+
+Level 7 is **six units that each hold one of each of its four jobs**: a
+decodable book, an article, a chapter, a spelling set. About a week's work
+each. That is the same alternation it always had — reading, reading for
+meaning, and writing, never a week of one — made visible as something a parent
+can plan by.
+
+`tools/check-lessons.mjs` refuses a stop with no unit, and a unit whose stops
+are split apart (which would draw its heading twice, each with half the count).
 
 ### Level 3 games
 
@@ -53,8 +83,15 @@ says all of this on screen, against the child's own age and her own progress.
 - **Put the Words in Order** — word cards to build a sentence, which is then
   read back.
 - **Read and Choose** — a sentence, three pictures.
-- **Stories** — five pages each, one sentence and one picture per page, every
-  word tappable to hear it, then two comprehension questions.
+- **Words to just know** — the first 20 sight words (`the`, `said`, `was`…),
+  which are in almost every sentence of this level and cannot be sounded out.
+- **Little books** — nine of them, six pages or so each, one sentence and one
+  picture per page, every word tappable, then two comprehension questions:
+  *The Cat and the Rat*, *The Fox and the Box*, *Pig in the Mud*, *The Hen and
+  the Egg*, *Dad and the Net*, *The Dog and the Sock*, *The King Can Sing*,
+  *Chip the Rat*, *Fun in the Sun*. Every word decodable with what Level 3
+  taught or one of the twenty sight words; each a small story with a turn in
+  it, not a list of sentences that share a picture.
 
 ### Level 5 games
 
@@ -66,6 +103,12 @@ says all of this on screen, against the child's own age and her own progress.
   spelling does this one use. This is the whole level in one game.
 - **Sound it out**, **Read the word**, **Which word says it** — as Level 3,
   now with the vowel teams as single tiles, because they are single sounds.
+- **A story for the team** — straight after its card: *The Snail on the Train*
+  (ai), *Three Bees in a Tree* (ee), *Goat in a Coat* (oa), *The Fly and the
+  Light* (igh), *Cook and the Boot* (oo), *The Owl and the Cow* (ou), *The Boy
+  and the Coin* (oi), *The Star on the Farm* (ar).
+- **More words to just know** — the second 26 tricky words (`they`, `come`,
+  `where`…). They used to wait until Level 7; they are in the stories here.
 
 ### Level 6 games
 
@@ -79,6 +122,8 @@ says all of this on screen, against the child's own age and her own progress.
   in the ending.
 - **Soft c / soft g** — the card shows both jobs side by side, then sorts
   words into them.
+- **Stories of long words** — *The Snowman at Sunset* (compounds), *A Busy Day
+  in Town* (-ing, -er), *The Gentle Giant* (soft c and g).
 
 ### Level 7 games
 
@@ -88,9 +133,10 @@ that is the wrong way round, so Level 7 is four different jobs alternating.
 
 - **Books** — four decodable ones, eight pages each, every word tappable,
   three comprehension questions instead of two.
-- **Articles** — five pieces of short non-fiction: *How a Seed Becomes a
+- **Articles** — eight pieces of short non-fiction: *How a Seed Becomes a
   Tree*, *Where Rain Comes From*, *What Ants Do All Day*, *Why the Moon
-  Changes*, *Animals That Come Out at Night*. Read for the answer, not for
+  Changes*, *Animals That Come Out at Night*, *Where Frogs Come From*, *Why We
+  Brush Our Teeth*, *What Is a Volcano?*. Read for the answer, not for
   the practice, so the vocabulary is ordinary English rather than a
   controlled list — and every word is tappable, because at seven an
   unfamiliar word is something to reach for. Each one carries four things
@@ -102,11 +148,12 @@ that is the wrong way round, so Level 7 is four different jobs alternating.
   - **True or not true** — four statements, two of them false in a way that
     only the article settles.
   - **Read and answer** — the ordinary comprehension check.
-- **A story in three chapters** — *The Kite That Would Not Come Down*. The
-  first story in the app long enough that chapter one has to be **remembered
-  between sittings**: everything before it fitted on one screen's worth of
-  pages, so nothing in it ever had to be held. **The Whole Story** at the end
-  asks questions no single chapter answers.
+- **Two chapter books**, three chapters each — *The Kite That Would Not Come
+  Down* and *Mei and the Missing Dog*, with the same two children in both,
+  because carrying characters over is what makes a series and a series is what
+  makes a reader want the next one. The first stories in the app long enough
+  that chapter one has to be **remembered between sittings**. **The Whole
+  Story** at the end of each asks questions no single chapter answers.
 - **Write it down** — dictation. She hears the word and builds it out of
   letters with **no picture on the screen**. That is the whole difference
   between this and Build the Word, and it is the difference between matching
@@ -321,7 +368,7 @@ and a phone with no British English voice reads *ax* and *durian* accordingly.
 
 So all of it is recorded too, in one British neural voice (the same one the
 four synthesised letter clips come from):
-**819 clips, 11 minutes, 4.1 MB** — every keyword and sight word, every letter
+**1,237 clips, about 24 minutes, 8.6 MB** — every keyword and sight word, every letter
 name, every sentence and story page, and every line of instruction and praise.
 `tools/make-speech-audio.py` generates them; the text comes from
 `tools/speech-texts.mjs`, which reads `content.js` and the `A.say()` literals in
@@ -348,14 +395,33 @@ python3 tools/make-speech-audio.py --show-phonemes   # check the odd words
 awkward ones were checked: *ax* /aks/, *yacht* /jɒt/, *durian* /djʊəriən/,
 *tomato* /təmɑːtəʊ/, *zebra* /zɛbrə/ — British throughout.
 
-One word needed deciding rather than checking. Asked for `a` on its own, espeak
-gives the letter name /eɪ/, which is not wrong but is not the word: in *A cat
-sat on a mat* the article is /ə/. In fluent speech that /ə/ is squeezed down to
-about seventy milliseconds, too short to cut out and hand to a child as a word,
-so it is taken from somewhere the same sound is unhurried — the end of *banana*
-— and held to a fifth of a second.
+**The word `a` is the teacher's recording.** When the letter sounds became
+recordings of a reading teacher, the word `a` was left behind: it lives in a
+different file (`audio/speech/a.mp3`, not `audio/letters/a.mp3`), and it was
+still a fifth of a second of synthetic schwa cut from the end of *banana*. So
+the letter card said "a" in a person's voice, and the moment the same letter
+turned up as a word — placing the `A` card in *A fox is in the box* — it said
+it in the synthesiser's, as a short grunt. That was reported as the correction
+not having reached the sentences, which is exactly what had happened.
 
-The build is reproducible: the same command produces the same 819 files. That
+The word clip is now the letter card's recording, byte for byte. Read inside a
+whole sentence the article is still the natural unstressed vowel, because the
+sentence is its own recording; only the word on its own — tapped, or placed in
+the sentence game — changes, and on its own, what a four-year-old has been
+taught `a` says is what the letter card says.
+
+**Sentences are read 20% slower.** Every line — sentences, story and article
+pages, questions, instructions — is spoken at 80% of the pace it used to be;
+single words are unchanged. At the old pace a five-word sentence went by faster
+than a five-year-old can follow it with a finger. It is done by asking the
+*voice* to speak slower, not by playing the clip back slower: Web Audio has no
+pitch-preserving playback, and a clip played at 0.8× comes out 20% lower as
+well — a different, drowsy voice. The factor is measured rather than assumed,
+because the model's `length_scale` does not map one to one onto the length of
+what comes out: ×1.25 gave only 14% longer audio; ×1.35 gives 24%, which is
+speed 80%.
+
+The build is reproducible: the same command produces the same files. That
 comes from seeding the model before its session is created; each take is then
 reseeded from its own text and attempt number, which is what makes a retry draw
 something different rather than repeating itself. Reseeding does not isolate a
@@ -529,6 +595,24 @@ Works offline after the first load. On an iPad: open in Safari, Share →
 chrome, which is what a four-year-old should see.
 
 
+## Which branch is live
+
+**Vercel deploys the repository's default branch**, and in this repository that
+is `claude/inspiring-pascal-v4elni`. It ends at the commit *before* Levels 5–7
+were built, so a site that shows Levels 5, 6 and 7 locked, and Level 4 as
+"0 / 7", is running that branch — not a stale cache, not a failed build.
+
+The work since is on `claude/determined-tesla-ppjjy3`, which is strictly ahead
+of the default branch: it contains everything the default branch has and more,
+so merging it is a fast-forward with nothing to resolve. Either:
+
+- **merge it** — open a pull request from `claude/determined-tesla-ppjjy3` into
+  `claude/inspiring-pascal-v4elni` and merge; Vercel redeploys on its own; or
+- **point Vercel at it** — Project → Settings → Git → Production Branch.
+
+To check what the tablet is actually running: **Grown-ups → Settings** prints
+the commit it was built from.
+
 ## Deploying to Vercel
 
 The repo is ready: `vercel.json` sets the build, `tools/dist.mjs` assembles
@@ -670,13 +754,14 @@ node tools/dist.mjs       # assemble dist/ exactly as Vercel will
 `web/icons.js`, `web/icons-words.js` and `web/icons-more.js` hold all 240
 pictures as inline SVG: no image files, nothing to break offline.
 
-**The whole app is 5 MB**, of which 4.6 MB is audio — every word, sentence,
-article and story page recorded, plus 90 letter-sound clips. All of it is
+**The whole app is about 9.7 MB**, of which 9.2 MB is audio — 1,237 spoken
+clips (every word, sentence, story page and article, now read 20% slower, which
+alone makes them a quarter longer) plus 90 letter-sound clips. All of it is
 precached, which is what makes it work with no network at all: on a tablet
-that is a one-off download of a few seconds on wifi, and nothing after that.
-Lazy-loading the Level 7 articles would halve the first load and break the
-offline promise for exactly the level that most needs a quiet corner, so it
-is not done.
+that is a one-off download of well under a minute on home wifi, and nothing
+after that. Lazy-loading the later levels would shrink the first load and
+break the offline promise for exactly the levels that most need a quiet
+corner, so it is not done.
 
 After editing `web/page.html`, regenerate the standalone page:
 
